@@ -7,6 +7,7 @@ export interface GameConfig {
   isGameActive: boolean;
   gameStartTime: number | null;
   gameEndTime: number | null;
+  sessionId: string; // Unique session/class identifier
 }
 
 const GAME_CONFIG_KEY = "puzzle-game-config";
@@ -34,13 +35,14 @@ export const GameSync = {
   },
 
   // Start game
-  startGame(timeLimit: number, maxQuotes: number): void {
+  startGame(timeLimit: number, maxQuotes: number, sessionId?: string): void {
     const config: GameConfig = {
       timeLimit,
       maxQuotes,
       isGameActive: true,
       gameStartTime: Date.now(),
       gameEndTime: Date.now() + timeLimit * 1000,
+      sessionId: sessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     this.setConfig(config);
   },

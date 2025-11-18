@@ -105,8 +105,11 @@ export default function GameMasterPage() {
     return unsubscribe;
   }, []);
 
+  const [sessionName, setSessionName] = useState("");
+
   const handleStartGame = () => {
-    GameSync.startGame(timeLimit * 60, maxQuotes);
+    const sessionId = sessionName.trim() || `Class-${new Date().toLocaleDateString()}-${Date.now()}`;
+    GameSync.startGame(timeLimit * 60, maxQuotes, sessionId);
     setIsGameActive(true);
   };
 
@@ -115,11 +118,35 @@ export default function GameMasterPage() {
     setIsGameActive(false);
   };
 
-  const sortedLeaderboard = [...leaderboard].sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    if (b.score !== a.score) return b.score - a.score;
-    return a.time - b.time;
+  // Group leaderboard by session
+  const leaderboardBySession = leaderboard.reduce((acc, entry) => {
+    const sessionId = entry.sessionId || "unknown";
+    if (!acc[sessionId]) {
+      acc[sessionId] = [];
+    }
+    acc[sessionId].push(entry);
+    return acc;
+  }, {} as Record<string, typeof leaderboard>);
+
+  // Sort each session's leaderboard
+  Object.keys(leaderboardBySession).forEach((sessionId) => {
+    leaderboardBySession[sessionId].sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.score !== a.score) return b.score - a.score;
+      return a.time - b.time;
+    });
   });
+
+  // Get session names (use sessionId if no name provided)
+  const getSessionName = (sessionId: string) => {
+    if (sessionId.startsWith("Class-")) {
+      return sessionId.replace("Class-", "");
+    }
+    if (sessionId.startsWith("session-")) {
+      return `Session ${sessionId.split("-")[1]}`;
+    }
+    return sessionId;
+  };
 
   return (
     <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
@@ -174,6 +201,23 @@ export default function GameMasterPage() {
                 className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50"
               />
             </div>
+          </div>
+
+          {/* Session Name */}
+          <div className="mb-6 space-y-2">
+            <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Session/Class Name (Optional)
+            </label>
+            <input
+              type="text"
+              value={sessionName}
+              onChange={(e) => setSessionName(e.target.value)}
+              placeholder="e.g., Class A, Session 1, Morning Class"
+              disabled={isGameActive}
+              className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50"
+            />
+            <p className="text-xs text-gray-500">Leave empty to auto-generate a session ID</p>
           </div>
 
           {/* Game Status */}
@@ -274,52 +318,71 @@ export default function GameMasterPage() {
           </div>
         )}
 
-        {/* Leaderboard */}
+        {/* Leaderboard by Session */}
         <div className="bg-white border-2 border-gray-300 rounded-2xl p-6 shadow-xl">
           <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
             <Trophy className="w-6 h-6" />
-            Final Leaderboard
+            Final Leaderboard by Session
           </h2>
 
-          {sortedLeaderboard.length === 0 ? (
+          {Object.keys(leaderboardBySession).length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               {activePlayers.length === 0 
                 ? "No players yet. Waiting for players to join..."
                 : "No completed games yet. Players are still playing..."}
             </div>
           ) : (
-            <div className="space-y-2">
-              {sortedLeaderboard.map((entry, index) => {
-                const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}.`;
-                return (
-                  <div
-                    key={index}
-                    className={`flex items-center justify-between p-4 rounded-lg ${
-                      index === 0
-                        ? "bg-yellow-50 border-2 border-yellow-400"
-                        : index === 1
-                        ? "bg-gray-100 border-2 border-gray-400"
-                        : index === 2
-                        ? "bg-orange-100 border-2 border-orange-400"
-                        : "bg-gray-50 border border-gray-200"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl font-bold w-8">{medal}</span>
-                      <div>
-                        <div className="font-bold text-lg text-gray-800">{entry.name}</div>
-                        <div className="text-xs text-gray-600">
-                          {entry.score} correct • {formatTime(entry.time)}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-purple-600">{entry.points}</div>
-                      <div className="text-xs text-gray-600">points</div>
+            <div className="space-y-6">
+              {Object.entries(leaderboardBySession)
+                .sort(([a], [b]) => {
+                  // Sort by most recent session first
+                  const aTime = Math.max(...leaderboardBySession[a].map(e => e.timestamp));
+                  const bTime = Math.max(...leaderboardBySession[b].map(e => e.timestamp));
+                  return bTime - aTime;
+                })
+                .map(([sessionId, entries]) => (
+                  <div key={sessionId} className="border-2 border-gray-200 rounded-lg p-4">
+                    <h3 className="text-lg font-bold text-gray-700 mb-3 pb-2 border-b-2 border-gray-300">
+                      📚 {getSessionName(sessionId)}
+                      <span className="text-sm font-normal text-gray-500 ml-2">
+                        ({entries.length} {entries.length === 1 ? "player" : "players"})
+                      </span>
+                    </h3>
+                    <div className="space-y-2">
+                      {entries.map((entry, index) => {
+                        const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}.`;
+                        return (
+                          <div
+                            key={`${sessionId}-${index}`}
+                            className={`flex items-center justify-between p-3 rounded-lg ${
+                              index === 0
+                                ? "bg-yellow-50 border-2 border-yellow-400"
+                                : index === 1
+                                ? "bg-gray-100 border-2 border-gray-400"
+                                : index === 2
+                                ? "bg-orange-100 border-2 border-orange-400"
+                                : "bg-gray-50 border border-gray-200"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-xl font-bold w-6">{medal}</span>
+                              <div>
+                                <div className="font-bold text-base text-gray-800">{entry.name}</div>
+                                <div className="text-xs text-gray-600">
+                                  {entry.score} correct • {formatTime(entry.time)}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xl font-bold text-purple-600">{entry.points}</div>
+                              <div className="text-xs text-gray-600">points</div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                );
-              })}
+                ))}
             </div>
           )}
         </div>

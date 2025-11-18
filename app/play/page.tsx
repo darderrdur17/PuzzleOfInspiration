@@ -179,24 +179,27 @@ export default function PlayPage() {
   const calculateCorrectCount = useCallback((): number => {
     let count = 0;
     
+    // Count correctly placed quotes
     availableQuotes.forEach((quote) => {
       if (gameState.placements[quote.id] === quote.phase) {
         count++;
       }
     });
 
+    // Count correctly placed titles
     phaseTitles.forEach((title) => {
       if (gameState.titlePlacements[title.id] === title.phase) {
         count++;
       }
     });
 
+    // Count user piece if correctly placed
     if (gameState.placements["user-answer"] === "incubation") {
       count++;
     }
 
     return count;
-  }, [gameState.placements, gameState.titlePlacements, availableQuotes]);
+  }, [gameState.placements, gameState.titlePlacements, availableQuotes, phaseTitles]);
 
   const calculatePoints = useCallback((): number => {
     let points = 0;
@@ -260,12 +263,14 @@ export default function PlayPage() {
 
     const correctCount = calculateCorrectCount();
 
+    const sessionId = gameConfig?.sessionId || `session-${Date.now()}`;
     const newScore: PlayerScore = {
       name: playerName,
       score: correctCount,
       points: finalPoints,
       time: totalTime,
       timestamp: Date.now(),
+      sessionId,
     };
 
           // Remove from active players
@@ -277,13 +282,13 @@ export default function PlayPage() {
           }
 
           setLeaderboard((prev) => {
+            // Keep all entries (don't limit to 10) so we can group by session
             const updated = [...prev, newScore]
               .sort((a, b) => {
                 if (b.points !== a.points) return b.points - a.points;
                 if (b.score !== a.score) return b.score - a.score;
                 return a.time - b.time;
-              })
-              .slice(0, 10);
+              });
             // Use localStorage for cross-tab sync
             localStorage.setItem("creativity-leaderboard", JSON.stringify(updated));
             // Also keep in sessionStorage for backward compatibility
@@ -304,6 +309,20 @@ export default function PlayPage() {
 
     toast.success(`Time's up! Final score: ${finalPoints} points!`);
   }, [gameState.isCompleted, gameState.startTime, playerName, calculateFinalPoints, calculateCorrectCount]);
+
+  // Recalculate points whenever placements change to ensure accuracy
+  useEffect(() => {
+    if (gameState.isStarted && !gameState.isCompleted) {
+      // Recalculate points to ensure they're always accurate
+      const recalculatedPoints = calculatePoints();
+      if (Math.abs(recalculatedPoints - gameState.points) > 0.1) {
+        setGameState((prev) => ({
+          ...prev,
+          points: recalculatedPoints,
+        }));
+      }
+    }
+  }, [gameState.placements, gameState.titlePlacements, gameState.isStarted, gameState.isCompleted, calculatePoints, gameState.points]);
 
   // Update active player status in real-time
   useEffect(() => {
@@ -633,16 +652,30 @@ export default function PlayPage() {
     );
   }
 
-  let correctPlacements = Object.keys(gameState.placements).filter((id) => {
-    if (id === "user-answer") return gameState.placements[id] === "incubation";
-    const quote = availableQuotes.find((q) => q.id === id);
-    return quote && gameState.placements[id] === quote.phase;
-  }).length;
-
-  correctPlacements += Object.keys(gameState.titlePlacements).filter((id) => {
-    const title = phaseTitles.find((t) => t.id === id);
-    return title && gameState.titlePlacements[id] === title.phase;
-  }).length;
+  // Calculate correct placements accurately
+  const calculateCorrectPlacements = () => {
+    let count = 0;
+    
+    // Count correctly placed quotes (including user piece)
+    Object.keys(gameState.placements).forEach((id) => {
+      if (id === "user-answer") {
+        if (gameState.placements[id] === "incubation") count++;
+      } else {
+        const quote = availableQuotes.find((q) => q.id === id);
+        if (quote && gameState.placements[id] === quote.phase) count++;
+      }
+    });
+    
+    // Count correctly placed titles
+    Object.keys(gameState.titlePlacements).forEach((id) => {
+      const title = phaseTitles.find((t) => t.id === id);
+      if (title && gameState.titlePlacements[id] === title.phase) count++;
+    });
+    
+    return count;
+  };
+  
+  const correctPlacements = calculateCorrectPlacements();
 
   // Get remaining time from game config
   const remainingTime = gameConfig?.gameEndTime 

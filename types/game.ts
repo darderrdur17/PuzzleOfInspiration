@@ -30,6 +30,7 @@ export interface PlayerScore {
   points: number;
   time: number;
   timestamp: number;
+  sessionId?: string; // Session/class identifier
 }
 
 export interface GameMasterState {
