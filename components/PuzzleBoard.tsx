@@ -24,30 +24,30 @@ const phases = [
   { 
     id: "preparation", 
     label: "Preparation", 
-    color: "#FF6B6B",
-    birdPosition: { top: "15%", left: "10%" },
-    arrowPosition: { top: "5%", left: "12%" }
+    color: "#FF6B35",
+    goosePosition: { left: "8%", top: "8%" },
+    dropZonePosition: { left: "10%", top: "20%" }
   },
   { 
     id: "incubation", 
     label: "Incubation", 
     color: "#4ECDC4",
-    birdPosition: { top: "25%", left: "30%" },
-    arrowPosition: { top: "5%", left: "32%" }
+    goosePosition: { left: "28%", top: "8%" },
+    dropZonePosition: { left: "30%", top: "20%" }
   },
   { 
     id: "illumination", 
     label: "Illumination", 
     color: "#FFE66D",
-    birdPosition: { top: "35%", left: "50%" },
-    arrowPosition: { top: "5%", left: "52%" }
+    goosePosition: { left: "48%", top: "8%" },
+    dropZonePosition: { left: "50%", top: "20%" }
   },
   { 
     id: "verification", 
     label: "Verification", 
     color: "#95E1D3",
-    birdPosition: { top: "45%", left: "70%" },
-    arrowPosition: { top: "5%", left: "72%" }
+    goosePosition: { left: "68%", top: "8%" },
+    dropZonePosition: { left: "70%", top: "20%" }
   },
 ] as const;
 
@@ -87,97 +87,164 @@ export function PuzzleBoard({
         </div>
       </div>
 
-      {/* Elephant Puzzle Board */}
-      <div className="relative bg-gradient-to-b from-sky-200 to-amber-100 rounded-2xl p-8 min-h-[600px] overflow-hidden">
-        {/* Ground line */}
-        <div className="absolute bottom-0 left-0 right-0 h-2 bg-amber-700/30"></div>
-        
-        {/* Cloud */}
-        <div className="absolute top-4 right-8 w-24 h-16 bg-white/60 rounded-full opacity-70">
-          <div className="absolute -left-4 top-2 w-16 h-12 bg-white/60 rounded-full"></div>
-          <div className="absolute -right-4 top-2 w-16 h-12 bg-white/60 rounded-full"></div>
+      {/* Elephant Puzzle Board with Background Image Design */}
+      <div className="relative rounded-2xl p-8 min-h-[700px] overflow-hidden" style={{ background: 'linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 50%, #90EE90 100%)' }}>
+        {/* Sky Background */}
+        <div className="absolute inset-0">
+          {/* Clouds */}
+          <div className="absolute top-4 left-4 w-32 h-20 bg-white/70 rounded-full opacity-80">
+            <div className="absolute -left-8 top-4 w-24 h-16 bg-white/70 rounded-full"></div>
+            <div className="absolute -right-8 top-4 w-24 h-16 bg-white/70 rounded-full"></div>
+          </div>
+          <div className="absolute top-8 right-12 w-40 h-24 bg-white/70 rounded-full opacity-80">
+            <div className="absolute -left-10 top-6 w-32 h-20 bg-white/70 rounded-full"></div>
+            <div className="absolute -right-10 top-6 w-32 h-20 bg-white/70 rounded-full"></div>
+          </div>
         </div>
 
-        {/* Phase Title Drop Zones (Arrows) */}
-        <div className="absolute top-4 left-0 right-0 flex justify-around z-10">
-          {phases.map((phase) => {
-            const title = placedTitles[phase.id];
-            return (
-              <div
-                key={phase.id}
-                className="relative"
-                style={{ left: phase.arrowPosition.left }}
-              >
-                <div
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    if (draggedTitle) onDragOver(e, phase.id as Phase);
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (draggedTitle) onDrop(phase.id as Phase);
-                  }}
-                  className={cn(
-                    "w-24 h-16 flex items-center justify-center rounded-lg border-2 transition-all cursor-pointer",
-                    title
-                      ? "bg-green-500/30 border-green-500"
-                      : "bg-orange-400/40 border-orange-500 border-dashed"
-                  )}
-                >
-                  {title ? (
-                    <span className="text-xs font-bold text-green-700">{title.title}</span>
-                  ) : (
-                    <span className="text-xs text-orange-700">Drop title</span>
-                  )}
-                </div>
-                {/* Arrow pointer */}
-                <div
-                  className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8"
-                  style={{ borderTopColor: title ? "#10b981" : "#f97316" }}
+        {/* Ground Line */}
+        <div className="absolute bottom-0 left-0 right-0 h-20" style={{ background: 'linear-gradient(to top, #90EE90 0%, #FFFFE0 100%)' }}>
+          <div className="absolute top-0 left-0 right-0 h-1 bg-green-300/50"></div>
+        </div>
+
+        {/* Title Cloud */}
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20">
+          <div className="bg-white/90 rounded-full px-6 py-3 shadow-lg">
+            <h2 className="text-2xl font-bold text-gray-800">Creativity is...</h2>
+          </div>
+        </div>
+
+        {/* Credits */}
+        <div className="absolute top-2 left-2 z-20">
+          <div className="bg-orange-500 rounded-full px-3 py-1.5 mb-1 shadow-md">
+            <div className="text-xs text-white font-semibold">
+              Product Concept:<br />
+              Chai Kah Hin, PhD
+            </div>
+          </div>
+          <div className="bg-white/90 rounded-full px-3 py-1.5 shadow-md">
+            <div className="text-xs text-gray-700 font-semibold">
+              Graphic Design:<br />
+              Fan Jing
+            </div>
+          </div>
+        </div>
+
+        {/* Four Geese with Phase Labels */}
+        {phases.map((phase) => {
+          const title = placedTitles[phase.id];
+          return (
+            <div key={phase.id} className="absolute z-30" style={phase.goosePosition}>
+              {/* Goose SVG */}
+              <svg width="80" height="50" viewBox="0 0 80 50" className="mb-2">
+                <path
+                  d="M 10 25 Q 20 15 30 25 Q 40 15 50 25 Q 60 15 70 25"
+                  fill="white"
+                  stroke="#333"
+                  strokeWidth="2"
+                  strokeLinecap="round"
                 />
+                <circle cx="70" cy="25" r="5" fill="white" stroke="#333" strokeWidth="2" />
+                <circle cx="70" cy="25" r="3" fill="#ff4444" />
+                <path
+                  d="M 70 25 L 75 23 L 75 27 Z"
+                  fill="#ff4444"
+                />
+                <path
+                  d="M 72 22 L 74 20 L 72 18"
+                  fill="none"
+                  stroke="#ff4444"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              
+              {/* Phase Label Drop Zone */}
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (draggedTitle) onDragOver(e, phase.id as Phase);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (draggedTitle) onDrop(phase.id as Phase);
+                }}
+                className={cn(
+                  "w-32 h-12 flex items-center justify-center rounded-lg border-2 transition-all cursor-pointer shadow-lg",
+                  title
+                    ? "bg-green-500/30 border-green-500"
+                    : "bg-orange-400/40 border-orange-500 border-dashed"
+                )}
+              >
+                {title ? (
+                  <span className="text-sm font-bold text-green-700">{title.title}</span>
+                ) : (
+                  <span className="text-xs text-orange-700 font-semibold">Drop &quot;{phase.label}&quot;</span>
+                )}
               </div>
-            );
-          })}
+              
+              {/* Phase Label Below Goose */}
+              <div className="text-center mt-1">
+                <span className="text-sm font-bold" style={{ color: phase.color }}>
+                  {phase.label}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Elephant SVG - Large Background */}
+        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-5xl h-4/5 pointer-events-none z-10">
+          <svg 
+            viewBox="0 0 500 400" 
+            className="w-full h-full"
+            preserveAspectRatio="xMidYMax meet"
+          >
+            {/* Elephant Body */}
+            <ellipse cx="250" cy="280" rx="180" ry="110" fill="white" stroke="#333" strokeWidth="5" />
+            
+            {/* Elephant Head */}
+            <ellipse cx="380" cy="240" rx="90" ry="75" fill="white" stroke="#333" strokeWidth="5" />
+            
+            {/* Elephant Trunk */}
+            <path
+              d="M 380 240 Q 410 230 440 220 Q 455 210 450 200"
+              fill="none"
+              stroke="#333"
+              strokeWidth="5"
+              strokeLinecap="round"
+            />
+            
+            {/* Elephant Ear */}
+            <ellipse cx="320" cy="220" rx="65" ry="75" fill="white" stroke="#333" strokeWidth="4" />
+            
+            {/* Elephant Legs */}
+            <ellipse cx="160" cy="350" rx="30" ry="45" fill="white" stroke="#333" strokeWidth="4" />
+            <ellipse cx="220" cy="350" rx="30" ry="45" fill="white" stroke="#333" strokeWidth="4" />
+            <ellipse cx="280" cy="350" rx="30" ry="45" fill="white" stroke="#333" strokeWidth="4" />
+            <ellipse cx="340" cy="350" rx="30" ry="45" fill="white" stroke="#333" strokeWidth="4" />
+          </svg>
         </div>
 
-        {/* Elephant SVG */}
-        <svg
-          viewBox="0 0 400 300"
-          className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-2xl h-auto opacity-90"
-          style={{ maxHeight: "70%" }}
-        >
-          {/* Elephant body */}
-          <ellipse cx="200" cy="200" rx="120" ry="80" fill="white" stroke="#666" strokeWidth="3" />
-          {/* Elephant head */}
-          <ellipse cx="280" cy="180" rx="60" ry="50" fill="white" stroke="#666" strokeWidth="3" />
-          {/* Elephant trunk */}
-          <path
-            d="M 280 180 Q 300 170 310 160 Q 315 150 310 140"
-            fill="none"
-            stroke="#666"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-          {/* Elephant ear */}
-          <ellipse cx="240" cy="160" rx="40" ry="50" fill="white" stroke="#666" strokeWidth="2" />
-          {/* Elephant legs */}
-          <ellipse cx="140" cy="250" rx="20" ry="30" fill="white" stroke="#666" strokeWidth="2" />
-          <ellipse cx="180" cy="250" rx="20" ry="30" fill="white" stroke="#666" strokeWidth="2" />
-          <ellipse cx="220" cy="250" rx="20" ry="30" fill="white" stroke="#666" strokeWidth="2" />
-          <ellipse cx="260" cy="250" rx="20" ry="30" fill="white" stroke="#666" strokeWidth="2" />
-        </svg>
-
-        {/* Bird Drop Zones on Elephant */}
+        {/* Drop Zones for Quotes - Positioned on Elephant Body */}
         {phases.map((phase) => {
           const quotes = placedQuotes[phase.id] || [];
           const title = placedTitles[phase.id];
           const isHighlighted = highlightedZone === phase.id;
 
+          // Different positions for each phase on the elephant
+          const zonePositions = {
+            preparation: { left: "12%", top: "35%" },
+            incubation: { left: "32%", top: "40%" },
+            illumination: { left: "52%", top: "45%" },
+            verification: { left: "72%", top: "50%" },
+          };
+
           return (
             <div
               key={phase.id}
               className="absolute z-20"
-              style={phase.birdPosition}
+              style={zonePositions[phase.id as keyof typeof zonePositions]}
             >
               <div
                 onDragOver={(e) => onDragOver(e, phase.id as Phase)}
@@ -186,35 +253,31 @@ export function PuzzleBoard({
                   onDrop(phase.id as Phase);
                 }}
                 className={cn(
-                  "relative min-w-[200px] min-h-[120px] rounded-lg border-2 transition-all p-3",
+                  "relative min-w-[220px] min-h-[140px] rounded-lg border-2 transition-all p-3 shadow-lg",
                   isHighlighted
-                    ? "ring-4 ring-primary ring-offset-2 scale-110"
+                    ? "ring-4 ring-primary ring-offset-2 scale-110 z-30"
                     : "",
                   title && quotes.length > 0
-                    ? "bg-green-100/80 border-green-500"
-                    : "bg-white/60 border-dashed border-gray-400"
+                    ? "bg-green-100/90 border-green-500"
+                    : "bg-white/70 border-dashed border-gray-400"
                 )}
               >
-                {/* Bird icon */}
-                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
-                  <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-2xl"
-                    style={{ backgroundColor: phase.color }}
-                  >
-                    🐦
+                {/* Check mark if title is placed */}
+                {title && (
+                  <div className="absolute -top-3 -right-3 bg-green-500 rounded-full p-1">
+                    <CheckCircle2 className="w-5 h-5 text-white" />
                   </div>
-                </div>
+                )}
 
-                {/* Phase label */}
+                {/* Phase indicator */}
                 <div className="text-center mb-2">
                   <h3 className="text-sm font-bold text-gray-800">
                     {title ? title.title : phase.label}
                   </h3>
-                  {title && <CheckCircle2 className="w-4 h-4 text-green-500 mx-auto mt-1" />}
                 </div>
 
                 {/* Placed quotes */}
-                <div className="space-y-1 max-h-24 overflow-y-auto">
+                <div className="space-y-1 max-h-32 overflow-y-auto">
                   {quotes.map((quote) => (
                     <div
                       key={quote.id}
@@ -223,9 +286,9 @@ export function PuzzleBoard({
                       onDragEnd={onDragEnd}
                       className="cursor-move"
                     >
-                      <div className="text-xs bg-white/80 p-1 rounded border border-gray-300">
-                        <div className="font-semibold truncate">{quote.author}</div>
-                        <div className="text-gray-600 truncate">&quot;{quote.text.substring(0, 30)}...&quot;</div>
+                      <div className="text-xs bg-white/90 p-2 rounded border border-gray-300 shadow-sm">
+                        <div className="font-semibold truncate text-gray-800">{quote.author}</div>
+                        <div className="text-gray-600 truncate">&quot;{quote.text.substring(0, 35)}...&quot;</div>
                       </div>
                     </div>
                   ))}
@@ -233,7 +296,7 @@ export function PuzzleBoard({
 
                 {/* Empty state */}
                 {title && quotes.length === 0 && (
-                  <div className="text-center text-xs text-gray-500 mt-2">
+                  <div className="text-center text-xs text-gray-500 mt-4">
                     Drop quotes here
                   </div>
                 )}
