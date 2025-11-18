@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Settings, Play } from "lucide-react";
+import { Settings, Play, BookOpen } from "lucide-react";
 
 export default function Home() {
   return (
@@ -16,7 +16,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <a href="/game-master">
             <Button
               size="lg"
@@ -42,6 +42,22 @@ export default function Home() {
                 <div className="font-bold">Play Game</div>
                 <div className="text-sm font-normal opacity-90">
                   Join as a player
+                </div>
+              </div>
+            </Button>
+          </a>
+
+          <a href="/rules">
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full h-32 border-2 text-lg flex flex-col items-center justify-center gap-3"
+            >
+              <BookOpen className="w-10 h-10" />
+              <div>
+                <div className="font-bold">Rules & Guide</div>
+                <div className="text-sm font-normal opacity-90">
+                  Learn how to play
                 </div>
               </div>
             </Button>

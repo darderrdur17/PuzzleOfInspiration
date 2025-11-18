@@ -305,32 +305,55 @@ export default function PlayPage() {
 
   const handleDrop = (phase: Phase) => {
     if (draggedTitle) {
-      setAvailableTitles((prev) => prev.filter((t) => t.id !== draggedTitle.id));
-
-      setPlacedTitles((prev) => {
-        const newPlacements = { ...prev };
-        Object.keys(newPlacements).forEach((key) => {
-          if (newPlacements[key]?.id === draggedTitle.id) {
-            newPlacements[key] = null;
-          }
-        });
-        newPlacements[phase] = draggedTitle;
-        return newPlacements;
-      });
-
-      setGameState((prev) => ({
-        ...prev,
-        titlePlacements: {
-          ...prev.titlePlacements,
-          [draggedTitle.id]: phase,
-        },
-      }));
-
       const isCorrect = draggedTitle.phase === phase;
+      
       if (isCorrect) {
+        // Correct placement - keep it there
+        setAvailableTitles((prev) => prev.filter((t) => t.id !== draggedTitle.id));
+
+        setPlacedTitles((prev) => {
+          const newPlacements = { ...prev };
+          Object.keys(newPlacements).forEach((key) => {
+            if (newPlacements[key]?.id === draggedTitle.id) {
+              newPlacements[key] = null;
+            }
+          });
+          newPlacements[phase] = draggedTitle;
+          return newPlacements;
+        });
+
+        setGameState((prev) => ({
+          ...prev,
+          titlePlacements: {
+            ...prev.titlePlacements,
+            [draggedTitle.id]: phase,
+          },
+        }));
+
         toast.success(`Correct! +${POINTS_CORRECT_TITLE} points`);
       } else {
-        toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points`);
+        // Wrong placement - return to available titles
+        toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points. Try again!`);
+        
+        // Remove from any previous placement
+        setPlacedTitles((prev) => {
+          const newPlacements = { ...prev };
+          Object.keys(newPlacements).forEach((key) => {
+            if (newPlacements[key]?.id === draggedTitle.id) {
+              newPlacements[key] = null;
+            }
+          });
+          return newPlacements;
+        });
+
+        setGameState((prev) => {
+          const newPlacements = { ...prev.titlePlacements };
+          delete newPlacements[draggedTitle.id];
+          return {
+            ...prev,
+            titlePlacements: newPlacements,
+          };
+        });
       }
 
       setDraggedTitle(null);
@@ -340,30 +363,51 @@ export default function PlayPage() {
 
     if (!draggedQuote) return;
 
-    setAvailableQuotes((prev) => prev.filter((q) => q.id !== draggedQuote.id));
-
-    setPlacedQuotes((prev) => {
-      const newPlacements = { ...prev };
-      Object.keys(newPlacements).forEach((key) => {
-        newPlacements[key] = newPlacements[key].filter((q) => q.id !== draggedQuote.id);
-      });
-      newPlacements[phase] = [...newPlacements[phase], draggedQuote];
-      return newPlacements;
-    });
-
-    setGameState((prev) => ({
-      ...prev,
-      placements: {
-        ...prev.placements,
-        [draggedQuote.id]: phase,
-      },
-    }));
-
     const isCorrect = draggedQuote.phase === phase;
+
     if (isCorrect) {
+      // Correct placement - keep it there
+      setAvailableQuotes((prev) => prev.filter((q) => q.id !== draggedQuote.id));
+
+      setPlacedQuotes((prev) => {
+        const newPlacements = { ...prev };
+        Object.keys(newPlacements).forEach((key) => {
+          newPlacements[key] = newPlacements[key].filter((q) => q.id !== draggedQuote.id);
+        });
+        newPlacements[phase] = [...newPlacements[phase], draggedQuote];
+        return newPlacements;
+      });
+
+      setGameState((prev) => ({
+        ...prev,
+        placements: {
+          ...prev.placements,
+          [draggedQuote.id]: phase,
+        },
+      }));
+
       toast.success(`Correct! +${POINTS_CORRECT_QUOTE} points`);
     } else {
-      toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points`);
+      // Wrong placement - return to available quotes
+      toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points. Try again!`);
+      
+      // Remove from any previous placement
+      setPlacedQuotes((prev) => {
+        const newPlacements = { ...prev };
+        Object.keys(newPlacements).forEach((key) => {
+          newPlacements[key] = newPlacements[key].filter((q) => q.id !== draggedQuote.id);
+        });
+        return newPlacements;
+      });
+
+      setGameState((prev) => {
+        const newPlacements = { ...prev.placements };
+        delete newPlacements[draggedQuote.id];
+        return {
+          ...prev,
+          placements: newPlacements,
+        };
+      });
     }
 
     setDraggedQuote(null);
@@ -371,7 +415,12 @@ export default function PlayPage() {
   };
 
   const handleDropUserPiece = (phase: Phase) => {
-    if (userPuzzlePiece && !gameState.placements["user-answer"]) {
+    if (!userPuzzlePiece) return;
+
+    const isCorrect = phase === "incubation";
+
+    if (isCorrect) {
+      // Correct placement - keep it there
       setPlacedQuotes((prev) => ({
         ...prev,
         [phase]: [...prev[phase], userPuzzlePiece],
@@ -386,12 +435,10 @@ export default function PlayPage() {
       }));
 
       setUserPuzzlePiece(null);
-      const isCorrect = phase === "incubation";
-      if (isCorrect) {
-        toast.success(`Correct! +${POINTS_USER_PIECE} points`);
-      } else {
-        toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points`);
-      }
+      toast.success(`Correct! +${POINTS_USER_PIECE} points`);
+    } else {
+      // Wrong placement - keep it in the initial box
+      toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points. Your creative moment should go in Incubation!`);
     }
   };
 

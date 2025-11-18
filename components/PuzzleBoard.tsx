@@ -88,78 +88,23 @@ export function PuzzleBoard({
       </div>
 
       {/* Elephant Puzzle Board with Background Image Design */}
-      <div className="relative rounded-2xl p-8 min-h-[700px] overflow-hidden" style={{ background: 'linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 50%, #90EE90 100%)' }}>
-        {/* Sky Background */}
-        <div className="absolute inset-0">
-          {/* Clouds */}
-          <div className="absolute top-4 left-4 w-32 h-20 bg-white/70 rounded-full opacity-80">
-            <div className="absolute -left-8 top-4 w-24 h-16 bg-white/70 rounded-full"></div>
-            <div className="absolute -right-8 top-4 w-24 h-16 bg-white/70 rounded-full"></div>
-          </div>
-          <div className="absolute top-8 right-12 w-40 h-24 bg-white/70 rounded-full opacity-80">
-            <div className="absolute -left-10 top-6 w-32 h-20 bg-white/70 rounded-full"></div>
-            <div className="absolute -right-10 top-6 w-32 h-20 bg-white/70 rounded-full"></div>
-          </div>
-        </div>
+      <div 
+        className="relative rounded-2xl p-8 min-h-[700px] overflow-hidden bg-cover bg-center bg-no-repeat"
+        style={{ 
+          backgroundImage: 'url(/5.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+      {/* Overlay for better drop zone visibility */}
+      <div className="absolute inset-0 bg-black/5"></div>
 
-        {/* Ground Line */}
-        <div className="absolute bottom-0 left-0 right-0 h-20" style={{ background: 'linear-gradient(to top, #90EE90 0%, #FFFFE0 100%)' }}>
-          <div className="absolute top-0 left-0 right-0 h-1 bg-green-300/50"></div>
-        </div>
-
-        {/* Title Cloud */}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20">
-          <div className="bg-white/90 rounded-full px-6 py-3 shadow-lg">
-            <h2 className="text-2xl font-bold text-gray-800">Creativity is...</h2>
-          </div>
-        </div>
-
-        {/* Credits */}
-        <div className="absolute top-2 left-2 z-20">
-          <div className="bg-orange-500 rounded-full px-3 py-1.5 mb-1 shadow-md">
-            <div className="text-xs text-white font-semibold">
-              Product Concept:<br />
-              Chai Kah Hin, PhD
-            </div>
-          </div>
-          <div className="bg-white/90 rounded-full px-3 py-1.5 shadow-md">
-            <div className="text-xs text-gray-700 font-semibold">
-              Graphic Design:<br />
-              Fan Jing
-            </div>
-          </div>
-        </div>
-
-        {/* Four Geese with Phase Labels */}
+        {/* Four Geese Drop Zones for Phase Titles */}
         {phases.map((phase) => {
           const title = placedTitles[phase.id];
           return (
             <div key={phase.id} className="absolute z-30" style={phase.goosePosition}>
-              {/* Goose SVG */}
-              <svg width="80" height="50" viewBox="0 0 80 50" className="mb-2">
-                <path
-                  d="M 10 25 Q 20 15 30 25 Q 40 15 50 25 Q 60 15 70 25"
-                  fill="white"
-                  stroke="#333"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-                <circle cx="70" cy="25" r="5" fill="white" stroke="#333" strokeWidth="2" />
-                <circle cx="70" cy="25" r="3" fill="#ff4444" />
-                <path
-                  d="M 70 25 L 75 23 L 75 27 Z"
-                  fill="#ff4444"
-                />
-                <path
-                  d="M 72 22 L 74 20 L 72 18"
-                  fill="none"
-                  stroke="#ff4444"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-              
-              {/* Phase Label Drop Zone */}
+              {/* Phase Label Drop Zone - positioned near geese in image */}
               <div
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -170,61 +115,28 @@ export function PuzzleBoard({
                   if (draggedTitle) onDrop(phase.id as Phase);
                 }}
                 className={cn(
-                  "w-32 h-12 flex items-center justify-center rounded-lg border-2 transition-all cursor-pointer shadow-lg",
+                  "w-36 h-14 flex items-center justify-center rounded-lg border-3 transition-all cursor-pointer shadow-xl backdrop-blur-sm",
                   title
-                    ? "bg-green-500/30 border-green-500"
-                    : "bg-orange-400/40 border-orange-500 border-dashed"
+                    ? "bg-green-500/40 border-green-600 border-2"
+                    : "bg-orange-400/50 border-orange-600 border-2 border-dashed"
                 )}
               >
                 {title ? (
-                  <span className="text-sm font-bold text-green-700">{title.title}</span>
+                  <span className="text-sm font-bold text-green-800">{title.title}</span>
                 ) : (
-                  <span className="text-xs text-orange-700 font-semibold">Drop &quot;{phase.label}&quot;</span>
+                  <span className="text-xs text-orange-800 font-semibold">Drop &quot;{phase.label}&quot;</span>
                 )}
               </div>
               
-              {/* Phase Label Below Goose */}
-              <div className="text-center mt-1">
-                <span className="text-sm font-bold" style={{ color: phase.color }}>
+              {/* Phase Label Below Drop Zone */}
+              <div className="text-center mt-2">
+                <span className="text-base font-bold px-3 py-1 rounded bg-white/80 shadow-md" style={{ color: phase.color }}>
                   {phase.label}
                 </span>
               </div>
             </div>
           );
         })}
-
-        {/* Elephant SVG - Large Background */}
-        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-5xl h-4/5 pointer-events-none z-10">
-          <svg 
-            viewBox="0 0 500 400" 
-            className="w-full h-full"
-            preserveAspectRatio="xMidYMax meet"
-          >
-            {/* Elephant Body */}
-            <ellipse cx="250" cy="280" rx="180" ry="110" fill="white" stroke="#333" strokeWidth="5" />
-            
-            {/* Elephant Head */}
-            <ellipse cx="380" cy="240" rx="90" ry="75" fill="white" stroke="#333" strokeWidth="5" />
-            
-            {/* Elephant Trunk */}
-            <path
-              d="M 380 240 Q 410 230 440 220 Q 455 210 450 200"
-              fill="none"
-              stroke="#333"
-              strokeWidth="5"
-              strokeLinecap="round"
-            />
-            
-            {/* Elephant Ear */}
-            <ellipse cx="320" cy="220" rx="65" ry="75" fill="white" stroke="#333" strokeWidth="4" />
-            
-            {/* Elephant Legs */}
-            <ellipse cx="160" cy="350" rx="30" ry="45" fill="white" stroke="#333" strokeWidth="4" />
-            <ellipse cx="220" cy="350" rx="30" ry="45" fill="white" stroke="#333" strokeWidth="4" />
-            <ellipse cx="280" cy="350" rx="30" ry="45" fill="white" stroke="#333" strokeWidth="4" />
-            <ellipse cx="340" cy="350" rx="30" ry="45" fill="white" stroke="#333" strokeWidth="4" />
-          </svg>
-        </div>
 
         {/* Drop Zones for Quotes - Positioned on Elephant Body */}
         {phases.map((phase) => {
