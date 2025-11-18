@@ -7,12 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Clock, Users, Settings, Trophy, Play, Square } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 
+interface ActivePlayer {
+  name: string;
+  points: number;
+  score: number;
+  startTime: number;
+  lastUpdate: number;
+}
+
 export default function GameMasterPage() {
   const [timeLimit, setTimeLimit] = useState(5); // minutes
   const [maxQuotes, setMaxQuotes] = useState(20);
   const [isGameActive, setIsGameActive] = useState(false);
   const [remainingTime, setRemainingTime] = useState(0);
   const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
+  const [activePlayers, setActivePlayers] = useState<ActivePlayer[]>([]);
 
   useEffect(() => {
     // Load leaderboard from localStorage (for cross-tab sync) or sessionStorage (fallback)
@@ -27,23 +36,46 @@ export default function GameMasterPage() {
       }
     };
     
-    loadLeaderboard();
-    
-    // Listen for leaderboard updates from other tabs
-    const handleLeaderboardUpdate = () => {
-      loadLeaderboard();
+    // Load active players
+    const loadActivePlayers = () => {
+      const stored = localStorage.getItem("creativity-active-players");
+      if (stored) {
+        try {
+          const players = JSON.parse(stored);
+          // Filter out players who haven't updated in 10 seconds (likely disconnected)
+          const now = Date.now();
+          const active = players.filter((p: ActivePlayer) => now - p.lastUpdate < 10000);
+          setActivePlayers(active);
+        } catch (e) {
+          console.error("Failed to parse active players", e);
+        }
+      }
     };
     
-    window.addEventListener("leaderboardUpdated", handleLeaderboardUpdate);
-    window.addEventListener("storage", handleLeaderboardUpdate);
+    loadLeaderboard();
+    loadActivePlayers();
+    
+    // Listen for updates from other tabs
+    const handleUpdate = () => {
+      loadLeaderboard();
+      loadActivePlayers();
+    };
+    
+    window.addEventListener("leaderboardUpdated", handleUpdate);
+    window.addEventListener("activePlayersUpdated", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
     
     // Also poll for changes as backup
-    const interval = setInterval(loadLeaderboard, 1000);
+    const interval = setInterval(() => {
+      loadLeaderboard();
+      loadActivePlayers();
+    }, 1000);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener("leaderboardUpdated", handleLeaderboardUpdate);
-      window.removeEventListener("storage", handleLeaderboardUpdate);
+      window.removeEventListener("leaderboardUpdated", handleUpdate);
+      window.removeEventListener("activePlayersUpdated", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
     };
   }, []);
 
@@ -205,16 +237,55 @@ export default function GameMasterPage() {
           </div>
         </div>
 
+        {/* Active Players */}
+        {activePlayers.length > 0 && (
+          <div className="bg-white border-2 border-blue-300 rounded-2xl p-6 shadow-xl">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <Users className="w-6 h-6" />
+              Active Players ({activePlayers.length})
+            </h2>
+            <div className="space-y-2">
+              {activePlayers
+                .sort((a, b) => {
+                  if (b.points !== a.points) return b.points - a.points;
+                  return b.score - a.score;
+                })
+                .map((player, index) => (
+                  <div
+                    key={player.name}
+                    className="flex items-center justify-between p-4 rounded-lg bg-blue-50 border-2 border-blue-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl font-bold w-6">{index + 1}.</span>
+                      <div>
+                        <div className="font-bold text-lg text-gray-800">{player.name}</div>
+                        <div className="text-xs text-gray-600">
+                          {player.score} correct • Playing now
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-blue-600">{player.points}</div>
+                      <div className="text-xs text-gray-600">points</div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
         {/* Leaderboard */}
         <div className="bg-white border-2 border-gray-300 rounded-2xl p-6 shadow-xl">
           <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
             <Trophy className="w-6 h-6" />
-            Leaderboard
+            Final Leaderboard
           </h2>
 
           {sortedLeaderboard.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              No players yet. Waiting for players to join...
+              {activePlayers.length === 0 
+                ? "No players yet. Waiting for players to join..."
+                : "No completed games yet. Players are still playing..."}
             </div>
           ) : (
             <div className="space-y-2">

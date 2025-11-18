@@ -143,10 +143,11 @@ export default function PlayPage() {
     setUserPuzzlePiece(userQuote);
     setAvailableQuotes(selectedQuotes);
     setAvailableTitles([...phaseTitles]);
+    const startTime = Date.now();
     setGameState({
       isStarted: true,
       isCompleted: false,
-      startTime: Date.now(),
+      startTime,
       endTime: null,
       userAnswer: answer,
       placements: {},
@@ -155,6 +156,22 @@ export default function PlayPage() {
     });
     setWrongPlacements(new Set());
     setPlacementHistory({});
+
+    // Register as active player
+    const activePlayer = {
+      name,
+      points: 0,
+      score: 0,
+      startTime,
+      lastUpdate: startTime,
+    };
+    const activePlayers = JSON.parse(localStorage.getItem("creativity-active-players") || "[]");
+    const updatedActivePlayers = activePlayers.filter((p: any) => p.name !== name);
+    updatedActivePlayers.push(activePlayer);
+    localStorage.setItem("creativity-active-players", JSON.stringify(updatedActivePlayers));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("activePlayersUpdated"));
+    }
 
     toast.success("Game started! Drag titles and quotes to the correct phases.");
   };
@@ -251,6 +268,14 @@ export default function PlayPage() {
       timestamp: Date.now(),
     };
 
+          // Remove from active players
+          const activePlayers = JSON.parse(localStorage.getItem("creativity-active-players") || "[]");
+          const updatedActivePlayers = activePlayers.filter((p: any) => p.name !== playerName);
+          localStorage.setItem("creativity-active-players", JSON.stringify(updatedActivePlayers));
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("activePlayersUpdated"));
+          }
+
           setLeaderboard((prev) => {
             const updated = [...prev, newScore]
               .sort((a, b) => {
@@ -280,31 +305,42 @@ export default function PlayPage() {
     toast.success(`Time's up! Final score: ${finalPoints} points!`);
   }, [gameState.isCompleted, gameState.startTime, playerName, calculateFinalPoints, calculateCorrectCount]);
 
-  // Update points and track wrong placements
+  // Update active player status in real-time
   useEffect(() => {
-    if (gameState.isStarted && !gameState.isCompleted) {
-      const newPoints = calculatePoints();
+    if (gameState.isStarted && !gameState.isCompleted && playerName) {
+      const updateActivePlayer = () => {
+        const activePlayers = JSON.parse(localStorage.getItem("creativity-active-players") || "[]");
+        const playerIndex = activePlayers.findIndex((p: any) => p.name === playerName);
+        const correctCount = calculateCorrectCount();
+        
+        if (playerIndex >= 0) {
+          activePlayers[playerIndex] = {
+            ...activePlayers[playerIndex],
+            points: gameState.points,
+            score: correctCount,
+            lastUpdate: Date.now(),
+          };
+        } else {
+          activePlayers.push({
+            name: playerName,
+            points: gameState.points,
+            score: correctCount,
+            startTime: gameState.startTime || Date.now(),
+            lastUpdate: Date.now(),
+          });
+        }
+        
+        localStorage.setItem("creativity-active-players", JSON.stringify(activePlayers));
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("activePlayersUpdated"));
+        }
+      };
       
-      // Track wrong placements for penalty (only penalize once per item)
-      const newWrongPlacements = new Set(wrongPlacements);
-      availableQuotes.forEach((quote) => {
-        if (gameState.placements[quote.id] && gameState.placements[quote.id] !== quote.phase) {
-          newWrongPlacements.add(quote.id);
-        }
-      });
-      phaseTitles.forEach((title) => {
-        if (gameState.titlePlacements[title.id] && gameState.titlePlacements[title.id] !== title.phase) {
-          newWrongPlacements.add(title.id);
-        }
-      });
-      if (gameState.placements["user-answer"] && gameState.placements["user-answer"] !== "incubation") {
-        newWrongPlacements.add("user-answer");
-      }
-
-      setWrongPlacements(newWrongPlacements);
-      setGameState((prev) => ({ ...prev, points: newPoints }));
+      updateActivePlayer();
+      const interval = setInterval(updateActivePlayer, 2000); // Update every 2 seconds
+      return () => clearInterval(interval);
     }
-  }, [gameState.placements, gameState.titlePlacements, gameState.isStarted, gameState.isCompleted, calculatePoints, availableQuotes, wrongPlacements]);
+  }, [gameState.points, gameState.placements, gameState.titlePlacements, gameState.isStarted, gameState.isCompleted, playerName, gameState.startTime, calculateCorrectCount]);
 
   const handleDragStart = (quote: Quote) => {
     setDraggedQuote(quote);
@@ -376,15 +412,22 @@ export default function PlayPage() {
           return newPlacements;
         });
 
+        // Apply penalty if not already penalized
+        const shouldApplyPenalty = !wrongPlacements.has(draggedTitle.id);
+        
+        setWrongPlacements((prevSet) => {
+          if (shouldApplyPenalty) {
+            return new Set([...prevSet, draggedTitle.id]);
+          }
+          return prevSet;
+        });
+        
         setGameState((prev) => {
           const newTitlePlacements = { ...prev.titlePlacements };
           delete newTitlePlacements[draggedTitle.id];
-          // Apply penalty if not already penalized
-          let newPoints = prev.points;
-          if (!wrongPlacements.has(draggedTitle.id)) {
-            newPoints = Math.max(0, prev.points + POINTS_PENALTY_WRONG);
-            setWrongPlacements((prevSet) => new Set([...prevSet, draggedTitle.id]));
-          }
+          const newPoints = shouldApplyPenalty 
+            ? Math.max(0, prev.points + POINTS_PENALTY_WRONG)
+            : prev.points;
           return {
             ...prev,
             titlePlacements: newTitlePlacements,
@@ -444,15 +487,22 @@ export default function PlayPage() {
         return newPlacements;
       });
 
+      // Apply penalty if not already penalized
+      const shouldApplyPenalty = !wrongPlacements.has(draggedQuote.id);
+      
+      setWrongPlacements((prevSet) => {
+        if (shouldApplyPenalty) {
+          return new Set([...prevSet, draggedQuote.id]);
+        }
+        return prevSet;
+      });
+      
       setGameState((prev) => {
         const newPlacements = { ...prev.placements };
         delete newPlacements[draggedQuote.id];
-        // Apply penalty if not already penalized
-        let newPoints = prev.points;
-        if (!wrongPlacements.has(draggedQuote.id)) {
-          newPoints = Math.max(0, prev.points + POINTS_PENALTY_WRONG);
-          setWrongPlacements((prevSet) => new Set([...prevSet, draggedQuote.id]));
-        }
+        const newPoints = shouldApplyPenalty 
+          ? Math.max(0, prev.points + POINTS_PENALTY_WRONG)
+          : prev.points;
         return {
           ...prev,
           placements: newPlacements,
@@ -495,18 +545,23 @@ export default function PlayPage() {
       toast.success(`Correct! +${POINTS_USER_PIECE} points`);
     } else {
       // Wrong placement - keep it in the initial box
-      setGameState((prev) => {
-        // Apply penalty if not already penalized
-        let newPoints = prev.points;
-        if (!wrongPlacements.has("user-answer")) {
-          newPoints = Math.max(0, prev.points + POINTS_PENALTY_WRONG);
-          setWrongPlacements((prevSet) => new Set([...prevSet, "user-answer"]));
+      // Apply penalty if not already penalized
+      const shouldApplyPenalty = !wrongPlacements.has("user-answer");
+      
+      setWrongPlacements((prevSet) => {
+        if (shouldApplyPenalty) {
+          return new Set([...prevSet, "user-answer"]);
         }
-        return {
-          ...prev,
-          points: newPoints,
-        };
+        return prevSet;
       });
+      
+      if (shouldApplyPenalty) {
+        setGameState((prev) => ({
+          ...prev,
+          points: Math.max(0, prev.points + POINTS_PENALTY_WRONG),
+        }));
+      }
+      
       toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points. Your creative moment should go in Incubation!`);
     }
   };
