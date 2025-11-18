@@ -15,19 +15,9 @@ export default function GameMasterPage() {
   const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
 
   useEffect(() => {
-    // Load leaderboard
-    const stored = sessionStorage.getItem("creativity-leaderboard");
-    if (stored) {
-      try {
-        setLeaderboard(JSON.parse(stored));
-      } catch (e) {
-        console.error("Failed to parse leaderboard", e);
-      }
-    }
-
-    // Subscribe to leaderboard updates
-    const interval = setInterval(() => {
-      const stored = sessionStorage.getItem("creativity-leaderboard");
+    // Load leaderboard from localStorage (for cross-tab sync) or sessionStorage (fallback)
+    const loadLeaderboard = () => {
+      const stored = localStorage.getItem("creativity-leaderboard") || sessionStorage.getItem("creativity-leaderboard");
       if (stored) {
         try {
           setLeaderboard(JSON.parse(stored));
@@ -35,9 +25,26 @@ export default function GameMasterPage() {
           console.error("Failed to parse leaderboard", e);
         }
       }
-    }, 2000);
+    };
+    
+    loadLeaderboard();
+    
+    // Listen for leaderboard updates from other tabs
+    const handleLeaderboardUpdate = () => {
+      loadLeaderboard();
+    };
+    
+    window.addEventListener("leaderboardUpdated", handleLeaderboardUpdate);
+    window.addEventListener("storage", handleLeaderboardUpdate);
+    
+    // Also poll for changes as backup
+    const interval = setInterval(loadLeaderboard, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("leaderboardUpdated", handleLeaderboardUpdate);
+      window.removeEventListener("storage", handleLeaderboardUpdate);
+    };
   }, []);
 
   useEffect(() => {

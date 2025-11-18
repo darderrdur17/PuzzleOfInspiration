@@ -66,15 +66,27 @@ export default function PlayPage() {
   const [placementHistory, setPlacementHistory] = useState<Record<string, Phase[]>>({});
 
   useEffect(() => {
-    // Load leaderboard
-    const stored = sessionStorage.getItem("creativity-leaderboard");
-    if (stored) {
-      try {
-        setLeaderboard(JSON.parse(stored));
-      } catch (e) {
-        console.error("Failed to parse leaderboard", e);
+    // Load leaderboard from localStorage (for cross-tab sync) or sessionStorage (fallback)
+    const loadLeaderboard = () => {
+      const stored = localStorage.getItem("creativity-leaderboard") || sessionStorage.getItem("creativity-leaderboard");
+      if (stored) {
+        try {
+          setLeaderboard(JSON.parse(stored));
+        } catch (e) {
+          console.error("Failed to parse leaderboard", e);
+        }
       }
-    }
+    };
+    
+    loadLeaderboard();
+    
+    // Listen for leaderboard updates from other tabs
+    const handleLeaderboardUpdate = () => {
+      loadLeaderboard();
+    };
+    
+    window.addEventListener("leaderboardUpdated", handleLeaderboardUpdate);
+    window.addEventListener("storage", handleLeaderboardUpdate);
 
     // Subscribe to game config changes
     const unsubscribe = GameSync.subscribe((config) => {
@@ -86,7 +98,11 @@ export default function PlayPage() {
       }
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      window.removeEventListener("leaderboardUpdated", handleLeaderboardUpdate);
+      window.removeEventListener("storage", handleLeaderboardUpdate);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState.isStarted, gameState.isCompleted]);
 
@@ -235,17 +251,24 @@ export default function PlayPage() {
       timestamp: Date.now(),
     };
 
-    setLeaderboard((prev) => {
-      const updated = [...prev, newScore]
-        .sort((a, b) => {
-          if (b.points !== a.points) return b.points - a.points;
-          if (b.score !== a.score) return b.score - a.score;
-          return a.time - b.time;
-        })
-        .slice(0, 10);
-      sessionStorage.setItem("creativity-leaderboard", JSON.stringify(updated));
-      return updated;
-    });
+          setLeaderboard((prev) => {
+            const updated = [...prev, newScore]
+              .sort((a, b) => {
+                if (b.points !== a.points) return b.points - a.points;
+                if (b.score !== a.score) return b.score - a.score;
+                return a.time - b.time;
+              })
+              .slice(0, 10);
+            // Use localStorage for cross-tab sync
+            localStorage.setItem("creativity-leaderboard", JSON.stringify(updated));
+            // Also keep in sessionStorage for backward compatibility
+            sessionStorage.setItem("creativity-leaderboard", JSON.stringify(updated));
+            // Trigger custom event for real-time sync
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("leaderboardUpdated"));
+            }
+            return updated;
+          });
 
     setGameState((prev) => ({
       ...prev,
@@ -323,13 +346,19 @@ export default function PlayPage() {
           return newPlacements;
         });
 
-        setGameState((prev) => ({
-          ...prev,
-          titlePlacements: {
+        setGameState((prev) => {
+          const newTitlePlacements = {
             ...prev.titlePlacements,
             [draggedTitle.id]: phase,
-          },
-        }));
+          };
+          // Calculate points immediately
+          let newPoints = prev.points + POINTS_CORRECT_TITLE;
+          return {
+            ...prev,
+            titlePlacements: newTitlePlacements,
+            points: Math.max(0, newPoints),
+          };
+        });
 
         toast.success(`Correct! +${POINTS_CORRECT_TITLE} points`);
       } else {
@@ -348,11 +377,18 @@ export default function PlayPage() {
         });
 
         setGameState((prev) => {
-          const newPlacements = { ...prev.titlePlacements };
-          delete newPlacements[draggedTitle.id];
+          const newTitlePlacements = { ...prev.titlePlacements };
+          delete newTitlePlacements[draggedTitle.id];
+          // Apply penalty if not already penalized
+          let newPoints = prev.points;
+          if (!wrongPlacements.has(draggedTitle.id)) {
+            newPoints = Math.max(0, prev.points + POINTS_PENALTY_WRONG);
+            setWrongPlacements((prevSet) => new Set([...prevSet, draggedTitle.id]));
+          }
           return {
             ...prev,
-            titlePlacements: newPlacements,
+            titlePlacements: newTitlePlacements,
+            points: newPoints,
           };
         });
       }
@@ -379,15 +415,22 @@ export default function PlayPage() {
         return newPlacements;
       });
 
-      setGameState((prev) => ({
-        ...prev,
-        placements: {
+      setGameState((prev) => {
+        const newPlacements = {
           ...prev.placements,
           [draggedQuote.id]: phase,
-        },
-      }));
+        };
+        // Calculate points immediately
+        const pointsToAdd = draggedQuote.id === "user-answer" ? POINTS_USER_PIECE : POINTS_CORRECT_QUOTE;
+        let newPoints = prev.points + pointsToAdd;
+        return {
+          ...prev,
+          placements: newPlacements,
+          points: Math.max(0, newPoints),
+        };
+      });
 
-      toast.success(`Correct! +${POINTS_CORRECT_QUOTE} points`);
+      toast.success(`Correct! +${draggedQuote.id === "user-answer" ? POINTS_USER_PIECE : POINTS_CORRECT_QUOTE} points`);
     } else {
       // Wrong placement - return to available quotes
       toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points. Try again!`);
@@ -404,9 +447,16 @@ export default function PlayPage() {
       setGameState((prev) => {
         const newPlacements = { ...prev.placements };
         delete newPlacements[draggedQuote.id];
+        // Apply penalty if not already penalized
+        let newPoints = prev.points;
+        if (!wrongPlacements.has(draggedQuote.id)) {
+          newPoints = Math.max(0, prev.points + POINTS_PENALTY_WRONG);
+          setWrongPlacements((prevSet) => new Set([...prevSet, draggedQuote.id]));
+        }
         return {
           ...prev,
           placements: newPlacements,
+          points: newPoints,
         };
       });
     }
@@ -427,18 +477,36 @@ export default function PlayPage() {
         [phase]: [...prev[phase], userPuzzlePiece],
       }));
 
-      setGameState((prev) => ({
-        ...prev,
-        placements: {
+      setGameState((prev) => {
+        const newPlacements = {
           ...prev.placements,
           "user-answer": phase,
-        },
-      }));
+        };
+        // Calculate points immediately
+        let newPoints = prev.points + POINTS_USER_PIECE;
+        return {
+          ...prev,
+          placements: newPlacements,
+          points: Math.max(0, newPoints),
+        };
+      });
 
       setUserPuzzlePiece(null);
       toast.success(`Correct! +${POINTS_USER_PIECE} points`);
     } else {
       // Wrong placement - keep it in the initial box
+      setGameState((prev) => {
+        // Apply penalty if not already penalized
+        let newPoints = prev.points;
+        if (!wrongPlacements.has("user-answer")) {
+          newPoints = Math.max(0, prev.points + POINTS_PENALTY_WRONG);
+          setWrongPlacements((prevSet) => new Set([...prevSet, "user-answer"]));
+        }
+        return {
+          ...prev,
+          points: newPoints,
+        };
+      });
       toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points. Your creative moment should go in Incubation!`);
     }
   };
