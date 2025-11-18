@@ -91,7 +91,7 @@ export function PuzzleBoard({
       <div 
         className="relative rounded-2xl p-8 min-h-[700px] overflow-hidden bg-cover bg-center bg-no-repeat"
         style={{ 
-          backgroundImage: 'url(/5.png)',
+          backgroundImage: 'url(/6.png)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}

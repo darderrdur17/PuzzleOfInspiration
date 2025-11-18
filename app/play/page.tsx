@@ -8,6 +8,7 @@ import { EndScreen } from "@/components/EndScreen";
 import { QuoteCard } from "@/components/QuoteCard";
 import { Timer } from "@/components/Timer";
 import { PuzzleBoard } from "@/components/PuzzleBoard";
+import { GameGuide } from "@/components/GameGuide";
 import { GameSync } from "@/lib/gameSync";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -562,6 +563,9 @@ export default function PlayPage() {
 
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
+            {/* Game Guide */}
+            <GameGuide />
+
             {availableTitles.length > 0 && (
               <div className="bg-accent/20 border-2 border-accent rounded-xl p-4">
                 <h3 className="text-sm font-bold text-foreground mb-2">
