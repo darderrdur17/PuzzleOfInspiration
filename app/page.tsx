@@ -8,6 +8,7 @@ import { EndScreen } from "@/components/EndScreen";
 import { QuoteCard } from "@/components/QuoteCard";
 import { Timer } from "@/components/Timer";
 import { PuzzleBoard } from "@/components/PuzzleBoard";
+import { GameMaster } from "@/components/GameMaster";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -27,7 +28,9 @@ export default function Home() {
     userAnswer: "",
     placements: {},
     titlePlacements: {},
+    points: 0,
   });
+  const [gameEndedByMaster, setGameEndedByMaster] = useState(false);
 
   const [playerName, setPlayerName] = useState("");
   const [availableQuotes, setAvailableQuotes] = useState<Quote[]>([]);
@@ -83,6 +86,7 @@ export default function Home() {
       userAnswer: answer,
       placements: {},
       titlePlacements: {},
+      points: 0,
     });
 
     toast.success("Game started! Drag titles and quotes to the correct phases.");
@@ -195,6 +199,40 @@ export default function Home() {
     }
   };
 
+  // Calculate points in real-time
+  const calculatePoints = useCallback(() => {
+    let points = 0;
+    
+    // Points for correct quote placements (10 points each)
+    quotes.forEach((quote) => {
+      if (gameState.placements[quote.id] === quote.phase) {
+        points += 10;
+      }
+    });
+
+    // Points for correct title placements (20 points each)
+    phaseTitles.forEach((title) => {
+      if (gameState.titlePlacements[title.id] === title.phase) {
+        points += 20;
+      }
+    });
+
+    // User piece in correct phase (10 points)
+    if (gameState.placements["user-answer"] === "incubation") {
+      points += 10;
+    }
+
+    return points;
+  }, [gameState.placements, gameState.titlePlacements]);
+
+  // Update points whenever placements change
+  useEffect(() => {
+    if (gameState.isStarted && !gameState.isCompleted) {
+      const newPoints = calculatePoints();
+      setGameState((prev) => ({ ...prev, points: newPoints }));
+    }
+  }, [gameState.placements, gameState.titlePlacements, gameState.isStarted, gameState.isCompleted, calculatePoints]);
+
   const checkCompletion = useCallback(() => {
     const totalItems = quotes.length + 1 + phaseTitles.length; // +1 for user piece, +4 for titles
     const placedCount =
@@ -224,16 +262,23 @@ export default function Home() {
         correctCount++;
       }
 
+      // Calculate final points (with time bonus)
+      const basePoints = calculatePoints();
+      const timeBonus = Math.max(0, Math.floor((300000 - totalTime) / 1000)); // Bonus for speed
+      const finalPoints = basePoints + timeBonus;
+
       // Update leaderboard
       const newScore: PlayerScore = {
         name: playerName,
         score: correctCount,
+        points: finalPoints,
         time: totalTime,
         timestamp: Date.now(),
       };
 
       const updatedLeaderboard = [...leaderboard, newScore]
         .sort((a, b) => {
+          if (b.points !== a.points) return b.points - a.points;
           if (b.score !== a.score) return b.score - a.score;
           return a.time - b.time;
         })
@@ -246,19 +291,73 @@ export default function Home() {
         ...prev,
         isCompleted: true,
         endTime,
+        points: finalPoints,
       }));
 
       setTimeout(() => {
-        toast.success(`Puzzle complete! ${correctCount}/${totalItems} correct!`);
+        toast.success(`Puzzle complete! ${correctCount}/${totalItems} correct! ${finalPoints} points!`);
       }, 500);
     }
-  }, [gameState.placements, gameState.titlePlacements, gameState.isCompleted, gameState.startTime, playerName, leaderboard]);
+  }, [gameState.placements, gameState.titlePlacements, gameState.isCompleted, gameState.startTime, playerName, leaderboard, calculatePoints]);
 
   useEffect(() => {
     if (gameState.isStarted && !gameState.isCompleted) {
       checkCompletion();
     }
   }, [gameState.isStarted, gameState.isCompleted, checkCompletion]);
+
+  // Check for game master time end
+  useEffect(() => {
+    if (gameState.isStarted && !gameState.isCompleted) {
+      const checkGameEnd = setInterval(() => {
+        const endTime = localStorage.getItem("game-end-time");
+        if (endTime && parseInt(endTime) <= Date.now()) {
+          setGameEndedByMaster(true);
+          const totalTime = Date.now() - (gameState.startTime || Date.now());
+          const finalPoints = calculatePoints();
+          
+          const newScore: PlayerScore = {
+            name: playerName,
+            score: Object.keys(gameState.placements).filter((id) => {
+              if (id === "user-answer") return gameState.placements[id] === "incubation";
+              const quote = quotes.find((q) => q.id === id);
+              return quote && gameState.placements[id] === quote.phase;
+            }).length + Object.keys(gameState.titlePlacements).filter((id) => {
+              const title = phaseTitles.find((t) => t.id === id);
+              return title && gameState.titlePlacements[id] === title.phase;
+            }).length,
+            points: finalPoints,
+            time: totalTime,
+            timestamp: Date.now(),
+          };
+
+          const updatedLeaderboard = [...leaderboard, newScore]
+            .sort((a, b) => {
+              if (b.points !== a.points) return b.points - a.points;
+              if (b.score !== a.score) return b.score - a.score;
+              return a.time - b.time;
+            })
+            .slice(0, 10);
+
+          setLeaderboard(updatedLeaderboard);
+          sessionStorage.setItem("creativity-leaderboard", JSON.stringify(updatedLeaderboard));
+
+          setGameState((prev) => ({
+            ...prev,
+            isCompleted: true,
+            endTime: Date.now(),
+            points: finalPoints,
+          }));
+        }
+      }, 1000);
+
+      return () => clearInterval(checkGameEnd);
+    }
+  }, [gameState.isStarted, gameState.isCompleted, gameState.startTime, gameState.placements, gameState.titlePlacements, playerName, leaderboard, calculatePoints]);
+
+  const handleGameMasterTimeEnd = () => {
+    setGameEndedByMaster(true);
+  };
 
   const handleRestart = () => {
     setGameState({
@@ -269,6 +368,7 @@ export default function Home() {
       userAnswer: "",
       placements: {},
       titlePlacements: {},
+      points: 0,
     });
     setAvailableQuotes([]);
     setAvailableTitles([]);
@@ -308,10 +408,12 @@ export default function Home() {
     return (
       <EndScreen
         score={score}
+        points={gameState.points}
         time={gameState.endTime! - gameState.startTime!}
         totalQuotes={quotes.length + 1 + phaseTitles.length}
         onRestart={handleRestart}
         leaderboard={leaderboard}
+        showTop5={gameEndedByMaster}
       />
     );
   }
@@ -330,7 +432,8 @@ export default function Home() {
   }).length;
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-background via-primary/5 to-accent/5">
+    <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-background via-primary/5 to-accent/5 relative">
+      <GameMaster onTimeEnd={handleGameMasterTimeEnd} />
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
@@ -341,7 +444,15 @@ export default function Home() {
               Sort the quotes into the correct creative phases
             </p>
           </div>
-          <Timer startTime={gameState.startTime} isCompleted={gameState.isCompleted} />
+          <div className="flex flex-col gap-2">
+            <Timer startTime={gameState.startTime} isCompleted={gameState.isCompleted} />
+            <div className="bg-card border-2 border-border rounded-lg px-6 py-3 text-center">
+              <div className="text-sm text-muted-foreground mb-1">Points</div>
+              <div className="text-2xl font-bold text-primary font-mono">
+                {gameState.points}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6 items-start">

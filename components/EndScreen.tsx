@@ -5,18 +5,22 @@ import { PlayerScore } from "@/types/game";
 
 interface EndScreenProps {
   score: number;
+  points: number;
   time: number;
   totalQuotes: number;
   onRestart: () => void;
   leaderboard: PlayerScore[];
+  showTop5?: boolean;
 }
 
 export function EndScreen({
   score,
+  points,
   time,
   totalQuotes,
   onRestart,
   leaderboard,
+  showTop5 = false,
 }: EndScreenProps) {
   const percentage = Math.round((score / totalQuotes) * 100);
   const getPerformanceMessage = () => {
@@ -40,7 +44,7 @@ export function EndScreen({
         </div>
 
         <div className="bg-card border-2 border-border rounded-2xl p-8 shadow-xl space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-primary/10 border-2 border-primary rounded-lg p-6 text-center">
               <Target className="w-8 h-8 text-primary mx-auto mb-2" />
               <div className="text-3xl font-bold text-primary mb-1">
@@ -50,6 +54,14 @@ export function EndScreen({
               <div className="text-lg font-semibold text-primary mt-2">
                 {percentage}%
               </div>
+            </div>
+
+            <div className="bg-yellow-500/10 border-2 border-yellow-500 rounded-lg p-6 text-center">
+              <Trophy className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
+              <div className="text-3xl font-bold text-yellow-600 mb-1">
+                {points}
+              </div>
+              <div className="text-sm text-muted-foreground">Points</div>
             </div>
 
             <div className="bg-accent/10 border-2 border-accent rounded-lg p-6 text-center">
@@ -63,13 +75,53 @@ export function EndScreen({
             <div className="bg-secondary/10 border-2 border-secondary rounded-lg p-6 text-center">
               <Trophy className="w-8 h-8 text-secondary mx-auto mb-2" />
               <div className="text-3xl font-bold text-secondary mb-1">
-                #{leaderboard.length > 0 ? leaderboard.findIndex(s => s.score === score && s.time === time) + 1 : "—"}
+                #{leaderboard.length > 0 ? leaderboard.findIndex(s => s.points === points && s.time === time) + 1 : "—"}
               </div>
               <div className="text-sm text-muted-foreground">Rank</div>
             </div>
           </div>
 
-          {leaderboard.length > 0 && (
+          {showTop5 && leaderboard.length > 0 && (
+            <div className="mt-8 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 border-2 border-yellow-500 rounded-xl p-6">
+              <h3 className="text-2xl font-bold text-foreground mb-4 text-center">
+                🏆 Top 5 Leaderboard 🏆
+              </h3>
+              <div className="space-y-3">
+                {leaderboard.slice(0, 5).map((entry, index) => {
+                  const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}.`;
+                  return (
+                    <div
+                      key={index}
+                      className={`flex items-center justify-between p-4 rounded-lg ${
+                        index === 0
+                          ? "bg-yellow-500/30 border-2 border-yellow-500"
+                          : index === 1
+                          ? "bg-gray-300/30 border-2 border-gray-400"
+                          : index === 2
+                          ? "bg-orange-600/30 border-2 border-orange-600"
+                          : "bg-muted/50 border border-border"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl font-bold">{medal}</span>
+                        <span className="font-bold text-lg text-foreground">
+                          {entry.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm font-semibold">
+                        <span className="text-yellow-600">{entry.points} pts</span>
+                        <span className="text-muted-foreground">
+                          {entry.score}/{totalQuotes}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {!showTop5 && leaderboard.length > 0 && (
             <div className="mt-8">
               <h3 className="text-lg font-semibold text-foreground mb-4">
                 Leaderboard
@@ -79,7 +131,7 @@ export function EndScreen({
                   <div
                     key={index}
                     className={`flex items-center justify-between p-3 rounded-lg ${
-                      entry.score === score && entry.time === time
+                      entry.points === points && entry.time === time
                         ? "bg-primary/20 border-2 border-primary"
                         : "bg-muted/50"
                     }`}
@@ -93,6 +145,9 @@ export function EndScreen({
                       </span>
                     </div>
                     <div className="flex items-center gap-4 text-sm">
+                      <span className="text-yellow-600 font-semibold">
+                        {entry.points} pts
+                      </span>
                       <span className="text-muted-foreground">
                         {entry.score}/{totalQuotes}
                       </span>

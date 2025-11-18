@@ -21,12 +21,21 @@ export interface GameState {
   userAnswer: string;
   placements: Record<string, Phase>;
   titlePlacements: Record<string, Phase>;
+  points: number;
 }
 
 export interface PlayerScore {
   name: string;
   score: number;
+  points: number;
   time: number;
   timestamp: number;
+}
+
+export interface GameMasterState {
+  isGameMaster: boolean;
+  timeLimit: number | null; // in seconds
+  gameEndTime: number | null;
+  isGameEnded: boolean;
 }
 
