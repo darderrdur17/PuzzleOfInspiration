@@ -527,61 +527,61 @@ export default function PlayPage() {
     : null;
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-background via-primary/5 to-accent/5 relative">
+    <div className="min-h-screen p-2 sm:p-4 md:p-6 lg:p-8 bg-gradient-to-br from-background via-primary/5 to-accent/5 relative">
       {/* Game Master Timer Display */}
       {gameConfig?.isGameActive && remainingTime !== null && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-xl border-2 border-red-700">
+        <div className="fixed top-2 sm:top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg shadow-xl border-2 border-red-700 max-w-[90vw]">
           <div className="text-center">
-            <div className="text-xs font-semibold mb-1">Game Master Timer</div>
-            <div className={`text-3xl font-bold font-mono ${remainingTime <= 30 ? "animate-pulse" : ""}`}>
+            <div className="text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1">Game Master Timer</div>
+            <div className={`text-xl sm:text-2xl md:text-3xl font-bold font-mono ${remainingTime <= 30 ? "animate-pulse" : ""}`}>
               {Math.floor(remainingTime / 60)}:{(remainingTime % 60).toString().padStart(2, "0")}
             </div>
           </div>
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+      <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2">
               Creativity is...
             </h1>
-            <p className="text-base md:text-lg text-muted-foreground">
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground">
               Sort the quotes into the correct creative phases
             </p>
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
             <Timer startTime={gameState.startTime} isCompleted={gameState.isCompleted} />
-            <div className="bg-card border-2 border-border rounded-lg px-6 py-3 text-center">
-              <div className="text-sm text-muted-foreground mb-1">Points</div>
-              <div className="text-2xl font-bold text-primary font-mono">
+            <div className="bg-card border-2 border-border rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-center flex-1 sm:flex-none">
+              <div className="text-xs sm:text-sm text-muted-foreground mb-0.5 sm:mb-1">Points</div>
+              <div className="text-xl sm:text-2xl font-bold text-primary font-mono">
                 {gameState.points}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
-          <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 md:gap-6 items-start">
+          <div className="w-full lg:w-80 flex-shrink-0 space-y-3 sm:space-y-4">
             {/* Game Guide */}
             <GameGuide />
 
             {availableTitles.length > 0 && (
-              <div className="bg-accent/20 border-2 border-accent rounded-xl p-4">
-                <h3 className="text-sm font-bold text-foreground mb-2">
+              <div className="bg-accent/20 border-2 border-accent rounded-lg sm:rounded-xl p-3 sm:p-4">
+                <h3 className="text-xs sm:text-sm font-bold text-foreground mb-1 sm:mb-2">
                   Phase Titles ({availableTitles.length})
                 </h3>
-                <p className="text-xs text-muted-foreground mb-3">
+                <p className="text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3">
                   Drag titles to the correct phases first
                 </p>
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   {availableTitles.map((title) => (
                     <div
                       key={title.id}
                       draggable
                       onDragStart={() => handleDragStartTitle(title)}
                       onDragEnd={handleDragEnd}
-                      className="cursor-move touch-manipulation bg-accent/30 border-2 border-accent rounded-lg p-3 text-center font-bold hover:bg-accent/40 transition-colors active:scale-95"
+                      className="cursor-move touch-manipulation bg-accent/30 border-2 border-accent rounded-lg p-2 sm:p-3 text-center font-bold text-xs sm:text-sm hover:bg-accent/40 transition-colors active:scale-95"
                       style={{ opacity: draggedTitle?.id === title.id ? 0.5 : 1 }}
                     >
                       {title.title}
@@ -592,8 +592,8 @@ export default function PlayPage() {
             )}
 
             {userPuzzlePiece && (
-              <div className="bg-primary/10 border-2 border-primary rounded-xl p-4">
-                <h3 className="text-sm font-bold text-primary mb-3">
+              <div className="bg-primary/10 border-2 border-primary rounded-lg sm:rounded-xl p-3 sm:p-4">
+                <h3 className="text-xs sm:text-sm font-bold text-primary mb-2 sm:mb-3">
                   Your Creative Moment
                 </h3>
                 <div
@@ -611,14 +611,14 @@ export default function PlayPage() {
             )}
 
             {availableQuotes.length > 0 && (
-              <div className="bg-card/50 rounded-xl p-4 border-2 border-border max-h-[500px] overflow-y-auto">
-                <h3 className="text-sm font-bold text-foreground mb-2">
+              <div className="bg-card/50 rounded-lg sm:rounded-xl p-3 sm:p-4 border-2 border-border max-h-[300px] sm:max-h-[400px] md:max-h-[500px] overflow-y-auto">
+                <h3 className="text-xs sm:text-sm font-bold text-foreground mb-1 sm:mb-2">
                   Quotes to Sort ({availableQuotes.length})
                 </h3>
-                <p className="text-xs text-muted-foreground mb-3">
+                <p className="text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3">
                   Drag to the correct phase
                 </p>
-                <div className="space-y-2 pr-2">
+                <div className="space-y-1.5 sm:space-y-2 pr-1 sm:pr-2">
                   {availableQuotes.map((quote) => (
                     <div
                       key={quote.id}

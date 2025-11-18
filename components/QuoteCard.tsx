@@ -11,7 +11,7 @@ export function QuoteCard({ quote, isDragging = false, isPlaced = false }: Quote
   return (
     <div
       className={cn(
-        "bg-card border-2 rounded-lg p-4 transition-all",
+        "bg-card border-2 rounded-lg p-2 sm:p-3 md:p-4 transition-all touch-manipulation",
         {
           "border-primary shadow-lg": quote.id === "user-answer",
           "border-border hover:border-accent": quote.id !== "user-answer" && !isPlaced,
@@ -20,14 +20,14 @@ export function QuoteCard({ quote, isDragging = false, isPlaced = false }: Quote
         }
       )}
     >
-      <p className="text-sm text-foreground mb-2 leading-relaxed">
+      <p className="text-xs sm:text-sm text-foreground mb-1 sm:mb-2 leading-relaxed line-clamp-2 sm:line-clamp-none">
         &quot;{quote.text}&quot;
       </p>
-      <p className="text-xs text-muted-foreground font-medium">
+      <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">
         — {quote.author}
       </p>
       {quote.id === "user-answer" && (
-        <div className="mt-2 text-xs text-primary font-semibold">
+        <div className="mt-1 sm:mt-2 text-[10px] sm:text-xs text-primary font-semibold">
           Your Answer
         </div>
       )}

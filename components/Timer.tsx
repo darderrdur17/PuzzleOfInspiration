@@ -26,9 +26,9 @@ export function Timer({ startTime, isCompleted }: TimerProps) {
   };
 
   return (
-    <div className="bg-card border-2 border-border rounded-lg px-6 py-3">
-      <div className="text-sm text-muted-foreground mb-1">Time</div>
-      <div className="text-2xl font-bold text-foreground font-mono">
+    <div className="bg-card border-2 border-border rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-3">
+      <div className="text-xs sm:text-sm text-muted-foreground mb-0.5 sm:mb-1">Time</div>
+      <div className="text-xl sm:text-2xl font-bold text-foreground font-mono">
         {formatTime(elapsed)}
       </div>
     </div>

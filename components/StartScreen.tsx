@@ -24,20 +24,22 @@ export function StartScreen({ onStart }: StartScreenProps) {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-cover bg-center bg-no-repeat"
+      className="min-h-screen flex items-center justify-center p-2 sm:p-4 relative overflow-hidden"
       style={{ 
         backgroundImage: 'url(/6.png)',
         backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundPosition: 'center center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed',
       }}
     >
       {/* Overlay for better text readability */}
       <div className="absolute inset-0 bg-black/10"></div>
 
       {/* Form */}
-      <div className="max-w-md w-full space-y-8 animate-slide-in relative z-10 mt-32">
-        <div className="bg-white border-2 border-gray-300 rounded-2xl p-8 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="max-w-md w-full space-y-4 sm:space-y-8 animate-slide-in relative z-10 mt-16 sm:mt-32 px-2">
+        <div className="bg-white/95 backdrop-blur-sm border-2 border-gray-300 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-2xl">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <div className="space-y-2">
               <label htmlFor="name" className="text-sm font-semibold text-gray-800 block">
                 Enter Your Name
