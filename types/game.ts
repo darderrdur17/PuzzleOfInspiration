@@ -68,7 +68,7 @@ export interface ThemeDefinition {
   boardBackground: string;
   badgeColor: string;
   phaseHints: Record<Phase, string>;
-  quotes: Quote[];
+  quotes: readonly Quote[];
   rapidFireQuestions: RapidFireQuestion[];
 }
 
