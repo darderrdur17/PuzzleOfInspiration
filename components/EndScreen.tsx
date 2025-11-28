@@ -11,6 +11,7 @@ interface EndScreenProps {
   onRestart: () => void;
   leaderboard: PlayerScore[];
   showTop5?: boolean;
+  userAnswer: string;
 }
 
 export function EndScreen({
@@ -21,6 +22,7 @@ export function EndScreen({
   onRestart,
   leaderboard,
   showTop5 = false,
+  userAnswer,
 }: EndScreenProps) {
   const percentage = Math.round((score / totalQuotes) * 100);
   const getPerformanceMessage = () => {
@@ -29,6 +31,18 @@ export function EndScreen({
     if (percentage >= 60) return "Good job! Keep learning about creativity!";
     return "Nice try! Review the phases and try again!";
   };
+
+  const buildReflectionPrompts = (answer: string) => {
+    if (!answer) return [];
+    const trimmed = answer.length > 110 ? `${answer.slice(0, 107)}...` : answer;
+    return [
+      `Where would your creative moment "${trimmed}" fit best in the four phases?`,
+      "What actions could move that idea into the Verification phase next week?",
+      "Who could you collaborate with to strengthen this idea further?",
+    ];
+  };
+
+  const reflectionPrompts = buildReflectionPrompts(userAnswer);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
@@ -123,6 +137,22 @@ export function EndScreen({
 
           {!showTop5 && leaderboard.length > 0 && (
             <div className="mt-8">
+          {reflectionPrompts.length > 0 && (
+            <div className="bg-primary/5 border-2 border-primary/40 rounded-xl p-6 space-y-3">
+              <h3 className="text-xl font-bold text-foreground">
+                Reflection Prompts
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Use these to spark a quick discussion or journal entry with the class.
+              </p>
+              <ul className="list-decimal list-inside space-y-2 text-sm text-foreground">
+                {reflectionPrompts.map((prompt, idx) => (
+                  <li key={idx}>{prompt}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
               <h3 className="text-lg font-semibold text-foreground mb-4">
                 Leaderboard
               </h3>

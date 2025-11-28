@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { quotes } from "@/data/quotes";
-import { Quote, PhaseTitle, GameState, PlayerScore, Phase } from "@/types/game";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { themeLibrary } from "@/data/themes";
+import {
+  Quote,
+  PhaseTitle,
+  GameState,
+  PlayerScore,
+  Phase,
+  ThemeId,
+  ChallengeMode,
+} from "@/types/game";
 import { StartScreen } from "@/components/StartScreen";
 import { EndScreen } from "@/components/EndScreen";
 import { QuoteCard } from "@/components/QuoteCard";
@@ -10,8 +18,11 @@ import { Timer } from "@/components/Timer";
 import { PuzzleBoard } from "@/components/PuzzleBoard";
 import { GameGuide } from "@/components/GameGuide";
 import { GameSync } from "@/lib/gameSync";
+import { CustomQuotes } from "@/lib/customQuotes";
+import { playSuccessTone, playErrorTone, playAlertTone } from "@/lib/soundboard";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Sparkles, Zap } from "lucide-react";
 
 const phaseTitles: PhaseTitle[] = [
   { id: "title-preparation", title: "Preparation", phase: "preparation" },
@@ -26,6 +37,22 @@ const POINTS_CORRECT_TITLE = 20;
 const POINTS_USER_PIECE = 10;
 const POINTS_PENALTY_WRONG = -5; // Penalty for wrong placement
 const SPEED_BONUS_MULTIPLIER = 0.1; // Bonus points per second saved
+const HINT_COST = 15;
+const COMBO_BONUS_POINTS = 5;
+const QUIZ_BONUS_POINTS = 20;
+const PHASE_ORDER: Phase[] = ["preparation", "incubation", "illumination", "verification"];
+const PHASE_LABELS: Record<Phase, string> = {
+  preparation: "Preparation",
+  incubation: "Incubation",
+  illumination: "Illumination",
+  verification: "Verification",
+};
+const EMPTY_STREAKS: Record<Phase, number> = {
+  preparation: 0,
+  incubation: 0,
+  illumination: 0,
+  verification: 0,
+};
 
 export default function PlayPage() {
   const [gameState, setGameState] = useState<GameState>({
@@ -40,6 +67,7 @@ export default function PlayPage() {
   });
 
   const [playerName, setPlayerName] = useState("");
+  const [puzzleQuotes, setPuzzleQuotes] = useState<Quote[]>([]);
   const [availableQuotes, setAvailableQuotes] = useState<Quote[]>([]);
   const [availableTitles, setAvailableTitles] = useState<PhaseTitle[]>([]);
   const [placedQuotes, setPlacedQuotes] = useState<Record<string, Quote[]>>({
@@ -60,10 +88,27 @@ export default function PlayPage() {
   const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
   const [userPuzzlePiece, setUserPuzzlePiece] = useState<Quote | null>(null);
   const [gameConfig, setGameConfig] = useState<ReturnType<typeof GameSync.getConfig>>(null);
-  const [wrongPlacements, setWrongPlacements] = useState<Set<string>>(new Set());
+  const [themeId, setThemeId] = useState<ThemeId>("classic");
+  const [wrongAttempts, setWrongAttempts] = useState(0);
+  const [phaseStreaks, setPhaseStreaks] = useState<Record<Phase, number>>(() => ({ ...EMPTY_STREAKS }));
+  const [comboCounter, setComboCounter] = useState(0);
+  const [bonusAdjustments, setBonusAdjustments] = useState(0);
+  const [selectedHintPhase, setSelectedHintPhase] = useState<Phase>("preparation");
+  const [answeredQuizzes, setAnsweredQuizzes] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(sessionStorage.getItem("creativity-rapid-fire") || "[]");
+    } catch {
+      return [];
+    }
+  });
 
-  // Track wrong placements for penalty calculation
-  const [placementHistory, setPlacementHistory] = useState<Record<string, Phase[]>>({});
+  const activeTheme = themeLibrary[themeId] ?? themeLibrary.classic;
+  const [scoreFlash, setScoreFlash] = useState(false);
+  const [comboGlow, setComboGlow] = useState(false);
+  const challengeModeRef = useRef<ChallengeMode | null>(null);
+  const rapidFireRef = useRef<string | null>(null);
+  const hintRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Load leaderboard from localStorage (for cross-tab sync) or sessionStorage (fallback)
@@ -121,6 +166,58 @@ export default function PlayPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState.isStarted, gameState.isCompleted, gameConfig]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem("creativity-rapid-fire", JSON.stringify(answeredQuizzes));
+  }, [answeredQuizzes]);
+
+  useEffect(() => {
+    if (!gameState.isStarted) return;
+    setScoreFlash(true);
+    const timer = setTimeout(() => setScoreFlash(false), 400);
+    return () => clearTimeout(timer);
+  }, [gameState.points, gameState.isStarted]);
+
+  useEffect(() => {
+    if (comboCounter === 0) {
+      setComboGlow(false);
+      return;
+    }
+    setComboGlow(true);
+    const timer = setTimeout(() => setComboGlow(false), 500);
+    return () => clearTimeout(timer);
+  }, [comboCounter]);
+
+  useEffect(() => {
+    if (gameConfig?.themeId) {
+      setThemeId(gameConfig.themeId);
+    }
+  }, [gameConfig?.themeId]);
+
+  useEffect(() => {
+    const currentMode = gameConfig?.challengeMode ?? "normal";
+    if (challengeModeRef.current && challengeModeRef.current !== currentMode) {
+      playAlertTone();
+    }
+    challengeModeRef.current = currentMode;
+  }, [gameConfig?.challengeMode]);
+
+  useEffect(() => {
+    const currentRapid = gameConfig?.rapidFireQuestion?.id || null;
+    if (currentRapid && currentRapid !== rapidFireRef.current) {
+      playAlertTone();
+    }
+    rapidFireRef.current = currentRapid;
+  }, [gameConfig?.rapidFireQuestion?.id]);
+
+  useEffect(() => {
+    const hintId = gameConfig?.activeHint?.id || null;
+    if (hintId && hintId !== hintRef.current) {
+      playAlertTone();
+    }
+    hintRef.current = hintId;
+  }, [gameConfig?.activeHint?.id]);
+
   const handleStart = (name: string, answer: string) => {
     const config = GameSync.getConfig();
     if (!config || !config.isGameActive) {
@@ -128,9 +225,15 @@ export default function PlayPage() {
       return;
     }
 
-    // Select random quotes based on maxQuotes setting
-    const shuffled = [...quotes].sort(() => Math.random() - 0.5);
-    const selectedQuotes = shuffled.slice(0, Math.min(config.maxQuotes - 4, quotes.length)); // -4 for titles
+    const activeThemeId = config.themeId ?? "classic";
+    const themeDefinition = themeLibrary[activeThemeId] ?? themeLibrary.classic;
+
+    const customQuotes = CustomQuotes.byTheme(activeThemeId);
+    const quotePool = [...themeDefinition.quotes, ...customQuotes];
+    const shuffled = [...quotePool].sort(() => Math.random() - 0.5);
+    const requested = Math.max(4, config.maxQuotes - 4);
+    const sliceCount = Math.min(requested, quotePool.length);
+    const selectedQuotes = shuffled.slice(0, sliceCount); // -4 reserved for titles
 
     const userQuote: Quote = {
       id: "user-answer",
@@ -140,7 +243,9 @@ export default function PlayPage() {
     };
 
     setPlayerName(name);
+    setThemeId(activeThemeId);
     setUserPuzzlePiece(userQuote);
+    setPuzzleQuotes(selectedQuotes);
     setAvailableQuotes(selectedQuotes);
     setAvailableTitles([...phaseTitles]);
     const startTime = Date.now();
@@ -154,8 +259,12 @@ export default function PlayPage() {
       titlePlacements: {},
       points: 0,
     });
-    setWrongPlacements(new Set());
-    setPlacementHistory({});
+    setWrongAttempts(0);
+    setPhaseStreaks({ ...EMPTY_STREAKS });
+    setComboCounter(0);
+    setBonusAdjustments(0);
+    setAnsweredQuizzes([]);
+    setSelectedHintPhase("preparation");
 
     // Register as active player
     const activePlayer = {
@@ -177,69 +286,42 @@ export default function PlayPage() {
   };
 
   const calculateCorrectCount = useCallback((): number => {
-    let count = 0;
-    
-    // Count correctly placed quotes
-    availableQuotes.forEach((quote) => {
-      if (gameState.placements[quote.id] === quote.phase) {
-        count++;
-      }
-    });
+    const correctQuotes = puzzleQuotes.reduce((count, quote) => {
+      return count + (gameState.placements[quote.id] === quote.phase ? 1 : 0);
+    }, 0);
 
-    // Count correctly placed titles
-    phaseTitles.forEach((title) => {
-      if (gameState.titlePlacements[title.id] === title.phase) {
-        count++;
-      }
-    });
+    const correctTitles = phaseTitles.reduce((count, title) => {
+      return count + (gameState.titlePlacements[title.id] === title.phase ? 1 : 0);
+    }, 0);
 
-    // Count user piece if correctly placed
-    if (gameState.placements["user-answer"] === "incubation") {
-      count++;
-    }
+    const userPiece = gameState.placements["user-answer"] === "incubation" ? 1 : 0;
 
-    return count;
-  }, [gameState.placements, gameState.titlePlacements, availableQuotes, phaseTitles]);
+    return correctQuotes + correctTitles + userPiece;
+  }, [gameState.placements, gameState.titlePlacements, puzzleQuotes]);
 
   const calculatePoints = useCallback((): number => {
-    let points = 0;
+    const multiplier = gameConfig?.challengeMode === "double-points" ? 2 : 1;
+    const quotePoints = puzzleQuotes.reduce((total, quote) => {
+      return total + (gameState.placements[quote.id] === quote.phase ? POINTS_CORRECT_QUOTE : 0);
+    }, 0);
 
-    // Points for correct quote placements
-    availableQuotes.forEach((quote) => {
-      if (gameState.placements[quote.id] === quote.phase) {
-        points += POINTS_CORRECT_QUOTE;
-      } else if (gameState.placements[quote.id]) {
-        // Wrong placement - track for penalty
-        if (!wrongPlacements.has(quote.id)) {
-          points += POINTS_PENALTY_WRONG;
-        }
-      }
-    });
+    const titlePoints = phaseTitles.reduce((total, title) => {
+      return total + (gameState.titlePlacements[title.id] === title.phase ? POINTS_CORRECT_TITLE : 0);
+    }, 0);
 
-    // Points for correct title placements
-    phaseTitles.forEach((title) => {
-      if (gameState.titlePlacements[title.id] === title.phase) {
-        points += POINTS_CORRECT_TITLE;
-      } else if (gameState.titlePlacements[title.id]) {
-        // Wrong placement
-        if (!wrongPlacements.has(title.id)) {
-          points += POINTS_PENALTY_WRONG;
-        }
-      }
-    });
+    const userPiecePoints = gameState.placements["user-answer"] === "incubation" ? POINTS_USER_PIECE : 0;
+    const penaltyPoints = wrongAttempts * POINTS_PENALTY_WRONG;
+    const base = (quotePoints + titlePoints + userPiecePoints) * multiplier;
 
-    // User piece in correct phase
-    if (gameState.placements["user-answer"] === "incubation") {
-      points += POINTS_USER_PIECE;
-    } else if (gameState.placements["user-answer"]) {
-      // Wrong placement
-      if (!wrongPlacements.has("user-answer")) {
-        points += POINTS_PENALTY_WRONG;
-      }
-    }
-
-    return Math.max(0, points); // Don't go below 0
-  }, [gameState.placements, gameState.titlePlacements, availableQuotes, wrongPlacements]);
+    return Math.max(0, base + penaltyPoints + bonusAdjustments);
+  }, [
+    gameConfig?.challengeMode,
+    gameState.placements,
+    gameState.titlePlacements,
+    puzzleQuotes,
+    wrongAttempts,
+    bonusAdjustments,
+  ]);
 
   const calculateFinalPoints = useCallback((totalTime: number): number => {
     const basePoints = calculatePoints();
@@ -253,6 +335,46 @@ export default function PlayPage() {
 
     return basePoints + speedBonus;
   }, [calculatePoints]);
+
+  const recordCorrectPlacement = useCallback(
+    (phase: Phase) => {
+      playSuccessTone();
+      setPhaseStreaks((prev) => ({
+        ...prev,
+        [phase]: prev[phase] + 1,
+      }));
+      setComboCounter((prev) => {
+        const next = prev + 1;
+        if (next > 0 && next % 3 === 0) {
+          const reward =
+            COMBO_BONUS_POINTS * (gameConfig?.challengeMode === "double-points" ? 2 : 1);
+          setBonusAdjustments((adj) => adj + reward);
+          toast.success(`Combo streak! +${reward} bonus points`);
+        }
+        return next;
+      });
+    },
+    [gameConfig?.challengeMode]
+  );
+
+  const recordWrongPlacement = useCallback((phase?: Phase) => {
+    if (phase) {
+      setPhaseStreaks((prev) => ({
+        ...prev,
+        [phase]: 0,
+      }));
+    }
+    setComboCounter(0);
+  }, []);
+
+  const registerWrongAttempt = useCallback(
+    (phase?: Phase) => {
+      playErrorTone();
+      setWrongAttempts((prev) => prev + 1);
+      recordWrongPlacement(phase);
+    },
+    [recordWrongPlacement]
+  );
 
   const handleGameEnd = useCallback(() => {
     if (gameState.isCompleted) return;
@@ -308,21 +430,19 @@ export default function PlayPage() {
     }));
 
     toast.success(`Time's up! Final score: ${finalPoints} points!`);
-  }, [gameState.isCompleted, gameState.startTime, playerName, calculateFinalPoints, calculateCorrectCount]);
+  }, [gameState.isCompleted, gameState.startTime, playerName, calculateFinalPoints, calculateCorrectCount, gameConfig?.sessionId]);
 
   // Recalculate points whenever placements change to ensure accuracy
   useEffect(() => {
-    if (gameState.isStarted && !gameState.isCompleted) {
-      // Recalculate points to ensure they're always accurate
-      const recalculatedPoints = calculatePoints();
-      if (Math.abs(recalculatedPoints - gameState.points) > 0.1) {
-        setGameState((prev) => ({
-          ...prev,
-          points: recalculatedPoints,
-        }));
-      }
+    if (!gameState.isStarted) return;
+    const recalculatedPoints = calculatePoints();
+    if (Math.abs(recalculatedPoints - gameState.points) > 0.1) {
+      setGameState((prev) => ({
+        ...prev,
+        points: recalculatedPoints,
+      }));
     }
-  }, [gameState.placements, gameState.titlePlacements, gameState.isStarted, gameState.isCompleted, calculatePoints, gameState.points]);
+  }, [gameState.isStarted, calculatePoints, gameState.points]);
 
   // Update active player status in real-time
   useEffect(() => {
@@ -401,21 +521,16 @@ export default function PlayPage() {
           return newPlacements;
         });
 
-        setGameState((prev) => {
-          const newTitlePlacements = {
+        setGameState((prev) => ({
+          ...prev,
+          titlePlacements: {
             ...prev.titlePlacements,
             [draggedTitle.id]: phase,
-          };
-          // Calculate points immediately
-          let newPoints = prev.points + POINTS_CORRECT_TITLE;
-          return {
-            ...prev,
-            titlePlacements: newTitlePlacements,
-            points: Math.max(0, newPoints),
-          };
-        });
+          },
+        }));
 
         toast.success(`Correct! +${POINTS_CORRECT_TITLE} points`);
+        recordCorrectPlacement(draggedTitle.phase);
       } else {
         // Wrong placement - return to available titles
         toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points. Try again!`);
@@ -431,28 +546,16 @@ export default function PlayPage() {
           return newPlacements;
         });
 
-        // Apply penalty if not already penalized
-        const shouldApplyPenalty = !wrongPlacements.has(draggedTitle.id);
-        
-        setWrongPlacements((prevSet) => {
-          if (shouldApplyPenalty) {
-            return new Set([...prevSet, draggedTitle.id]);
-          }
-          return prevSet;
-        });
-        
         setGameState((prev) => {
           const newTitlePlacements = { ...prev.titlePlacements };
           delete newTitlePlacements[draggedTitle.id];
-          const newPoints = shouldApplyPenalty 
-            ? Math.max(0, prev.points + POINTS_PENALTY_WRONG)
-            : prev.points;
           return {
             ...prev,
             titlePlacements: newTitlePlacements,
-            points: newPoints,
           };
         });
+
+        registerWrongAttempt(phase);
       }
 
       setDraggedTitle(null);
@@ -482,17 +585,14 @@ export default function PlayPage() {
           ...prev.placements,
           [draggedQuote.id]: phase,
         };
-        // Calculate points immediately
-        const pointsToAdd = draggedQuote.id === "user-answer" ? POINTS_USER_PIECE : POINTS_CORRECT_QUOTE;
-        let newPoints = prev.points + pointsToAdd;
         return {
           ...prev,
           placements: newPlacements,
-          points: Math.max(0, newPoints),
         };
       });
 
       toast.success(`Correct! +${draggedQuote.id === "user-answer" ? POINTS_USER_PIECE : POINTS_CORRECT_QUOTE} points`);
+      recordCorrectPlacement(draggedQuote.phase);
     } else {
       // Wrong placement - return to available quotes
       toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points. Try again!`);
@@ -506,28 +606,16 @@ export default function PlayPage() {
         return newPlacements;
       });
 
-      // Apply penalty if not already penalized
-      const shouldApplyPenalty = !wrongPlacements.has(draggedQuote.id);
-      
-      setWrongPlacements((prevSet) => {
-        if (shouldApplyPenalty) {
-          return new Set([...prevSet, draggedQuote.id]);
-        }
-        return prevSet;
-      });
-      
       setGameState((prev) => {
         const newPlacements = { ...prev.placements };
         delete newPlacements[draggedQuote.id];
-        const newPoints = shouldApplyPenalty 
-          ? Math.max(0, prev.points + POINTS_PENALTY_WRONG)
-          : prev.points;
         return {
           ...prev,
           placements: newPlacements,
-          points: newPoints,
         };
       });
+
+      registerWrongAttempt(phase);
     }
 
     setDraggedQuote(null);
@@ -546,54 +634,94 @@ export default function PlayPage() {
         [phase]: [...prev[phase], userPuzzlePiece],
       }));
 
-      setGameState((prev) => {
-        const newPlacements = {
+      setGameState((prev) => ({
+        ...prev,
+        placements: {
           ...prev.placements,
           "user-answer": phase,
-        };
-        // Calculate points immediately
-        let newPoints = prev.points + POINTS_USER_PIECE;
-        return {
-          ...prev,
-          placements: newPlacements,
-          points: Math.max(0, newPoints),
-        };
-      });
+        },
+      }));
 
       setUserPuzzlePiece(null);
       toast.success(`Correct! +${POINTS_USER_PIECE} points`);
+      recordCorrectPlacement("incubation");
     } else {
       // Wrong placement - keep it in the initial box
-      // Apply penalty if not already penalized
-      const shouldApplyPenalty = !wrongPlacements.has("user-answer");
-      
-      setWrongPlacements((prevSet) => {
-        if (shouldApplyPenalty) {
-          return new Set([...prevSet, "user-answer"]);
-        }
-        return prevSet;
-      });
-      
-      if (shouldApplyPenalty) {
-        setGameState((prev) => ({
-          ...prev,
-          points: Math.max(0, prev.points + POINTS_PENALTY_WRONG),
-        }));
-      }
-      
+      registerWrongAttempt(phase);
       toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points. Your creative moment should go in Incubation!`);
     }
   };
 
+  const handleUnlockHint = () => {
+    if (!gameConfig?.isGameActive) {
+      toast.error("Wait for the game master to start the round.");
+      return;
+    }
+    if (gameConfig.activeHint) {
+      toast.info("A hint is already active for the class.");
+      return;
+    }
+    if (gameState.points < HINT_COST) {
+      toast.error(`You need at least ${HINT_COST} points to unlock a hint.`);
+      return;
+    }
+
+    const hintMessage =
+      activeTheme.phaseHints[selectedHintPhase] ||
+      "Focus on the keywords that describe this phase.";
+
+    GameSync.updateConfig({
+      activeHint: {
+        id: `hint-${Date.now()}`,
+        phase: selectedHintPhase,
+        message: hintMessage,
+        activatedBy: playerName || "A teammate",
+        cost: HINT_COST,
+        timestamp: Date.now(),
+      },
+    });
+
+    setBonusAdjustments((prev) => prev - HINT_COST);
+    toast.success(
+      `Hint unlocked for ${PHASE_LABELS[selectedHintPhase]}! -${HINT_COST} points`,
+      {
+        description: "Everyone can see it for the next few moves.",
+      }
+    );
+    playAlertTone();
+  };
+
+  const handleRapidFireAnswer = (choiceIndex: number) => {
+    const question = gameConfig?.rapidFireQuestion;
+    if (!question) return;
+    if (answeredQuizzes.includes(question.id)) return;
+
+    if (choiceIndex === question.answerIndex) {
+      setBonusAdjustments((prev) => prev + QUIZ_BONUS_POINTS);
+      toast.success(`Rapid-fire correct! +${QUIZ_BONUS_POINTS} points`);
+      playSuccessTone();
+    } else {
+      toast.error("Not quite! Keep sorting for clues.");
+      if (question.phase) {
+        recordWrongPlacement(question.phase);
+      } else {
+        setComboCounter(0);
+      }
+      playErrorTone();
+    }
+
+    setAnsweredQuizzes((prev) => [...prev, question.id]);
+  };
+
   const checkCompletion = useCallback(() => {
-    const totalItems = availableQuotes.length + 1 + phaseTitles.length;
+    const totalItems = puzzleQuotes.length + 1 + phaseTitles.length;
     const placedCount =
       Object.keys(gameState.placements).length + Object.keys(gameState.titlePlacements).length;
 
     if (placedCount === totalItems && !gameState.isCompleted) {
       handleGameEnd();
     }
-  }, [gameState.placements, gameState.titlePlacements, gameState.isCompleted, availableQuotes.length]);
+  }, [gameState.placements, gameState.titlePlacements, gameState.isCompleted, puzzleQuotes.length, handleGameEnd]);
 
   useEffect(() => {
     if (gameState.isStarted && !gameState.isCompleted) {
@@ -612,6 +740,7 @@ export default function PlayPage() {
       titlePlacements: {},
       points: 0,
     });
+    setPuzzleQuotes([]);
     setAvailableQuotes([]);
     setAvailableTitles([]);
     setPlacedQuotes({
@@ -628,8 +757,12 @@ export default function PlayPage() {
     });
     setPlayerName("");
     setUserPuzzlePiece(null);
-    setWrongPlacements(new Set());
-    setPlacementHistory({});
+    setWrongAttempts(0);
+    setPhaseStreaks({ ...EMPTY_STREAKS });
+    setComboCounter(0);
+    setBonusAdjustments(0);
+    setSelectedHintPhase("preparation");
+    setAnsweredQuizzes([]);
   };
 
   if (!gameState.isStarted) {
@@ -644,46 +777,33 @@ export default function PlayPage() {
         score={score}
         points={gameState.points}
         time={gameState.endTime! - gameState.startTime!}
-        totalQuotes={availableQuotes.length + 1 + phaseTitles.length}
+        totalQuotes={puzzleQuotes.length + 1 + phaseTitles.length}
         onRestart={handleRestart}
         leaderboard={leaderboard}
         showTop5={true}
+        userAnswer={gameState.userAnswer}
       />
     );
   }
 
-  // Calculate correct placements accurately
-  const calculateCorrectPlacements = () => {
-    let count = 0;
-    
-    // Count correctly placed quotes (including user piece)
-    Object.keys(gameState.placements).forEach((id) => {
-      if (id === "user-answer") {
-        if (gameState.placements[id] === "incubation") count++;
-      } else {
-        const quote = availableQuotes.find((q) => q.id === id);
-        if (quote && gameState.placements[id] === quote.phase) count++;
-      }
-    });
-    
-    // Count correctly placed titles
-    Object.keys(gameState.titlePlacements).forEach((id) => {
-      const title = phaseTitles.find((t) => t.id === id);
-      if (title && gameState.titlePlacements[id] === title.phase) count++;
-    });
-    
-    return count;
-  };
-  
-  const correctPlacements = calculateCorrectPlacements();
+  const correctPlacements = calculateCorrectCount();
 
   // Get remaining time from game config
-  const remainingTime = gameConfig?.gameEndTime 
+  const remainingTime = gameConfig?.gameEndTime
     ? Math.max(0, Math.floor((gameConfig.gameEndTime - Date.now()) / 1000))
     : null;
+  const challengeMode = gameConfig?.challengeMode ?? "normal";
+  const rapidFireQuestion = gameConfig?.rapidFireQuestion ?? null;
+  const isRapidFireActive = challengeMode === "rapid-fire" && !!rapidFireQuestion;
+  const hasAnsweredRapidFire =
+    isRapidFireActive && rapidFireQuestion ? answeredQuizzes.includes(rapidFireQuestion.id) : false;
+  const activeHint = gameConfig?.activeHint ?? null;
 
   return (
-    <div className="min-h-screen p-2 sm:p-4 md:p-6 lg:p-8 bg-gradient-to-br from-background via-primary/5 to-accent/5 relative">
+    <div
+      className="min-h-screen p-2 sm:p-4 md:p-6 lg:p-8 relative"
+      style={{ background: activeTheme.background }}
+    >
       {/* Game Master Timer Display */}
       {gameConfig?.isGameActive && remainingTime !== null && (
         <div className="fixed top-2 sm:top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg shadow-xl border-2 border-red-700 max-w-[90vw]">
@@ -697,6 +817,45 @@ export default function PlayPage() {
       )}
 
       <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
+        {challengeMode === "double-points" && (
+          <div className="bg-amber-500/90 border-2 border-amber-600 rounded-xl text-white px-4 py-3 flex items-center gap-3 shadow-lg">
+            <Zap className="w-5 h-5" />
+            <div className="text-sm sm:text-base font-semibold">
+              Double Points Round Active! Every correct placement counts twice.
+            </div>
+          </div>
+        )}
+
+        {isRapidFireActive && rapidFireQuestion && !hasAnsweredRapidFire && (
+          <div className="bg-purple-600/90 border-2 border-purple-700 rounded-xl text-white p-4 space-y-3 shadow-2xl">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5" />
+              <h3 className="text-lg font-bold">Rapid Fire Question!</h3>
+            </div>
+            <p className="text-sm">{rapidFireQuestion.question}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {rapidFireQuestion.options.map((option, index) => (
+                <button
+                  key={option}
+                  onClick={() => handleRapidFireAnswer(index)}
+                  className="w-full bg-white/10 hover:bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors"
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-white/80">
+              Correct answers earn +{QUIZ_BONUS_POINTS} bonus points for your team.
+            </p>
+          </div>
+        )}
+
+        {isRapidFireActive && hasAnsweredRapidFire && (
+          <div className="bg-purple-100 border-2 border-purple-300 rounded-xl p-3 text-sm text-purple-900">
+            Rapid fire answered! Watch for the next Kahoot-style challenge from the game master.
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2">
@@ -705,13 +864,46 @@ export default function PlayPage() {
             <p className="text-sm sm:text-base md:text-lg text-muted-foreground">
               Sort the quotes into the correct creative phases
             </p>
+            <div className="text-xs sm:text-sm font-semibold mt-1" style={{ color: activeTheme.badgeColor }}>
+              Theme: {activeTheme.name}
+            </div>
           </div>
           <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
             <Timer startTime={gameState.startTime} isCompleted={gameState.isCompleted} />
-            <div className="bg-card border-2 border-border rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-center flex-1 sm:flex-none">
+            <div
+              className={`bg-card rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-center flex-1 sm:flex-none border-2 transition-all ${
+                scoreFlash
+                  ? "border-primary shadow-[0_0_0_4px_rgba(249,115,22,0.25)] scale-[1.02]"
+                  : "border-border"
+              }`}
+            >
               <div className="text-xs sm:text-sm text-muted-foreground mb-0.5 sm:mb-1">Points</div>
               <div className="text-xl sm:text-2xl font-bold text-primary font-mono">
                 {gameState.points}
+              </div>
+            </div>
+            <div
+              className={`bg-card border-2 rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-center flex-1 sm:flex-none transition-colors ${
+                wrongAttempts > 0 ? "border-destructive/60 shadow-lg shadow-destructive/10" : "border-border"
+              }`}
+              aria-live="polite"
+            >
+              <div className="text-xs sm:text-sm text-muted-foreground mb-0.5 sm:mb-1">
+                Wrong Attempts
+              </div>
+              <div
+                className={`text-xl sm:text-2xl font-bold font-mono ${
+                  wrongAttempts > 0 ? "text-destructive" : "text-muted-foreground"
+                }`}
+              >
+                {wrongAttempts}
+              </div>
+              <div
+                className={`text-[10px] sm:text-xs font-semibold ${
+                  wrongAttempts > 0 ? "text-destructive/80" : "text-muted-foreground"
+                }`}
+              >
+                -5 pts each
               </div>
             </div>
           </div>
@@ -721,6 +913,63 @@ export default function PlayPage() {
           <div className="w-full lg:w-80 flex-shrink-0 space-y-3 sm:space-y-4">
             {/* Game Guide */}
             <GameGuide />
+
+            <div
+              className={`bg-card border-2 rounded-lg p-3 sm:p-4 transition-all ${
+                comboGlow ? "border-amber-400 shadow-lg shadow-amber-100" : "border-border"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs sm:text-sm font-bold text-foreground">Phase Streaks</h3>
+                <span className="text-[10px] sm:text-xs text-muted-foreground">
+                  Combo: {comboCounter}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {PHASE_ORDER.map((phase) => (
+                  <div
+                    key={phase}
+                    className="rounded-lg border border-border px-2 py-2 text-center text-[11px] sm:text-xs"
+                  >
+                    <div className="font-semibold text-foreground">{PHASE_LABELS[phase]}</div>
+                    <div className="text-lg font-bold" style={{ color: activeTheme.badgeColor }}>
+                      {phaseStreaks[phase]}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-3 sm:p-4 space-y-3">
+              <h3 className="text-xs sm:text-sm font-bold text-orange-700">
+                Collaborative Hint (-{HINT_COST} pts)
+              </h3>
+              <p className="text-[10px] sm:text-xs text-orange-700/80">
+                Spend points like a Kahoot power-up to reveal a class-wide hint.
+              </p>
+              <select
+                className="w-full border-2 border-orange-200 rounded-lg px-2 py-2 text-xs"
+                value={selectedHintPhase}
+                onChange={(e) => setSelectedHintPhase(e.target.value as Phase)}
+                disabled={!!activeHint}
+              >
+                {PHASE_ORDER.map((phase) => (
+                  <option key={phase} value={phase}>
+                    {PHASE_LABELS[phase]}
+                  </option>
+                ))}
+              </select>
+              <Button
+                onClick={handleUnlockHint}
+                disabled={!!activeHint || gameState.points < HINT_COST}
+                className="w-full"
+              >
+                {activeHint ? "Hint Active" : "Unlock Hint"}
+              </Button>
+              {gameState.points < HINT_COST && (
+                <p className="text-[11px] text-orange-600">Earn {HINT_COST - gameState.points} more points.</p>
+              )}
+            </div>
 
             {availableTitles.length > 0 && (
               <div className="bg-accent/20 border-2 border-accent rounded-lg sm:rounded-xl p-3 sm:p-4">
@@ -795,9 +1044,22 @@ export default function PlayPage() {
           </div>
 
           <div className="flex-1 w-full">
+            {activeHint && (
+              <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3 sm:p-4 mb-3">
+                <div className="text-xs sm:text-sm font-semibold text-yellow-800">
+                  Shared Hint • {PHASE_LABELS[activeHint.phase]}
+                </div>
+                <p className="text-sm text-yellow-900 mt-1">{activeHint.message}</p>
+                <p className="text-[10px] text-yellow-700 mt-1">
+                  Triggered by {activeHint.activatedBy}
+                </p>
+              </div>
+            )}
             <PuzzleBoard
               correctPlacements={correctPlacements}
-              totalPieces={availableQuotes.length + 1 + phaseTitles.length}
+              totalPieces={puzzleQuotes.length + 1 + phaseTitles.length}
+              wrongAttempts={wrongAttempts}
+              boardBackground={activeTheme.boardBackground}
               placedQuotes={placedQuotes}
               placedTitles={placedTitles}
               onDrop={

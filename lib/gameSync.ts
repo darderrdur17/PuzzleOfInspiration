@@ -1,6 +1,13 @@
 // Shared game state synchronization using localStorage
 // This allows game master and players to sync game settings
 
+import type {
+  ChallengeMode,
+  RapidFireQuestion,
+  SharedHint,
+  ThemeId,
+} from "@/types/game";
+
 export interface GameConfig {
   timeLimit: number; // in seconds
   maxQuotes: number; // number of quotes to use
@@ -8,6 +15,10 @@ export interface GameConfig {
   gameStartTime: number | null;
   gameEndTime: number | null;
   sessionId: string; // Unique session/class identifier
+  themeId: ThemeId;
+  challengeMode: ChallengeMode;
+  rapidFireQuestion: RapidFireQuestion | null;
+  activeHint: SharedHint | null;
 }
 
 const GAME_CONFIG_KEY = "puzzle-game-config";
@@ -35,7 +46,7 @@ export const GameSync = {
   },
 
   // Start game
-  startGame(timeLimit: number, maxQuotes: number, sessionId?: string): void {
+  startGame(timeLimit: number, maxQuotes: number, sessionId?: string, themeId: ThemeId = "classic"): void {
     const config: GameConfig = {
       timeLimit,
       maxQuotes,
@@ -43,6 +54,10 @@ export const GameSync = {
       gameStartTime: Date.now(),
       gameEndTime: Date.now() + timeLimit * 1000,
       sessionId: sessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      themeId,
+      challengeMode: "normal",
+      rapidFireQuestion: null,
+      activeHint: null,
     };
     this.setConfig(config);
   },
@@ -98,6 +113,12 @@ export const GameSync = {
       window.removeEventListener("gameConfigUpdated", handler);
       clearInterval(interval);
     };
+  },
+
+  updateConfig(partial: Partial<GameConfig>): void {
+    const current = this.getConfig();
+    if (!current) return;
+    this.setConfig({ ...current, ...partial });
   },
 };
 

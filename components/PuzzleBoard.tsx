@@ -9,6 +9,8 @@ import { CheckCircle2 } from "lucide-react";
 interface PuzzleBoardProps {
   correctPlacements: number;
   totalPieces: number;
+  wrongAttempts: number;
+  boardBackground: string;
   placedQuotes: Record<string, Quote[]>;
   placedTitles: Record<string, PhaseTitle | null>;
   onDrop: (phase: Phase) => void;
@@ -59,6 +61,8 @@ const phases = [
 export function PuzzleBoard({
   correctPlacements,
   totalPieces,
+  wrongAttempts,
+  boardBackground,
   placedQuotes,
   placedTitles,
   onDrop,
@@ -90,13 +94,24 @@ export function PuzzleBoard({
     <div className="space-y-6">
       {/* Progress Bar */}
       <div className="bg-card border-2 border-border rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 sm:gap-2 mb-1 sm:mb-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 sm:gap-3 mb-1 sm:mb-2">
           <span className="text-xs sm:text-sm font-semibold text-foreground">
             Puzzle Progress
           </span>
-          <span className="text-xs sm:text-sm text-muted-foreground">
-            {correctPlacements}/{totalPieces} pieces placed correctly
-          </span>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] sm:text-xs">
+            <span className="text-muted-foreground">
+              {correctPlacements}/{totalPieces} pieces placed correctly
+            </span>
+            <span
+              className={`font-semibold px-2 py-0.5 rounded-full border text-[10px] sm:text-xs ${
+                wrongAttempts > 0
+                  ? "border-destructive/40 bg-destructive/10 text-destructive"
+                  : "border-border text-muted-foreground"
+              }`}
+            >
+              {wrongAttempts} wrong attempt{wrongAttempts === 1 ? "" : "s"}
+            </span>
+          </div>
         </div>
         <div className="w-full bg-muted rounded-full h-2 sm:h-3 overflow-hidden">
           <div
@@ -109,12 +124,16 @@ export function PuzzleBoard({
       {/* Elephant Puzzle Board with Background Image Design */}
       <div 
         className="relative rounded-xl sm:rounded-2xl p-2 sm:p-4 md:p-6 lg:p-8 min-h-[500px] sm:min-h-[600px] md:min-h-[700px] overflow-hidden"
-        style={{ 
-          backgroundImage: 'url(/6.png)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center center',
-          backgroundRepeat: 'no-repeat',
-        }}
+        style={
+          boardBackground.includes("url(")
+            ? {
+                backgroundImage: boardBackground,
+                backgroundSize: "cover",
+                backgroundPosition: "center center",
+                backgroundRepeat: "no-repeat",
+              }
+            : { background: boardBackground }
+        }
       >
       {/* Overlay for better drop zone visibility */}
       <div className="absolute inset-0 bg-black/5"></div>

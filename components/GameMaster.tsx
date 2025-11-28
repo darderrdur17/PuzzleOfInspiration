@@ -33,7 +33,7 @@ export function GameMaster({ onTimeEnd, onTimeUpdate }: GameMasterProps) {
         }
       }
     }
-  }, []);
+  }, [onTimeEnd]);
 
   useEffect(() => {
     if (isRunning && remainingTime !== null && remainingTime > 0) {
