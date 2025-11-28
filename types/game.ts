@@ -6,7 +6,7 @@ export interface RapidFireQuestion {
   id: string;
   theme: ThemeId;
   question: string;
-  options: string[];
+  options: readonly string[];
   answerIndex: number;
   phase?: Phase;
 }
