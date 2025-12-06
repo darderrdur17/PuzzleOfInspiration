@@ -1,37 +1,22 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Settings, Play, BookOpen, Eye } from "lucide-react";
+import { Settings, Play, BookOpen } from "lucide-react";
 
 export default function Home() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
-      <div className="max-w-4xl w-full space-y-8 text-center">
+      <div className="max-w-2xl w-full space-y-8 text-center">
         <div className="space-y-4">
           <h1 className="text-5xl md:text-6xl font-bold text-foreground">
             Creativity is...
           </h1>
           <p className="text-xl text-muted-foreground">
-            A Journey Through Worlds of Creative Thinking
+            A Puzzle Game About Creative Thinking
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <a href="/hub">
-            <Button
-              size="lg"
-              className="w-full h-32 bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-800 text-white text-lg flex flex-col items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              <Eye className="w-10 h-10" />
-              <div>
-                <div className="font-bold">Observatory Hub</div>
-                <div className="text-sm font-normal opacity-90">
-                  Explore creative worlds
-                </div>
-              </div>
-            </Button>
-          </a>
-
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <a href="/game-master">
             <Button
               size="lg"
@@ -54,9 +39,9 @@ export default function Home() {
             >
               <Play className="w-10 h-10" />
               <div>
-                <div className="font-bold">Classic Mode</div>
+                <div className="font-bold">Play Game</div>
                 <div className="text-sm font-normal opacity-90">
-                  Traditional puzzle play
+                  Join as a player
                 </div>
               </div>
             </Button>
@@ -79,11 +64,8 @@ export default function Home() {
           </a>
         </div>
 
-        <div className="text-sm text-muted-foreground space-y-2">
-          <p>Choose your experience to begin your creative journey</p>
-          <p className="text-xs opacity-75">
-            🆕 New: Explore three unique worlds in the Observatory Hub
-          </p>
+        <div className="text-sm text-muted-foreground">
+          <p>Choose your role to begin</p>
         </div>
       </div>
     </div>
