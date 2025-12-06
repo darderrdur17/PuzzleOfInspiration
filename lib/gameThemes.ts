@@ -10,6 +10,12 @@ export interface ThemeConfig {
   phaseHints: Record<string, string>;
   visualElements: {
     backgroundImage?: string;
+    phaseImages?: {
+      preparation?: string;
+      incubation?: string;
+      illumination?: string;
+      verification?: string;
+    };
     particleEffects?: boolean;
     specialAnimations?: string[];
     colorScheme: {
@@ -49,6 +55,12 @@ export const gameThemes: Record<GameTheme, ThemeConfig> = {
     },
     visualElements: {
       backgroundImage: '/images/hub/01_observatory_hub.png',
+      phaseImages: {
+        preparation: '/images/ui/11_desktop_hub_interface.png',
+        incubation: '/images/ui/12_mobile_puzzle_interface.png',
+        illumination: '/images/ui/14_desktop_explorer_fullscreen.png',
+        verification: '/images/ui/15_responsive_ui_components.png'
+      },
       particleEffects: true,
       specialAnimations: ['starfield', 'cosmic-glow'],
       colorScheme: {
@@ -92,6 +104,12 @@ export const gameThemes: Record<GameTheme, ThemeConfig> = {
     },
     visualElements: {
       backgroundImage: '/images/alchemist/02_alchemist_workshop.png',
+      phaseImages: {
+        preparation: '/images/alchemist/06_alchemist_preparation_phase.png',
+        incubation: '/images/ui/05_ui_elements_collection.png',
+        illumination: '/images/alchemist/07_alchemist_illumination_phase.png',
+        verification: '/images/ui/12_mobile_puzzle_interface.png'
+      },
       particleEffects: true,
       specialAnimations: ['potion-bubble', 'alchemical-glow', 'transformation-sparkle'],
       colorScheme: {
@@ -135,6 +153,12 @@ export const gameThemes: Record<GameTheme, ThemeConfig> = {
     },
     visualElements: {
       backgroundImage: '/images/gardener/03_gardener_journey.png',
+      phaseImages: {
+        preparation: '/images/ui/05_ui_elements_collection.png',
+        incubation: '/images/gardener/08_gardener_incubation_phase.png',
+        illumination: '/images/ui/13_tablet_garden_interface.png',
+        verification: '/images/gardener/09_gardener_verification_phase.png'
+      },
       particleEffects: true,
       specialAnimations: ['flower-bloom', 'water-ripple', 'leaf-growth'],
       colorScheme: {
@@ -178,6 +202,12 @@ export const gameThemes: Record<GameTheme, ThemeConfig> = {
     },
     visualElements: {
       backgroundImage: '/images/explorer/04_explorer_map.png',
+      phaseImages: {
+        preparation: '/images/explorer/10_explorer_preparation_phase.png',
+        incubation: '/images/ui/05_ui_elements_collection.png',
+        illumination: '/images/ui/14_desktop_explorer_fullscreen.png',
+        verification: '/images/ui/15_responsive_ui_components.png'
+      },
       particleEffects: true,
       specialAnimations: ['map-reveal', 'fog-dissipation', 'treasure-sparkle'],
       colorScheme: {

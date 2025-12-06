@@ -93,7 +93,6 @@ export default function PlayPage() {
   const [themeId, setThemeId] = useState<ThemeId>("classic");
   const [gameTheme, setGameTheme] = useState<GameTheme>("observatory");
   const [showThemeSelector, setShowThemeSelector] = useState(false);
-  const [playerLoginTime, setPlayerLoginTime] = useState<number | null>(null);
   const [wrongAttempts, setWrongAttempts] = useState(0);
   const [phaseStreaks, setPhaseStreaks] = useState<Record<Phase, number>>(() => ({ ...EMPTY_STREAKS }));
   const [comboCounter, setComboCounter] = useState(0);
@@ -225,9 +224,6 @@ export default function PlayPage() {
   }, [gameConfig?.activeHint?.id]);
 
   const handleStart = (name: string, answer: string, theme?: GameTheme) => {
-    // Set login time when player starts (not when game begins)
-    const loginTime = Date.now();
-    setPlayerLoginTime(loginTime);
 
     const config = GameSync.getConfig();
     if (!config || !config.isGameActive) {
@@ -271,12 +267,12 @@ export default function PlayPage() {
     setAvailableQuotes(selectedQuotes);
     setAvailableTitles([...phaseTitles]);
 
-    // Game master controls when the actual game timing starts
-    const startTime = loginTime; // Use login time as base, but game master can override
+    // Timer starts NOW when player begins the game (after game master started)
+    const gameStartTime = Date.now();
     setGameState({
       isStarted: true,
       isCompleted: false,
-      startTime,
+      startTime: gameStartTime,
       endTime: null,
       userAnswer: answer,
       placements: {},
@@ -290,13 +286,13 @@ export default function PlayPage() {
     setAnsweredQuizzes([]);
     setSelectedHintPhase("preparation");
 
-    // Register as active player with login time
+    // Register as active player with game start time
     const activePlayer = {
       name,
       points: 0,
       score: 0,
-      startTime: loginTime,
-      lastUpdate: loginTime,
+      startTime: gameStartTime,
+      lastUpdate: gameStartTime,
     };
     const activePlayers = JSON.parse(localStorage.getItem("creativity-active-players") || "[]");
     const updatedActivePlayers = activePlayers.filter((p: any) => p.name !== name);
@@ -359,15 +355,11 @@ export default function PlayPage() {
       const timeSaved = Math.max(0, maxTime - totalTime);
       const speedBonus = Math.floor(timeSaved * SPEED_BONUS_MULTIPLIER / 1000);
       return basePoints + speedBonus;
-    } else {
-      // No game master time limit - use session time for bonus calculation
-      // This encourages faster completion even without official timing
-      const sessionTime = playerLoginTime ? Date.now() - playerLoginTime : totalTime;
-      const timeBonus = Math.max(0, 300000 - sessionTime); // 5 min baseline
-      const speedBonus = Math.floor(timeBonus * SPEED_BONUS_MULTIPLIER / 1000 / 2); // Half bonus for session time
-      return basePoints + speedBonus;
     }
-  }, [calculatePoints, playerLoginTime]);
+
+    // No game master time limit - return base points only
+    return basePoints;
+  }, [calculatePoints]);
 
   const recordCorrectPlacement = useCallback(
     (phase: Phase) => {
@@ -922,7 +914,7 @@ export default function PlayPage() {
             </div>
           </div>
           <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
-            <Timer startTime={gameState.startTime} loginTime={playerLoginTime} isCompleted={gameState.isCompleted} />
+            <Timer startTime={gameState.startTime} isCompleted={gameState.isCompleted} />
             <div
               className={`bg-card rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-center flex-1 sm:flex-none border-2 transition-all ${
                 scoreFlash
