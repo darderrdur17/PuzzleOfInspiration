@@ -382,7 +382,7 @@ function MandalaArrangement() {
         {isComplete && (
           <div className="text-center">
             <div className="text-4xl mb-4">🌟</div>
-            <p className="text-gardener-pink font-bold">Perfect mandala achieved! Gardener's Journey complete!</p>
+            <p className="text-gardener-pink font-bold">Perfect mandala achieved! Gardener&apos;s Journey complete!</p>
           </div>
         )}
       </div>
@@ -420,7 +420,7 @@ export default function GardenersJourney() {
       <div className="relative z-10 p-6">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Gardener's Journey</h1>
+            <h1 className="text-4xl font-bold text-white mb-2">Gardener&apos;s Journey</h1>
             <p className="text-gardener-pink">Grow ideas through organic cultivation</p>
           </div>
           <Link href="/hub">

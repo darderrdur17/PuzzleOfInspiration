@@ -318,7 +318,7 @@ function RiddleSolving() {
     <div className="text-center space-y-6">
       <div className="bg-explorer-forest/20 border-2 border-explorer-forest rounded-xl p-6">
         <h3 className="text-2xl font-bold text-white mb-2">Ancient Riddle</h3>
-        <p className="text-explorer-gold mb-6 italic">"{riddle.question}"</p>
+        <p className="text-explorer-gold mb-6 italic">&ldquo;{riddle.question}&rdquo;</p>
 
         <div className="space-y-3 mb-6">
           {riddle.options.map((option) => (
@@ -339,7 +339,7 @@ function RiddleSolving() {
         {isComplete && (
           <div className="text-center">
             <div className="text-4xl mb-4">🎉</div>
-            <p className="text-explorer-gold font-bold">Riddle solved! Explorer's Map complete!</p>
+            <p className="text-explorer-gold font-bold">Riddle solved! Explorer&apos;s Map complete!</p>
           </div>
         )}
       </div>
@@ -377,7 +377,7 @@ export default function ExplorersMap() {
       <div className="relative z-10 p-6">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-black mb-2">Explorer's Map</h1>
+            <h1 className="text-4xl font-bold text-black mb-2">Explorer&apos;s Map</h1>
             <p className="text-explorer-forest">Discover ideas through adventurous exploration</p>
           </div>
           <Link href="/hub">

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Settings, Play, BookOpen, Telescope } from "lucide-react";
+import { Settings, Play, BookOpen, Eye } from "lucide-react";
 
 export default function Home() {
   return (
@@ -22,7 +22,7 @@ export default function Home() {
               size="lg"
               className="w-full h-32 bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-800 text-white text-lg flex flex-col items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all duration-300"
             >
-              <Telescope className="w-10 h-10" />
+              <Eye className="w-10 h-10" />
               <div>
                 <div className="font-bold">Observatory Hub</div>
                 <div className="text-sm font-normal opacity-90">

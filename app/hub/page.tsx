@@ -217,7 +217,7 @@ function QuotesLibrary() {
                 : 'bg-black/20 border-white/10 opacity-50'
             }`}
           >
-            <p className="text-sm italic mb-1">"{quote.text}"</p>
+            <p className="text-sm italic mb-1">&ldquo;{quote.text}&rdquo;</p>
             <p className="text-xs opacity-75">— {quote.author}</p>
             {quote.collected && <div className="text-hub-gold text-xs mt-1">✓ Collected</div>}
           </div>

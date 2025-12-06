@@ -273,8 +273,8 @@ function IlluminationReveal() {
   return (
     <div className="text-center space-y-6">
       <div className="bg-alchemist-gold/20 border-2 border-alchemist-gold rounded-xl p-6">
-        <h3 className="text-2xl font-bold text-white mb-2">Philosopher's Stone Revelation</h3>
-        <p className="text-alchemist-purple mb-4">Witness the birth of the legendary Philosopher's Stone</p>
+        <h3 className="text-2xl font-bold text-white mb-2">Philosopher&apos;s Stone Revelation</h3>
+        <p className="text-alchemist-purple mb-4">Witness the birth of the legendary Philosopher&apos;s Stone</p>
 
         <div className="relative w-64 h-64 mx-auto mb-6">
           <div className={`w-full h-full rounded-full bg-gradient-to-br from-alchemist-purple via-alchemist-blue to-alchemist-gold flex items-center justify-center text-6xl transition-all duration-1000 ${
@@ -299,7 +299,7 @@ function IlluminationReveal() {
           </button>
         ) : (
           <div className="text-alchemist-gold font-bold text-lg">
-            The Philosopher's Stone is born! Proceed to Verification.
+            The Philosopher&apos;s Stone is born! Proceed to Verification.
           </div>
         )}
       </div>
@@ -372,7 +372,7 @@ function ShadowPuzzle() {
         {isComplete && (
           <div className="text-center">
             <div className="text-4xl mb-4">🌟</div>
-            <p className="text-alchemist-gold font-bold">Perfect shadow achieved! Alchemist's Workshop complete!</p>
+            <p className="text-alchemist-gold font-bold">Perfect shadow achieved! Alchemist&apos;s Workshop complete!</p>
           </div>
         )}
       </div>
@@ -410,7 +410,7 @@ export default function AlchemistWorkshop() {
       <div className="relative z-10 p-6">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Alchemist's Workshop</h1>
+            <h1 className="text-4xl font-bold text-white mb-2">Alchemist&apos;s Workshop</h1>
             <p className="text-alchemist-gold">Transform ideas through magical alchemy</p>
           </div>
           <Link href="/hub">

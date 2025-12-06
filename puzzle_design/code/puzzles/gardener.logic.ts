@@ -46,7 +46,7 @@ export function initializePhase1(quotes: Quote[]): GardenerPuzzleState['phase1']
         id: `plot-${row}-${col}`,
         position: { row, col },
         occupied: false,
-        growthStage: 0,
+        growthStage: 0 as const,
       });
     }
   }
@@ -78,7 +78,7 @@ export function plantSeed(
   );
 
   const newPlots = state.plots.map((p) =>
-    p.id === plotId ? { ...p, occupied: true, seedId, growthStage: 1 } : p
+    p.id === plotId ? { ...p, occupied: true, seedId, growthStage: 1 as const } : p
   );
 
   return {
@@ -107,7 +107,7 @@ export function removeSeed(
   );
 
   const newPlots = state.plots.map((p) =>
-    p.id === plotId ? { ...p, occupied: false, seedId: undefined, growthStage: 0 } : p
+    p.id === plotId ? { ...p, occupied: false, seedId: undefined, growthStage: 0 as const } : p
   );
 
   return {
