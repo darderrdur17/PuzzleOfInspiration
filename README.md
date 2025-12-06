@@ -1,4 +1,4 @@
-# Puzzle of Inspiration 🧩✨
+ # Puzzle of Inspiration 🧩✨
 
 An educational web-based jigsaw puzzle game that teaches the four phases of creativity through an interactive, engaging experience. Perfect for classrooms and self-learning!
 
