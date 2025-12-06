@@ -11,18 +11,20 @@ import {
   ThemeId,
   ChallengeMode,
 } from "@/types/game";
+import { GameTheme, gameThemes, getThemeConfig } from "@/lib/gameThemes";
 import { StartScreen } from "@/components/StartScreen";
 import { EndScreen } from "@/components/EndScreen";
 import { QuoteCard } from "@/components/QuoteCard";
 import { Timer } from "@/components/Timer";
 import { PuzzleBoard } from "@/components/PuzzleBoard";
 import { GameGuide } from "@/components/GameGuide";
+import { ThemeSelector } from "@/components/ThemeSelector";
 import { GameSync } from "@/lib/gameSync";
 import { CustomQuotes } from "@/lib/customQuotes";
 import { playSuccessTone, playErrorTone, playAlertTone } from "@/lib/soundboard";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Zap } from "lucide-react";
+import { Sparkles, Zap, Palette } from "lucide-react";
 
 const phaseTitles: PhaseTitle[] = [
   { id: "title-preparation", title: "Preparation", phase: "preparation" },
@@ -89,6 +91,9 @@ export default function PlayPage() {
   const [userPuzzlePiece, setUserPuzzlePiece] = useState<Quote | null>(null);
   const [gameConfig, setGameConfig] = useState<ReturnType<typeof GameSync.getConfig>>(null);
   const [themeId, setThemeId] = useState<ThemeId>("classic");
+  const [gameTheme, setGameTheme] = useState<GameTheme>("observatory");
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
+  const [playerLoginTime, setPlayerLoginTime] = useState<number | null>(null);
   const [wrongAttempts, setWrongAttempts] = useState(0);
   const [phaseStreaks, setPhaseStreaks] = useState<Record<Phase, number>>(() => ({ ...EMPTY_STREAKS }));
   const [comboCounter, setComboCounter] = useState(0);
@@ -104,6 +109,7 @@ export default function PlayPage() {
   });
 
   const activeTheme = themeLibrary[themeId] ?? themeLibrary.classic;
+  const themeConfig = getThemeConfig(gameTheme);
   const [scoreFlash, setScoreFlash] = useState(false);
   const [comboGlow, setComboGlow] = useState(false);
   const challengeModeRef = useRef<ChallengeMode | null>(null);
@@ -218,7 +224,11 @@ export default function PlayPage() {
     hintRef.current = hintId;
   }, [gameConfig?.activeHint?.id]);
 
-  const handleStart = (name: string, answer: string) => {
+  const handleStart = (name: string, answer: string, theme?: GameTheme) => {
+    // Set login time when player starts (not when game begins)
+    const loginTime = Date.now();
+    setPlayerLoginTime(loginTime);
+
     const config = GameSync.getConfig();
     if (!config || !config.isGameActive) {
       toast.error("Game master has not started the game yet!");
@@ -227,9 +237,18 @@ export default function PlayPage() {
 
     const activeThemeId = config.themeId ?? "classic";
     const themeDefinition = themeLibrary[activeThemeId] ?? themeLibrary.classic;
+    const themeConfig = getThemeConfig(gameTheme);
 
+    // Use theme-specific quotes mixed with general quotes
     const customQuotes = CustomQuotes.byTheme(activeThemeId);
-    const quotePool = [...themeDefinition.quotes, ...customQuotes];
+    const themeQuotes = themeConfig.quotes.map(q => ({
+      id: q.id,
+      text: q.text,
+      author: q.author,
+      phase: ["preparation", "incubation", "illumination", "verification"][q.phase - 1] as Phase
+    }));
+
+    const quotePool = [...themeDefinition.quotes, ...customQuotes, ...themeQuotes];
     const shuffled = [...quotePool].sort(() => Math.random() - 0.5);
     const requested = Math.max(4, config.maxQuotes - 4);
     const sliceCount = Math.min(requested, quotePool.length);
@@ -244,11 +263,16 @@ export default function PlayPage() {
 
     setPlayerName(name);
     setThemeId(activeThemeId);
+    if (theme) {
+      setGameTheme(theme);
+    }
     setUserPuzzlePiece(userQuote);
     setPuzzleQuotes(selectedQuotes);
     setAvailableQuotes(selectedQuotes);
     setAvailableTitles([...phaseTitles]);
-    const startTime = Date.now();
+
+    // Game master controls when the actual game timing starts
+    const startTime = loginTime; // Use login time as base, but game master can override
     setGameState({
       isStarted: true,
       isCompleted: false,
@@ -266,13 +290,13 @@ export default function PlayPage() {
     setAnsweredQuizzes([]);
     setSelectedHintPhase("preparation");
 
-    // Register as active player
+    // Register as active player with login time
     const activePlayer = {
       name,
       points: 0,
       score: 0,
-      startTime,
-      lastUpdate: startTime,
+      startTime: loginTime,
+      lastUpdate: loginTime,
     };
     const activePlayers = JSON.parse(localStorage.getItem("creativity-active-players") || "[]");
     const updatedActivePlayers = activePlayers.filter((p: any) => p.name !== name);
@@ -282,7 +306,7 @@ export default function PlayPage() {
       window.dispatchEvent(new CustomEvent("activePlayersUpdated"));
     }
 
-    toast.success("Game started! Drag titles and quotes to the correct phases.");
+    toast.success(`Welcome to ${themeConfig.name}! Drag titles and quotes to the correct phases.`);
   };
 
   const calculateCorrectCount = useCallback((): number => {
@@ -325,16 +349,25 @@ export default function PlayPage() {
 
   const calculateFinalPoints = useCallback((totalTime: number): number => {
     const basePoints = calculatePoints();
-    
-    // Speed bonus: faster completion = more bonus points
-    // Bonus decreases as time increases
-    const config = GameSync.getConfig();
-    const maxTime = config?.timeLimit ? config.timeLimit * 1000 : 300000; // 5 min default
-    const timeSaved = Math.max(0, maxTime - totalTime);
-    const speedBonus = Math.floor(timeSaved * SPEED_BONUS_MULTIPLIER / 1000);
 
-    return basePoints + speedBonus;
-  }, [calculatePoints]);
+    // Speed bonus: faster completion = more bonus points
+    // Game master controls the official timing through timeLimit
+    const config = GameSync.getConfig();
+    if (config?.timeLimit) {
+      // Game master has set a time limit - use it for speed bonus calculation
+      const maxTime = config.timeLimit * 1000;
+      const timeSaved = Math.max(0, maxTime - totalTime);
+      const speedBonus = Math.floor(timeSaved * SPEED_BONUS_MULTIPLIER / 1000);
+      return basePoints + speedBonus;
+    } else {
+      // No game master time limit - use session time for bonus calculation
+      // This encourages faster completion even without official timing
+      const sessionTime = playerLoginTime ? Date.now() - playerLoginTime : totalTime;
+      const timeBonus = Math.max(0, 300000 - sessionTime); // 5 min baseline
+      const speedBonus = Math.floor(timeBonus * SPEED_BONUS_MULTIPLIER / 1000 / 2); // Half bonus for session time
+      return basePoints + speedBonus;
+    }
+  }, [calculatePoints, playerLoginTime]);
 
   const recordCorrectPlacement = useCallback(
     (phase: Phase) => {
@@ -666,7 +699,9 @@ export default function PlayPage() {
       return;
     }
 
+    // Use theme-specific hints, fallback to classic theme hints
     const hintMessage =
+      themeConfig.phaseHints[selectedHintPhase] ||
       activeTheme.phaseHints[selectedHintPhase] ||
       "Focus on the keywords that describe this phase.";
 
@@ -683,7 +718,7 @@ export default function PlayPage() {
 
     setBonusAdjustments((prev) => prev - HINT_COST);
     toast.success(
-      `Hint unlocked for ${PHASE_LABELS[selectedHintPhase]}! -${HINT_COST} points`,
+      `Hint unlocked for ${themeConfig.mechanics.phaseNames[selectedHintPhase] || PHASE_LABELS[selectedHintPhase]}! -${HINT_COST} points`,
       {
         description: "Everyone can see it for the next few moves.",
       }
@@ -800,10 +835,17 @@ export default function PlayPage() {
   const activeHint = gameConfig?.activeHint ?? null;
 
   return (
-    <div
-      className="min-h-screen p-2 sm:p-4 md:p-6 lg:p-8 relative"
-      style={{ background: activeTheme.background }}
-    >
+    <>
+      <ThemeSelector
+        selectedTheme={gameTheme}
+        onThemeSelect={setGameTheme}
+        isVisible={showThemeSelector}
+        onClose={() => setShowThemeSelector(false)}
+      />
+      <div
+        className="min-h-screen p-2 sm:p-4 md:p-6 lg:p-8 relative"
+        style={{ background: themeConfig.visualElements.colorScheme.background }}
+      >
       {/* Game Master Timer Display */}
       {gameConfig?.isGameActive && remainingTime !== null && (
         <div className="fixed top-2 sm:top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg shadow-xl border-2 border-red-700 max-w-[90vw]">
@@ -859,17 +901,28 @@ export default function PlayPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-1 sm:mb-2">
-              Creativity is...
+              {themeConfig.name}
             </h1>
             <p className="text-sm sm:text-base md:text-lg text-muted-foreground">
-              Sort the quotes into the correct creative phases
+              {themeConfig.description}
             </p>
-            <div className="text-xs sm:text-sm font-semibold mt-1" style={{ color: activeTheme.badgeColor }}>
-              Theme: {activeTheme.name}
+            <div className="text-xs sm:text-sm font-semibold mt-1 flex items-center gap-2">
+              <span style={{ color: themeConfig.visualElements.colorScheme.accent }}>
+                Theme: {themeConfig.name}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowThemeSelector(true)}
+                className="text-xs px-2 py-1 h-auto"
+              >
+                <Palette className="w-3 h-3 mr-1" />
+                Change Theme
+              </Button>
             </div>
           </div>
           <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
-            <Timer startTime={gameState.startTime} isCompleted={gameState.isCompleted} />
+            <Timer startTime={gameState.startTime} loginTime={playerLoginTime} isCompleted={gameState.isCompleted} />
             <div
               className={`bg-card rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-center flex-1 sm:flex-none border-2 transition-all ${
                 scoreFlash
@@ -1059,7 +1112,7 @@ export default function PlayPage() {
               correctPlacements={correctPlacements}
               totalPieces={puzzleQuotes.length + 1 + phaseTitles.length}
               wrongAttempts={wrongAttempts}
-              boardBackground={activeTheme.boardBackground}
+              boardBackground={themeConfig.boardBackground}
               placedQuotes={placedQuotes}
               placedTitles={placedTitles}
               onDrop={
@@ -1074,11 +1127,13 @@ export default function PlayPage() {
               onDragEnd={handleDragEnd}
               draggedQuote={draggedQuote}
               draggedTitle={draggedTitle}
+              themeConfig={themeConfig}
             />
           </div>
         </div>
       </div>
     </div>
+    </>
   );
 }
 

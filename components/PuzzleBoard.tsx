@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Quote, PhaseTitle, Phase } from "@/types/game";
+import { ThemeConfig } from "@/lib/gameThemes";
 import { QuoteCard } from "./QuoteCard";
 import { cn } from "@/lib/utils";
 import { CheckCircle2 } from "lucide-react";
@@ -21,37 +22,38 @@ interface PuzzleBoardProps {
   onDragEnd: () => void;
   draggedQuote: Quote | null;
   draggedTitle: PhaseTitle | null;
+  themeConfig?: ThemeConfig;
 }
 
-const phases = [
-  { 
-    id: "preparation", 
-    label: "Preparation", 
-    color: "#FF6B35",
+const getPhases = (themeConfig?: ThemeConfig) => [
+  {
+    id: "preparation",
+    label: themeConfig?.mechanics.phaseNames.preparation || "Preparation",
+    color: themeConfig?.visualElements.colorScheme.primary || "#FF6B35",
     goosePosition: { left: "5%", top: "5%" },
     goosePositionMobile: { left: "2%", top: "3%" },
     dropZonePosition: { left: "10%", top: "20%" }
   },
-  { 
-    id: "incubation", 
-    label: "Incubation", 
-    color: "#4ECDC4",
+  {
+    id: "incubation",
+    label: themeConfig?.mechanics.phaseNames.incubation || "Incubation",
+    color: themeConfig?.visualElements.colorScheme.secondary || "#4ECDC4",
     goosePosition: { left: "25%", top: "5%" },
     goosePositionMobile: { left: "22%", top: "3%" },
     dropZonePosition: { left: "30%", top: "20%" }
   },
-  { 
-    id: "illumination", 
-    label: "Illumination", 
-    color: "#FFE66D",
+  {
+    id: "illumination",
+    label: themeConfig?.mechanics.phaseNames.illumination || "Illumination",
+    color: themeConfig?.visualElements.colorScheme.accent || "#FFE66D",
     goosePosition: { left: "45%", top: "5%" },
     goosePositionMobile: { left: "42%", top: "3%" },
     dropZonePosition: { left: "50%", top: "20%" }
   },
-  { 
-    id: "verification", 
-    label: "Verification", 
-    color: "#95E1D3",
+  {
+    id: "verification",
+    label: themeConfig?.mechanics.phaseNames.verification || "Verification",
+    color: themeConfig?.visualElements.colorScheme.secondary || "#95E1D3",
     goosePosition: { left: "65%", top: "5%" },
     goosePositionMobile: { left: "62%", top: "3%" },
     dropZonePosition: { left: "70%", top: "20%" }
@@ -73,7 +75,9 @@ export function PuzzleBoard({
   onDragEnd,
   draggedQuote,
   draggedTitle,
+  themeConfig,
 }: PuzzleBoardProps) {
+  const phases = getPhases(themeConfig);
   const [isMobile, setIsMobile] = useState(false);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
 
