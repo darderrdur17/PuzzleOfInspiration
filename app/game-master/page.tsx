@@ -393,13 +393,16 @@ export default function GameMasterPage() {
                         onClick={() => {
                           setSelectedBoardLayout(layout.type);
                           setUserManuallySelectedLayout(true);
+                          // Live-sync layout when a game is active so all players switch immediately
+                          if (configSnapshot?.isGameActive) {
+                            GameSync.updateConfig({ boardLayout: layout.type });
+                          }
                         }}
-                        disabled={isGameActive}
                         className={`p-3 rounded-lg border-2 transition-all text-left ${
                           isSelected
                             ? "border-puzzle-purple bg-puzzle-purple/10 shadow-lg ring-2 ring-puzzle-purple/20"
                             : "border-gray-300 bg-gray-50 hover:border-gray-400"
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        }`}
                       >
                         <div className="font-semibold text-gray-800 text-xs mb-1">
                           {layout.name}
