@@ -143,7 +143,7 @@ export const gameThemes: Record<GameTheme, ThemeConfig> = {
     name: "Gardener's Journey",
     description: 'Cultivate creativity through organic growth and natural cycles',
     background: 'linear-gradient(135deg, #92400e 0%, #16a34a 50%, #f472b6 100%)',
-    boardBackground: 'radial-gradient(circle at center, #92400e 0%, #1a2e1a 100%)',
+    boardBackground: "url('/images/ui/13_tablet_garden_interface.png')",
     badgeColor: '#16a34a',
     phaseHints: {
       preparation: 'Like planting seeds, sow the initial ideas in fertile soil.',
