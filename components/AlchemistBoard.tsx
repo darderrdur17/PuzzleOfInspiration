@@ -134,17 +134,17 @@ export function AlchemistBoard({
         className="relative rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 min-h-[600px] sm:min-h-[700px] md:min-h-[800px] overflow-hidden"
         style={{
           backgroundImage: `
-            linear-gradient(160deg, rgba(34,12,54,0.9), rgba(9,40,68,0.9)),
+            linear-gradient(160deg, rgba(34,12,54,0.82), rgba(9,40,68,0.82)),
             url('/images/ui/05_ui_elements_collection.png'),
             url('/images/alchemist/06_alchemist_preparation_phase.png')
           `,
-          backgroundSize: "cover, cover, contain",
+          backgroundSize: "cover, cover, cover",
           backgroundPosition: "center, center, center",
           backgroundRepeat: "no-repeat, no-repeat, no-repeat",
         }}
       >
-        {/* Mystical Overlay for readability */}
-        <div className="absolute inset-0 bg-black/35 pointer-events-none"></div>
+        {/* Soft overlay for readability */}
+        <div className="absolute inset-0 bg-black/30 pointer-events-none"></div>
         
         {/* Central Astrolabe Circle */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96">

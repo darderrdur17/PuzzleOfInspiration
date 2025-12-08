@@ -43,7 +43,7 @@ export function PuzzlePiece({
   return (
     <div
       className={cn(
-        "relative cursor-move touch-manipulation transition-all duration-300 rounded-lg border-2 overflow-hidden",
+        "relative cursor-move touch-manipulation transition-all duration-300 rounded-lg border-2 overflow-hidden bg-white/90 backdrop-blur-sm",
         sizeClasses[size],
         colorClasses[variant],
         {

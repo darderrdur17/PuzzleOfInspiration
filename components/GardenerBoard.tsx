@@ -85,16 +85,20 @@ export function GardenerBoard({
       </div>
 
       {/* Garden Board */}
-      <div className="relative rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 min-h-[600px] sm:min-h-[700px] md:min-h-[800px] overflow-hidden bg-gradient-to-b from-gardener-sky via-gardener-green to-gardener-brown">
-        {/* Garden Background Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-500/10 to-brown-500/20"></div>
-        
-        {/* Background Image Placeholder - Garden Scene */}
-        <div className="absolute inset-0 opacity-20 pointer-events-none">
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="text-6xl sm:text-8xl md:text-9xl">🌱</div>
-          </div>
-        </div>
+      <div
+        className="relative rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 min-h-[600px] sm:min-h-[700px] md:min-h-[800px] overflow-hidden"
+        style={{
+          backgroundImage: `
+            linear-gradient(180deg, rgba(56,118,29,0.8), rgba(71,55,32,0.82)),
+            url('/images/ui/13_tablet_garden_interface.png')
+          `,
+          backgroundSize: "cover, cover",
+          backgroundPosition: "center, center",
+          backgroundRepeat: "no-repeat, no-repeat",
+        }}
+      >
+        {/* Soft overlay for readability */}
+        <div className="absolute inset-0 bg-black/22 pointer-events-none"></div>
         
         {/* Decorative Elements */}
         <div className="absolute top-10 left-10 w-20 h-20 opacity-20">
