@@ -86,19 +86,8 @@ export function GardenerBoard({
 
       {/* Garden Board */}
       <div
-        className="relative rounded-xl sm:rounded-2xl p-2 sm:p-4 md:p-6 min-h-[600px] sm:min-h-[700px] md:min-h-[800px] overflow-hidden"
-        style={{
-          backgroundImage: `
-            linear-gradient(180deg, rgba(56,118,29,0.8), rgba(71,55,32,0.82)),
-            url('/images/ui/13_tablet_garden_interface.png')
-          `,
-          backgroundSize: "cover, cover",
-          backgroundPosition: "center, center",
-          backgroundRepeat: "no-repeat, no-repeat",
-        }}
+        className="relative rounded-xl sm:rounded-2xl p-2 sm:p-4 md:p-6 min-h-[600px] sm:min-h-[700px] md:min-h-[800px] overflow-hidden bg-gradient-to-b from-gardener-sky via-gardener-green/40 to-gardener-brown/50"
       >
-        {/* Soft overlay for readability */}
-        <div className="absolute inset-0 bg-black/18 pointer-events-none"></div>
 
         {/* Tablet-style frame to mirror the reference layout; scales on mobile */}
         <div className="relative z-10 mx-auto max-w-5xl bg-white/60 backdrop-blur-md border border-white/50 rounded-2xl shadow-2xl p-3 sm:p-5 md:p-6">

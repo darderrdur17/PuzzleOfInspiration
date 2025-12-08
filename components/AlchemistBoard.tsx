@@ -131,20 +131,8 @@ export function AlchemistBoard({
 
       {/* Alchemist Astrolabe Board */}
       <div
-        className="relative rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 min-h-[600px] sm:min-h-[700px] md:min-h-[800px] overflow-hidden"
-        style={{
-          backgroundImage: `
-            linear-gradient(145deg, #1f1535 0%, #2e1b5f 32%, #ff8a3d 68%, #d4af37 100%),
-            url('/images/ui/05_ui_elements_collection.png')
-          `,
-          backgroundSize: "cover, cover",
-          backgroundPosition: "center, center",
-          backgroundRepeat: "no-repeat, no-repeat",
-          backgroundBlendMode: "overlay, lighten",
-        }}
+        className="relative rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 min-h-[600px] sm:min-h-[700px] md:min-h-[800px] overflow-hidden bg-gradient-to-b from-[#1f1535] via-[#2e1b5f] to-[#120a24]"
       >
-        {/* Light veil to keep the UI sheet subtle */}
-        <div className="absolute inset-0 bg-white/12 pointer-events-none"></div>
         
         {/* Central Astrolabe Circle */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96">
