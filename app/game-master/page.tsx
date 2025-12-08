@@ -36,6 +36,7 @@ export default function GameMasterPage() {
   const [activePlayers, setActivePlayers] = useState<ActivePlayer[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>("classic");
   const [selectedBoardLayout, setSelectedBoardLayout] = useState<BoardLayoutType>("classic");
+  const [userManuallySelectedLayout, setUserManuallySelectedLayout] = useState(false);
   const [configSnapshot, setConfigSnapshot] = useState<GameConfig | null>(null);
   const [customQuotes, setCustomQuotes] = useState<CustomQuote[]>([]);
   const [newQuote, setNewQuote] = useState<{
@@ -114,12 +115,17 @@ export default function GameMasterPage() {
         setIsGameActive(config.isGameActive);
         setSelectedTheme(config.themeId);
         // Set board layout from config, or use theme default
+        // Only update if config has a boardLayout (from an active game)
         if (config.boardLayout) {
           setSelectedBoardLayout(config.boardLayout);
-        } else {
-          const theme = themeList.find(t => t.id === config.themeId);
-          if (theme?.boardLayout) {
-            setSelectedBoardLayout(theme.boardLayout);
+          setUserManuallySelectedLayout(true);
+        } else if (!config.isGameActive) {
+          // Only reset to theme default if game is not active and no manual selection
+          if (!userManuallySelectedLayout) {
+            const theme = themeList.find(t => t.id === config.themeId);
+            if (theme?.boardLayout) {
+              setSelectedBoardLayout(theme.boardLayout);
+            }
           }
         }
       } else {
@@ -129,7 +135,7 @@ export default function GameMasterPage() {
     });
 
     return unsubscribe;
-  }, []);
+  }, [userManuallySelectedLayout]);
 
   useEffect(() => {
     const unsubscribe = CustomQuotes.subscribe(setCustomQuotes);
@@ -179,6 +185,8 @@ export default function GameMasterPage() {
   const handleEndGame = () => {
     GameSync.endGame();
     setIsGameActive(false);
+    // Reset manual selection flag when game ends so theme defaults apply next time
+    setUserManuallySelectedLayout(false);
   };
 
   const handleToggleDoublePoints = () => {
@@ -336,10 +344,12 @@ export default function GameMasterPage() {
                   onChange={(e) => {
                     const newTheme = e.target.value as ThemeId;
                     setSelectedTheme(newTheme);
-                    // Auto-select default board layout for theme
-                    const theme = themeList.find(t => t.id === newTheme);
-                    if (theme?.boardLayout) {
-                      setSelectedBoardLayout(theme.boardLayout);
+                    // Auto-select default board layout for theme only if user hasn't manually selected one
+                    if (!userManuallySelectedLayout) {
+                      const theme = themeList.find(t => t.id === newTheme);
+                      if (theme?.boardLayout) {
+                        setSelectedBoardLayout(theme.boardLayout);
+                      }
                     }
                   }}
                   disabled={isGameActive}
@@ -365,35 +375,46 @@ export default function GameMasterPage() {
                 </div>
               </div>
               
-              {/* Board Layout Selection (as part of theme) */}
-              {currentTheme.availableLayouts && currentTheme.availableLayouts.length > 1 && (
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
-                    <Layout className="w-3 h-3 text-orange-500" />
-                    Choose Board Layout Style
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    {currentTheme.availableLayouts.map((layoutType) => {
-                      const layout = BOARD_LAYOUTS[layoutType];
-                      return (
-                        <button
-                          key={layout.type}
-                          onClick={() => setSelectedBoardLayout(layout.type)}
-                          disabled={isGameActive}
-                          className={`p-3 rounded-lg border-2 transition-all text-left ${
-                            selectedBoardLayout === layout.type
-                              ? "border-puzzle-purple bg-puzzle-purple/10 shadow-lg ring-2 ring-puzzle-purple/20"
-                              : "border-gray-300 bg-gray-50 hover:border-gray-400"
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          <div className="font-semibold text-gray-800 text-xs mb-1">{layout.name}</div>
-                          <div className="text-[10px] text-gray-600">{layout.description}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
+              {/* Board Layout Selection (as part of theme) - Always show all available layouts */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
+                  <Layout className="w-3 h-3 text-orange-500" />
+                  Choose Board Layout Style
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {Object.values(BOARD_LAYOUTS).map((layout) => {
+                    const isSelected = selectedBoardLayout === layout.type;
+                    return (
+                      <button
+                        key={layout.type}
+                        type="button"
+                        onClick={() => {
+                          setSelectedBoardLayout(layout.type);
+                          setUserManuallySelectedLayout(true);
+                        }}
+                        disabled={isGameActive}
+                        className={`p-3 rounded-lg border-2 transition-all text-left ${
+                          isSelected
+                            ? "border-puzzle-purple bg-puzzle-purple/10 shadow-lg ring-2 ring-puzzle-purple/20"
+                            : "border-gray-300 bg-gray-50 hover:border-gray-400"
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        <div className="font-semibold text-gray-800 text-xs mb-1">
+                          {layout.name}
+                          {isSelected && " ✓"}
+                        </div>
+                        <div className="text-[10px] text-gray-600">{layout.description}</div>
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+                <p className="text-xs text-gray-500 mt-1">
+                  Selected: <span className="font-semibold">{BOARD_LAYOUTS[selectedBoardLayout].name}</span>
+                  {!userManuallySelectedLayout && currentTheme.boardLayout && (
+                    <span className="text-gray-400"> (Theme default)</span>
+                  )}
+                </p>
+              </div>
             </div>
           </div>
           </div>
