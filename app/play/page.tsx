@@ -164,6 +164,13 @@ export default function PlayPage() {
       if (!config?.isGameActive && gameState.isStarted && !gameState.isCompleted) {
         handleGameEnd();
       }
+
+      // Backfill missing board layout so players don't fall back to theme defaults
+      if (config && !config.boardLayout) {
+        const themeDef = themeLibrary[config.themeId] ?? themeLibrary.classic;
+        const fallbackLayout = themeDef.boardLayout ?? "classic";
+        GameSync.updateConfig({ boardLayout: fallbackLayout });
+      }
     });
 
     return () => {

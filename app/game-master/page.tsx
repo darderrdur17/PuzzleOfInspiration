@@ -112,6 +112,14 @@ export default function GameMasterPage() {
     const unsubscribe = GameSync.subscribe((config) => {
       setConfigSnapshot(config);
       if (config) {
+        // Ensure boardLayout is always set for active games (backfill older configs)
+        if (!config.boardLayout) {
+          const fallbackTheme = themeList.find((t) => t.id === config.themeId);
+          const fallbackLayout = fallbackTheme?.boardLayout ?? "classic";
+          GameSync.updateConfig({ boardLayout: fallbackLayout });
+          setSelectedBoardLayout(fallbackLayout);
+          setUserManuallySelectedLayout(true);
+        }
         setIsGameActive(config.isGameActive);
         setSelectedTheme(config.themeId);
         // Set board layout from config, or use theme default
