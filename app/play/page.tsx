@@ -26,7 +26,7 @@ import { playSuccessTone, playErrorTone, playAlertTone } from "@/lib/soundboard"
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Zap, Palette } from "lucide-react";
-import { BOARD_LAYOUTS } from "@/types/boardLayout";
+import { BOARD_LAYOUTS, type BoardLayoutType } from "@/types/boardLayout";
 
 const phaseTitles: PhaseTitle[] = [
   { id: "title-preparation", title: "Preparation", phase: "preparation" },
@@ -34,6 +34,20 @@ const phaseTitles: PhaseTitle[] = [
   { id: "title-illumination", title: "Illumination", phase: "illumination" },
   { id: "title-verification", title: "Verification", phase: "verification" },
 ];
+
+const themeToWorld: Record<ThemeId, GameTheme> = {
+  classic: "ui",
+  science: "alchemist",
+  art: "gardener",
+  entrepreneurship: "explorer",
+};
+
+const deriveGameTheme = (themeId: ThemeId, boardLayout?: BoardLayoutType): GameTheme => {
+  if (boardLayout === "alchemist") return "alchemist";
+  if (boardLayout === "gardener") return "gardener";
+  if (boardLayout === "classic") return "ui";
+  return themeToWorld[themeId] || "observatory";
+};
 
 // Scoring constants
 const POINTS_CORRECT_QUOTE = 10;
@@ -110,7 +124,9 @@ export default function PlayPage() {
   });
 
   const activeTheme = themeLibrary[themeId] ?? themeLibrary.classic;
-  const themeConfig = getThemeConfig(gameTheme);
+  const resolvedGameTheme = deriveGameTheme(gameConfig?.themeId ?? themeId, gameConfig?.boardLayout);
+  const visualTheme = gameConfig ? resolvedGameTheme : gameTheme;
+  const themeConfig = getThemeConfig(visualTheme);
   const [scoreFlash, setScoreFlash] = useState(false);
   const [comboGlow, setComboGlow] = useState(false);
   const challengeModeRef = useRef<ChallengeMode | null>(null);
@@ -179,6 +195,14 @@ export default function PlayPage() {
   }, [answeredQuizzes]);
 
   useEffect(() => {
+    if (!gameConfig) return;
+    const resolved = deriveGameTheme(gameConfig.themeId ?? themeId, gameConfig.boardLayout);
+    if (resolved !== gameTheme) {
+      setGameTheme(resolved);
+    }
+  }, [gameConfig, themeId, gameTheme]);
+
+  useEffect(() => {
     if (!gameState.isStarted) return;
     setScoreFlash(true);
     const timer = setTimeout(() => setScoreFlash(false), 400);
@@ -240,7 +264,8 @@ export default function PlayPage() {
 
     const activeThemeId = config.themeId ?? "classic";
     const themeDefinition = themeLibrary[activeThemeId] ?? themeLibrary.classic;
-    const themeConfig = getThemeConfig(gameTheme);
+    const resolvedTheme = deriveGameTheme(activeThemeId, config.boardLayout);
+    const themeConfig = getThemeConfig(resolvedTheme);
 
     // Use theme-specific quotes mixed with general quotes
     const customQuotes = CustomQuotes.byTheme(activeThemeId);
@@ -266,9 +291,7 @@ export default function PlayPage() {
 
     setPlayerName(name);
     setThemeId(activeThemeId);
-    if (theme) {
-      setGameTheme(theme);
-    }
+    setGameTheme(resolvedTheme);
     setUserPuzzlePiece(userQuote);
     setPuzzleQuotes(selectedQuotes);
     setAvailableQuotes(selectedQuotes);
@@ -821,6 +844,7 @@ export default function PlayPage() {
   }
 
   const correctPlacements = calculateCorrectCount();
+  const derivedBoardLayout = gameConfig?.boardLayout ?? activeTheme.boardLayout ?? "classic";
 
   // Get remaining time from game config
   const remainingTime = gameConfig?.gameEndTime
@@ -909,19 +933,18 @@ export default function PlayPage() {
               <span style={{ color: themeConfig.visualElements.colorScheme.accent }}>
                 Theme: {themeConfig.name}
               </span>
-              {gameConfig?.boardLayout && (
-                <span className="text-muted-foreground">
-                  • Layout: {BOARD_LAYOUTS[gameConfig.boardLayout].name}
-                </span>
-              )}
+              <span className="text-muted-foreground">
+                • Layout: {BOARD_LAYOUTS[derivedBoardLayout].name}
+              </span>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => setShowThemeSelector(true)}
+                disabled={!!gameConfig?.boardLayout}
                 className="text-xs px-2 py-1 h-auto"
               >
                 <Palette className="w-3 h-3 mr-1" />
-                Change Theme
+                {gameConfig?.boardLayout ? "Theme Locked" : "Change Theme"}
               </Button>
             </div>
           </div>
@@ -1124,7 +1147,7 @@ export default function PlayPage() {
               wrongAttempts={wrongAttempts}
               boardBackground={themeConfig.boardBackground}
               placedQuotes={placedQuotes}
-              boardLayout={gameConfig?.boardLayout || "classic"}
+              boardLayout={derivedBoardLayout}
               placedTitles={placedTitles}
               onDrop={
                 userPuzzlePiece && draggedQuote?.id === "user-answer"

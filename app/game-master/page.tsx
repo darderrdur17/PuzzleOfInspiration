@@ -178,7 +178,9 @@ export default function GameMasterPage() {
 
   const handleStartGame = () => {
     const sessionId = sessionName.trim() || `Class-${new Date().toLocaleDateString()}-${Date.now()}`;
-    GameSync.startGame(timeLimit * 60, maxQuotes, sessionId, selectedTheme, selectedBoardLayout);
+    const themeDefaultLayout = themeList.find((theme) => theme.id === selectedTheme)?.boardLayout;
+    const layoutToUse = userManuallySelectedLayout ? selectedBoardLayout : themeDefaultLayout || selectedBoardLayout;
+    GameSync.startGame(timeLimit * 60, maxQuotes, sessionId, selectedTheme, layoutToUse);
     setIsGameActive(true);
   };
 

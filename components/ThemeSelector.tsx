@@ -1,10 +1,8 @@
 "use client";
-
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { GameTheme, gameThemes, ThemeConfig } from "@/lib/gameThemes";
-import { Palette, Sparkles, Star, Eye } from "lucide-react";
+import { GameTheme, gameThemes } from "@/lib/gameThemes";
+import { Palette, Sparkles, Star, Eye, Layout } from "lucide-react";
 
 interface ThemeSelectorProps {
   selectedTheme: GameTheme;
@@ -18,6 +16,7 @@ const themeIcons = {
   alchemist: Sparkles,
   gardener: Palette,
   explorer: Eye,
+  ui: Layout,
 };
 
 export function ThemeSelector({ selectedTheme, onThemeSelect, isVisible, onClose }: ThemeSelectorProps) {

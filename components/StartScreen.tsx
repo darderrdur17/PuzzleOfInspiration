@@ -102,6 +102,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
                     {selectedTheme === 'alchemist' && 'Transform ideas through magical alchemy'}
                     {selectedTheme === 'gardener' && 'Grow ideas through organic cultivation'}
                     {selectedTheme === 'explorer' && 'Discover ideas through adventurous exploration'}
+                    {selectedTheme === 'ui' && 'Assemble responsive layouts with the modern UI lab palette'}
                   </div>
                 </div>
                 <Button

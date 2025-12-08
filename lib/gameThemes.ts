@@ -1,4 +1,4 @@
-export type GameTheme = 'observatory' | 'alchemist' | 'gardener' | 'explorer';
+export type GameTheme = 'observatory' | 'alchemist' | 'gardener' | 'explorer' | 'ui';
 
 export interface ThemeConfig {
   id: GameTheme;
@@ -233,6 +233,55 @@ export const gameThemes: Record<GameTheme, ThemeConfig> = {
       { id: 'exp2', text: 'Adventure is not outside man; it is within.', author: 'George Eliot', phase: 2 },
       { id: 'exp3', text: 'Discovery consists of seeing what everybody has seen and thinking what nobody has thought.', author: 'Albert Szent-Gyorgyi', phase: 3 },
       { id: 'exp4', text: 'The important thing is not to stop questioning.', author: 'Albert Einstein', phase: 4 },
+    ]
+  },
+
+  ui: {
+    id: 'ui',
+    name: "UI Lab",
+    description: 'Modern responsive interface lab inspired by the component library',
+    background: 'linear-gradient(135deg, #fce8d5 0%, #fef3e9 45%, #f3e8ff 100%)',
+    boardBackground: 'url(/images/ui/15_responsive_ui_components.png)',
+    badgeColor: '#6c5ce7',
+    phaseHints: {
+      preparation: 'Collect UI building blocks, colors, and layouts before assembling.',
+      incubation: 'Let patterns and layouts mix; experiment with spacing and hierarchy.',
+      illumination: 'The “aha!” comes when the interface clicks and feels effortless.',
+      verification: 'Test responsiveness across devices and refine the interaction polish.'
+    },
+    visualElements: {
+      backgroundImage: '/images/ui/15_responsive_ui_components.png',
+      phaseImages: {
+        preparation: '/images/ui/05_ui_elements_collection.png',
+        incubation: '/images/ui/11_desktop_hub_interface.png',
+        illumination: '/images/ui/12_mobile_puzzle_interface.png',
+        verification: '/images/ui/13_tablet_garden_interface.png'
+      },
+      particleEffects: true,
+      specialAnimations: ['glassmorphism-glow', 'gradient-sweep'],
+      colorScheme: {
+        primary: '#6c5ce7',      // Royal Purple
+        secondary: '#ff8a3d',    // Sunset Orange
+        accent: '#2bb673',       // Emerald Green
+        background: '#fce8d5',   // Light Peach
+        text: '#2e2e2e'          // Dark Grey
+      }
+    },
+    mechanics: {
+      phaseNames: {
+        preparation: 'Component Prep',
+        incubation: 'Layout Incubation',
+        illumination: 'Interaction Spark',
+        verification: 'Responsive Check'
+      },
+      specialFeatures: ['responsive-preview', 'glass-panels', 'gradient-progress'],
+      puzzleVariants: ['grid-alignment', 'icon-matching', 'colorway-build']
+    },
+    quotes: [
+      { id: 'ui1', text: 'Design is not just what it looks like and feels like. Design is how it works.', author: 'Steve Jobs', phase: 1 },
+      { id: 'ui2', text: 'Details are not details. They make the design.', author: 'Charles Eames', phase: 2 },
+      { id: 'ui3', text: 'Good design is obvious. Great design is transparent.', author: 'Joe Sparano', phase: 3 },
+      { id: 'ui4', text: 'Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away.', author: 'Antoine de Saint-Exupéry', phase: 4 },
     ]
   }
 };
