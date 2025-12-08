@@ -111,34 +111,33 @@ export default function GameMasterPage() {
     // Subscribe to game config changes
     const unsubscribe = GameSync.subscribe((config) => {
       setConfigSnapshot(config);
-      if (config) {
-        // Ensure boardLayout is always set for active games (backfill older configs)
-        if (!config.boardLayout) {
-          const fallbackTheme = themeList.find((t) => t.id === config.themeId);
-          const fallbackLayout = fallbackTheme?.boardLayout ?? "classic";
-          GameSync.updateConfig({ boardLayout: fallbackLayout });
-          setSelectedBoardLayout(fallbackLayout);
-          setUserManuallySelectedLayout(true);
-        }
-        setIsGameActive(config.isGameActive);
-        setSelectedTheme(config.themeId);
-        // Set board layout from config, or use theme default
-        // Only update if config has a boardLayout (from an active game)
-        if (config.boardLayout) {
-          setSelectedBoardLayout(config.boardLayout);
-          setUserManuallySelectedLayout(true);
-        } else if (!config.isGameActive) {
-          // Only reset to theme default if game is not active and no manual selection
-          if (!userManuallySelectedLayout) {
-            const theme = themeList.find(t => t.id === config.themeId);
-            if (theme?.boardLayout) {
-              setSelectedBoardLayout(theme.boardLayout);
-            }
-          }
-        }
-      } else {
+      if (!config) {
         setIsGameActive(false);
         setRemainingTime(0);
+        return;
+      }
+
+      // If game not active, keep user selections (don't overwrite theme/layout)
+      if (!config.isGameActive) {
+        setIsGameActive(false);
+        setRemainingTime(0);
+        return;
+      }
+
+      // Game is active: enforce synced theme/layout
+      setIsGameActive(true);
+      setSelectedTheme(config.themeId);
+
+      // Ensure boardLayout is always set for active games (backfill older configs)
+      if (!config.boardLayout) {
+        const fallbackTheme = themeList.find((t) => t.id === config.themeId);
+        const fallbackLayout = fallbackTheme?.boardLayout ?? "classic";
+        GameSync.updateConfig({ boardLayout: fallbackLayout });
+        setSelectedBoardLayout(fallbackLayout);
+        setUserManuallySelectedLayout(true);
+      } else {
+        setSelectedBoardLayout(config.boardLayout);
+        setUserManuallySelectedLayout(true);
       }
     });
 
