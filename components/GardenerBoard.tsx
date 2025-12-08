@@ -86,7 +86,7 @@ export function GardenerBoard({
 
       {/* Garden Board */}
       <div
-        className="relative rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 min-h-[600px] sm:min-h-[700px] md:min-h-[800px] overflow-hidden"
+        className="relative rounded-xl sm:rounded-2xl p-2 sm:p-4 md:p-6 min-h-[600px] sm:min-h-[700px] md:min-h-[800px] overflow-hidden"
         style={{
           backgroundImage: `
             linear-gradient(180deg, rgba(56,118,29,0.8), rgba(71,55,32,0.82)),
@@ -98,7 +98,10 @@ export function GardenerBoard({
         }}
       >
         {/* Soft overlay for readability */}
-        <div className="absolute inset-0 bg-black/22 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-black/18 pointer-events-none"></div>
+
+        {/* Tablet-style frame to mirror the reference layout; scales on mobile */}
+        <div className="relative z-10 mx-auto max-w-5xl bg-white/60 backdrop-blur-md border border-white/50 rounded-2xl shadow-2xl p-3 sm:p-5 md:p-6">
         
         {/* Decorative Elements */}
         <div className="absolute top-10 left-10 w-20 h-20 opacity-20">
@@ -119,12 +122,20 @@ export function GardenerBoard({
             <div
               key={bed.id}
               className="absolute z-20"
-              style={isMobile ? {
-                ...("top" in bed.position ? { top: bed.position.top } : {}),
-                ...("bottom" in bed.position ? { bottom: bed.position.bottom } : {}),
-                ...("left" in bed.position ? { left: bed.position.left } : {}),
-                ...("right" in bed.position ? { right: bed.position.right } : {}),
-              } : bed.position}
+              style={
+                isMobile
+                  ? {
+                      ...("top" in bed.position ? { top: bed.position.top } : {}),
+                      ...("bottom" in bed.position ? { bottom: bed.position.bottom } : {}),
+                      ...("left" in bed.position ? { left: bed.position.left } : {}),
+                      ...("right" in bed.position ? { right: bed.position.right } : {}),
+                      width: "46%",
+                    }
+                  : {
+                      ...bed.position,
+                      width: "46%",
+                    }
+              }
             >
               {/* Garden Bed Container */}
               <div className="relative">
@@ -145,7 +156,7 @@ export function GardenerBoard({
                     onDrop(phase);
                   }}
                   className={cn(
-                    "relative w-48 sm:w-56 md:w-64 min-h-[200px] sm:min-h-[220px] rounded-xl border-2 transition-all shadow-xl backdrop-blur-sm",
+                    "relative w-full min-h-[200px] sm:min-h-[220px] rounded-xl border-2 transition-all shadow-xl backdrop-blur-sm",
                     title && quotes.length > 0
                       ? "bg-gardener-green/40 border-gardener-green"
                       : "bg-gardener-brown/30 border-gardener-brown border-dashed",
