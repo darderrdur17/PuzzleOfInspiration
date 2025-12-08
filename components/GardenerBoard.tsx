@@ -251,6 +251,7 @@ export function GardenerBoard({
             </div>
           );
         })}
+        </div> {/* end tablet-style frame */}
       </div>
     </div>
   );
