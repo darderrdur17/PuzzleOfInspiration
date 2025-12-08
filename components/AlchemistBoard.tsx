@@ -130,16 +130,21 @@ export function AlchemistBoard({
       </div>
 
       {/* Alchemist Astrolabe Board */}
-      <div className="relative rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 min-h-[600px] sm:min-h-[700px] md:min-h-[800px] overflow-hidden bg-gradient-to-b from-alchemist-purple via-gray-900 to-black">
-        {/* Mystical Background Overlay */}
-        <div className="absolute inset-0 bg-black/20"></div>
-        
-        {/* Background Image Placeholder - Alchemist Workshop */}
-        <div className="absolute inset-0 opacity-20 pointer-events-none">
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="text-6xl sm:text-8xl md:text-9xl">⚗️</div>
-          </div>
-        </div>
+      <div
+        className="relative rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 min-h-[600px] sm:min-h-[700px] md:min-h-[800px] overflow-hidden"
+        style={{
+          backgroundImage: `
+            linear-gradient(160deg, rgba(34,12,54,0.9), rgba(9,40,68,0.9)),
+            url('/images/ui/05_ui_elements_collection.png'),
+            url('/images/alchemist/06_alchemist_preparation_phase.png')
+          `,
+          backgroundSize: "cover, cover, contain",
+          backgroundPosition: "center, center, center",
+          backgroundRepeat: "no-repeat, no-repeat, no-repeat",
+        }}
+      >
+        {/* Mystical Overlay for readability */}
+        <div className="absolute inset-0 bg-black/35 pointer-events-none"></div>
         
         {/* Central Astrolabe Circle */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96">
@@ -195,7 +200,8 @@ export function AlchemistBoard({
                     title && quotes.length > 0
                       ? cn(colors.bg, colors.border)
                       : cn(colors.bg.replace("/30", "/20"), colors.borderLight, "border-dashed"),
-                    isHighlighted && "ring-4 ring-primary ring-offset-2 scale-105 z-30"
+                    isHighlighted && "ring-4 ring-primary ring-offset-2 scale-105 z-30",
+                    "bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_35%),radial-gradient(circle_at_80%_30%,rgba(255,255,255,0.05),transparent_40%)]"
                   )}
                 >
                   {/* Title Drop Zone at Top */}
