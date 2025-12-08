@@ -15,6 +15,7 @@ import { GameTheme, gameThemes, getThemeConfig } from "@/lib/gameThemes";
 import { StartScreen } from "@/components/StartScreen";
 import { EndScreen } from "@/components/EndScreen";
 import { QuoteCard } from "@/components/QuoteCard";
+import { PuzzlePiece } from "@/components/PuzzlePiece";
 import { Timer } from "@/components/Timer";
 import { PuzzleBoard } from "@/components/PuzzleBoard";
 import { GameGuide } from "@/components/GameGuide";
@@ -25,6 +26,7 @@ import { playSuccessTone, playErrorTone, playAlertTone } from "@/lib/soundboard"
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Zap, Palette } from "lucide-react";
+import { BOARD_LAYOUTS } from "@/types/boardLayout";
 
 const phaseTitles: PhaseTitle[] = [
   { id: "title-preparation", title: "Preparation", phase: "preparation" },
@@ -197,7 +199,12 @@ export default function PlayPage() {
     if (gameConfig?.themeId) {
       setThemeId(gameConfig.themeId);
     }
-  }, [gameConfig?.themeId]);
+    // Sync board layout from game config (cross-device sync)
+    if (gameConfig?.boardLayout) {
+      // Board layout is automatically used in PuzzleBoard component
+      // This ensures all players see the same layout
+    }
+  }, [gameConfig?.themeId, gameConfig?.boardLayout]);
 
   useEffect(() => {
     const currentMode = gameConfig?.challengeMode ?? "normal";
@@ -898,10 +905,15 @@ export default function PlayPage() {
             <p className="text-sm sm:text-base md:text-lg text-muted-foreground">
               {themeConfig.description}
             </p>
-            <div className="text-xs sm:text-sm font-semibold mt-1 flex items-center gap-2">
+            <div className="text-xs sm:text-sm font-semibold mt-1 flex items-center gap-2 flex-wrap">
               <span style={{ color: themeConfig.visualElements.colorScheme.accent }}>
                 Theme: {themeConfig.name}
               </span>
+              {gameConfig?.boardLayout && (
+                <span className="text-muted-foreground">
+                  • Layout: {BOARD_LAYOUTS[gameConfig.boardLayout].name}
+                </span>
+              )}
               <Button
                 size="sm"
                 variant="outline"
@@ -1063,26 +1075,32 @@ export default function PlayPage() {
             {availableQuotes.length > 0 && (
               <div className="bg-card/50 rounded-lg sm:rounded-xl p-3 sm:p-4 border-2 border-border max-h-[300px] sm:max-h-[400px] md:max-h-[500px] overflow-y-auto">
                 <h3 className="text-xs sm:text-sm font-bold text-foreground mb-1 sm:mb-2">
-                  Quotes to Sort ({availableQuotes.length})
+                  Puzzle Pieces to Place ({availableQuotes.length})
                 </h3>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3">
-                  Drag to the correct phase
+                  Drag puzzle pieces to the correct phase on the image
                 </p>
-                <div className="space-y-1.5 sm:space-y-2 pr-1 sm:pr-2">
-                  {availableQuotes.map((quote) => (
-                    <div
-                      key={quote.id}
-                      draggable
-                      onDragStart={() => handleDragStart(quote)}
-                      onDragEnd={handleDragEnd}
-                      className="cursor-move touch-manipulation active:scale-95"
-                    >
-                      <QuoteCard
-                        quote={quote}
-                        isDragging={draggedQuote?.id === quote.id}
-                      />
-                    </div>
-                  ))}
+                <div className="flex flex-wrap gap-2 pr-1 sm:pr-2">
+                  {availableQuotes.map((quote, index) => {
+                    const variants: Array<"purple" | "orange" | "green" | "gold"> = ["purple", "orange", "green", "gold"];
+                    const variant = variants[index % variants.length];
+                    return (
+                      <div
+                        key={quote.id}
+                        draggable
+                        onDragStart={() => handleDragStart(quote)}
+                        onDragEnd={handleDragEnd}
+                        className="cursor-move touch-manipulation active:scale-95"
+                      >
+                        <PuzzlePiece
+                          quote={quote}
+                          variant={variant}
+                          size="small"
+                          isDragging={draggedQuote?.id === quote.id}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1106,6 +1124,7 @@ export default function PlayPage() {
               wrongAttempts={wrongAttempts}
               boardBackground={themeConfig.boardBackground}
               placedQuotes={placedQuotes}
+              boardLayout={gameConfig?.boardLayout || "classic"}
               placedTitles={placedTitles}
               onDrop={
                 userPuzzlePiece && draggedQuote?.id === "user-answer"

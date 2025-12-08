@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import { GameSync, type GameConfig } from "@/lib/gameSync";
 import { PlayerScore, type ThemeId, type Phase } from "@/types/game";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, Settings, Trophy, Play, Square, Zap, Sparkles, Lightbulb } from "lucide-react";
+import { Clock, Users, Settings, Trophy, Play, Square, Zap, Sparkles, Lightbulb, Layout } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 import { themeList, getRandomRapidFireQuestion } from "@/data/themes";
 import { CustomQuotes, type CustomQuote } from "@/lib/customQuotes";
 import { toast } from "sonner";
+import { BOARD_LAYOUTS, type BoardLayoutType } from "@/types/boardLayout";
 
 interface ActivePlayer {
   name: string;
@@ -34,6 +35,7 @@ export default function GameMasterPage() {
   const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
   const [activePlayers, setActivePlayers] = useState<ActivePlayer[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>("classic");
+  const [selectedBoardLayout, setSelectedBoardLayout] = useState<BoardLayoutType>("classic");
   const [configSnapshot, setConfigSnapshot] = useState<GameConfig | null>(null);
   const [customQuotes, setCustomQuotes] = useState<CustomQuote[]>([]);
   const [newQuote, setNewQuote] = useState<{
@@ -111,6 +113,15 @@ export default function GameMasterPage() {
       if (config) {
         setIsGameActive(config.isGameActive);
         setSelectedTheme(config.themeId);
+        // Set board layout from config, or use theme default
+        if (config.boardLayout) {
+          setSelectedBoardLayout(config.boardLayout);
+        } else {
+          const theme = themeList.find(t => t.id === config.themeId);
+          if (theme?.boardLayout) {
+            setSelectedBoardLayout(theme.boardLayout);
+          }
+        }
       } else {
         setIsGameActive(false);
         setRemainingTime(0);
@@ -161,7 +172,7 @@ export default function GameMasterPage() {
 
   const handleStartGame = () => {
     const sessionId = sessionName.trim() || `Class-${new Date().toLocaleDateString()}-${Date.now()}`;
-    GameSync.startGame(timeLimit * 60, maxQuotes, sessionId, selectedTheme);
+    GameSync.startGame(timeLimit * 60, maxQuotes, sessionId, selectedTheme, selectedBoardLayout);
     setIsGameActive(true);
   };
 
@@ -311,32 +322,78 @@ export default function GameMasterPage() {
               />
             </div>
 
-          {/* Theme Selection */}
+          {/* Theme Selection with Board Layout */}
           <div className="space-y-2 md:col-span-2">
             <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-purple-500" />
-              Theme
+              Theme & Board Layout
             </label>
-            <div className="flex flex-col md:flex-row gap-3">
-              <select
-                value={selectedTheme}
-                onChange={(e) => setSelectedTheme(e.target.value as ThemeId)}
-                disabled={isGameActive}
-                className="flex-1 px-4 py-3 rounded-lg border-2 border-gray-300 bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50"
-              >
-                {themeList.map((theme) => (
-                  <option key={theme.id} value={theme.id}>
-                    {theme.name}
-                  </option>
-                ))}
-              </select>
-              <div
-                className="flex-1 rounded-lg border-2 border-dashed border-gray-200 p-4 text-sm text-gray-600 bg-gradient-to-r from-gray-50 via-white to-gray-50"
-                style={{ borderColor: currentTheme.badgeColor }}
-              >
-                <p className="font-semibold text-gray-800 mb-1">Preview: {currentTheme.name}</p>
-                <p>{currentTheme.description}</p>
+            <div className="flex flex-col gap-3">
+              {/* Theme Selection */}
+              <div className="flex flex-col md:flex-row gap-3">
+                <select
+                  value={selectedTheme}
+                  onChange={(e) => {
+                    const newTheme = e.target.value as ThemeId;
+                    setSelectedTheme(newTheme);
+                    // Auto-select default board layout for theme
+                    const theme = themeList.find(t => t.id === newTheme);
+                    if (theme?.boardLayout) {
+                      setSelectedBoardLayout(theme.boardLayout);
+                    }
+                  }}
+                  disabled={isGameActive}
+                  className="flex-1 px-4 py-3 rounded-lg border-2 border-gray-300 bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50"
+                >
+                  {themeList.map((theme) => (
+                    <option key={theme.id} value={theme.id}>
+                      {theme.name} {theme.boardLayout ? `(${BOARD_LAYOUTS[theme.boardLayout].name})` : ""}
+                    </option>
+                  ))}
+                </select>
+                <div
+                  className="flex-1 rounded-lg border-2 border-dashed border-gray-200 p-4 text-sm text-gray-600 bg-gradient-to-r from-gray-50 via-white to-gray-50"
+                  style={{ borderColor: currentTheme.badgeColor }}
+                >
+                  <p className="font-semibold text-gray-800 mb-1">Preview: {currentTheme.name}</p>
+                  <p>{currentTheme.description}</p>
+                  {currentTheme.boardLayout && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Default Layout: {BOARD_LAYOUTS[currentTheme.boardLayout].name}
+                    </p>
+                  )}
+                </div>
               </div>
+              
+              {/* Board Layout Selection (as part of theme) */}
+              {currentTheme.availableLayouts && currentTheme.availableLayouts.length > 1 && (
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
+                    <Layout className="w-3 h-3 text-orange-500" />
+                    Choose Board Layout Style
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {currentTheme.availableLayouts.map((layoutType) => {
+                      const layout = BOARD_LAYOUTS[layoutType];
+                      return (
+                        <button
+                          key={layout.type}
+                          onClick={() => setSelectedBoardLayout(layout.type)}
+                          disabled={isGameActive}
+                          className={`p-3 rounded-lg border-2 transition-all text-left ${
+                            selectedBoardLayout === layout.type
+                              ? "border-puzzle-purple bg-puzzle-purple/10 shadow-lg ring-2 ring-puzzle-purple/20"
+                              : "border-gray-300 bg-gray-50 hover:border-gray-400"
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          <div className="font-semibold text-gray-800 text-xs mb-1">{layout.name}</div>
+                          <div className="text-[10px] text-gray-600">{layout.description}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           </div>
@@ -372,6 +429,11 @@ export default function GameMasterPage() {
                   <span>
                     Theme: <span className="font-semibold">{currentTheme.name}</span>
                   </span>
+                  {configSnapshot?.boardLayout && (
+                    <span>
+                      Layout: <span className="font-semibold">{BOARD_LAYOUTS[configSnapshot.boardLayout].name}</span>
+                    </span>
+                  )}
                   {challengeMode !== "normal" && (
                     <span>
                       Challenge:{" "}

@@ -6,6 +6,10 @@ import { ThemeConfig } from "@/lib/gameThemes";
 import { QuoteCard } from "./QuoteCard";
 import { cn } from "@/lib/utils";
 import { CheckCircle2 } from "lucide-react";
+import { AlchemistBoard } from "./AlchemistBoard";
+import { GardenerBoard } from "./GardenerBoard";
+import { PuzzlePiece } from "./PuzzlePiece";
+import type { BoardLayoutType } from "@/types/boardLayout";
 
 interface PuzzleBoardProps {
   correctPlacements: number;
@@ -23,6 +27,7 @@ interface PuzzleBoardProps {
   draggedQuote: Quote | null;
   draggedTitle: PhaseTitle | null;
   themeConfig?: ThemeConfig;
+  boardLayout?: BoardLayoutType;
 }
 
 const getPhases = (themeConfig?: ThemeConfig) => [
@@ -76,7 +81,9 @@ export function PuzzleBoard({
   draggedQuote,
   draggedTitle,
   themeConfig,
+  boardLayout = "classic",
 }: PuzzleBoardProps) {
+  // All hooks must be called before any conditional returns
   const phases = getPhases(themeConfig);
   const [isMobile, setIsMobile] = useState(false);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
@@ -92,6 +99,48 @@ export function PuzzleBoard({
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
+  // Render different board layouts based on boardLayout prop
+  if (boardLayout === "alchemist") {
+    return (
+      <AlchemistBoard
+        correctPlacements={correctPlacements}
+        totalPieces={totalPieces}
+        wrongAttempts={wrongAttempts}
+        placedQuotes={placedQuotes}
+        placedTitles={placedTitles}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        highlightedZone={highlightedZone}
+        onDragStart={onDragStart}
+        onDragStartTitle={onDragStartTitle}
+        onDragEnd={onDragEnd}
+        draggedQuote={draggedQuote}
+        draggedTitle={draggedTitle}
+      />
+    );
+  }
+
+  if (boardLayout === "gardener") {
+    return (
+      <GardenerBoard
+        correctPlacements={correctPlacements}
+        totalPieces={totalPieces}
+        wrongAttempts={wrongAttempts}
+        placedQuotes={placedQuotes}
+        placedTitles={placedTitles}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        highlightedZone={highlightedZone}
+        onDragStart={onDragStart}
+        onDragStartTitle={onDragStartTitle}
+        onDragEnd={onDragEnd}
+        draggedQuote={draggedQuote}
+        draggedTitle={draggedTitle}
+      />
+    );
+  }
+
+  // Classic layout (default)
   const progress = (correctPlacements / totalPieces) * 100;
 
   return (
@@ -127,7 +176,7 @@ export function PuzzleBoard({
 
       {/* Elephant Puzzle Board with Background Image Design */}
       <div 
-        className="relative rounded-xl sm:rounded-2xl p-2 sm:p-4 md:p-6 lg:p-8 min-h-[500px] sm:min-h-[600px] md:min-h-[700px] overflow-hidden"
+        className="relative rounded-xl sm:rounded-2xl p-2 sm:p-4 md:p-6 lg:p-8 min-h-[500px] sm:min-h-[600px] md:min-h-[700px] overflow-hidden bg-gradient-to-b from-sky-200 via-sky-100 to-green-100"
         style={
           boardBackground.includes("url(")
             ? {
@@ -141,6 +190,13 @@ export function PuzzleBoard({
       >
       {/* Overlay for better drop zone visibility */}
       <div className="absolute inset-0 bg-black/5"></div>
+      
+      {/* Background Image Placeholder - Elephant Scene */}
+      <div className="absolute inset-0 opacity-30 pointer-events-none">
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="text-6xl sm:text-8xl md:text-9xl">🐘</div>
+        </div>
+      </div>
 
         {/* Four Geese Drop Zones for Phase Titles */}
         {phases.map((phase) => {
@@ -241,22 +297,28 @@ export function PuzzleBoard({
                   </h3>
                 </div>
 
-                {/* Placed quotes */}
-                <div className="space-y-1 max-h-24 sm:max-h-28 md:max-h-32 overflow-y-auto">
-                  {quotes.map((quote) => (
-                    <div
-                      key={quote.id}
-                      draggable
-                      onDragStart={() => onDragStart(quote)}
-                      onDragEnd={onDragEnd}
-                      className="cursor-move touch-manipulation"
-                    >
-                      <div className="text-[10px] sm:text-xs bg-white/95 p-1.5 sm:p-2 rounded border border-gray-300 shadow-sm">
-                        <div className="font-semibold truncate text-gray-800">{quote.author}</div>
-                        <div className="text-gray-600 truncate text-[9px] sm:text-xs">&quot;{quote.text.substring(0, isMobile ? 25 : 35)}...&quot;</div>
+                {/* Placed quotes as puzzle pieces */}
+                <div className="flex flex-wrap gap-2 max-h-32 sm:max-h-40 md:max-h-48 overflow-y-auto">
+                  {quotes.map((quote, index) => {
+                    const variants: Array<"purple" | "orange" | "green" | "gold"> = ["purple", "orange", "green", "gold"];
+                    const variant = variants[index % variants.length];
+                    return (
+                      <div
+                        key={quote.id}
+                        draggable
+                        onDragStart={() => onDragStart(quote)}
+                        onDragEnd={onDragEnd}
+                        className="cursor-move touch-manipulation"
+                      >
+                        <PuzzlePiece
+                          quote={quote}
+                          variant={variant}
+                          size="small"
+                          isPlaced={true}
+                        />
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Empty state */}

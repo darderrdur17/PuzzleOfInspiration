@@ -70,5 +70,7 @@ export interface ThemeDefinition {
   phaseHints: Record<Phase, string>;
   quotes: readonly Quote[];
   rapidFireQuestions: RapidFireQuestion[];
+  boardLayout?: "classic" | "alchemist" | "gardener"; // Default board layout for this theme
+  availableLayouts?: ("classic" | "alchemist" | "gardener")[]; // Available layouts for this theme
 }
 

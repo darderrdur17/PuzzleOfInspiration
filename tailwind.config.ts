@@ -51,10 +51,13 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Puzzle Design Colors - Global
-        'puzzle-purple': '#9333EA',
-        'puzzle-orange': '#F97316',
-        'puzzle-bg': '#F5F5F7',
+        // Puzzle Design Colors - Global (from responsive UI components design)
+        'puzzle-purple': '#9333EA', // Royal Purple
+        'puzzle-orange': '#F97316', // Sunset Orange
+        'puzzle-green': '#10B981', // Emerald Green
+        'puzzle-gold': '#FCD34D', // Classic Gold
+        'puzzle-bg': '#F5F5F7', // Light Grey (BG)
+        'puzzle-text': '#1F2937', // Dark Grey (Text)
 
         // Observatory Hub
         'hub-space': '#1E3A8A',

@@ -1,5 +1,6 @@
 import { ThemeDefinition, ThemeId } from "@/types/game";
 import { quotes as classicQuotes } from "./quotes";
+import type { BoardLayoutType } from "@/types/boardLayout";
 
 const scienceQuotes = [
   // Preparation
@@ -368,6 +369,8 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     phaseHints: { ...sharedPhaseHints },
     quotes: classicQuotes,
     rapidFireQuestions: [...defaultRapidFire],
+    boardLayout: "classic",
+    availableLayouts: ["classic", "alchemist", "gardener"],
   },
   science: {
     id: "science",
@@ -383,6 +386,8 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     },
     quotes: scienceQuotes as ThemeDefinition["quotes"],
     rapidFireQuestions: [...scienceRapidFire],
+    boardLayout: "alchemist",
+    availableLayouts: ["classic", "alchemist", "gardener"],
   },
   art: {
     id: "art",
@@ -397,6 +402,8 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     },
     quotes: artQuotes as ThemeDefinition["quotes"],
     rapidFireQuestions: [...artRapidFire],
+    boardLayout: "gardener",
+    availableLayouts: ["classic", "alchemist", "gardener"],
   },
   entrepreneurship: {
     id: "entrepreneurship",
@@ -411,6 +418,8 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     },
     quotes: entrepreneurshipQuotes as ThemeDefinition["quotes"],
     rapidFireQuestions: [...bizRapidFire],
+    boardLayout: "classic",
+    availableLayouts: ["classic", "alchemist", "gardener"],
   },
 };
 

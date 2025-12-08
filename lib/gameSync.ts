@@ -7,6 +7,7 @@ import type {
   SharedHint,
   ThemeId,
 } from "@/types/game";
+import type { BoardLayoutType } from "@/types/boardLayout";
 
 export interface GameConfig {
   timeLimit: number; // in seconds
@@ -19,6 +20,7 @@ export interface GameConfig {
   challengeMode: ChallengeMode;
   rapidFireQuestion: RapidFireQuestion | null;
   activeHint: SharedHint | null;
+  boardLayout?: BoardLayoutType; // Board layout type
 }
 
 const GAME_CONFIG_KEY = "puzzle-game-config";
@@ -46,7 +48,7 @@ export const GameSync = {
   },
 
   // Start game
-  startGame(timeLimit: number, maxQuotes: number, sessionId?: string, themeId: ThemeId = "classic"): void {
+  startGame(timeLimit: number, maxQuotes: number, sessionId?: string, themeId: ThemeId = "classic", boardLayout: BoardLayoutType = "classic"): void {
     const config: GameConfig = {
       timeLimit,
       maxQuotes,
@@ -58,6 +60,7 @@ export const GameSync = {
       challengeMode: "normal",
       rapidFireQuestion: null,
       activeHint: null,
+      boardLayout,
     };
     this.setConfig(config);
   },
@@ -99,10 +102,20 @@ export const GameSync = {
       callback(this.getConfig());
     };
 
+    // Storage event handler (separate function for proper cleanup)
+    const storageHandler = (e: StorageEvent) => {
+      if (e.key === GAME_CONFIG_KEY) {
+        handler();
+      }
+    };
+
     // Listen for custom events
     window.addEventListener("gameConfigUpdated", handler);
+    
+    // Listen for storage events (cross-tab sync)
+    window.addEventListener("storage", storageHandler);
 
-    // Also poll for changes (in case of multiple tabs)
+    // Also poll for changes (in case of multiple tabs/devices)
     const interval = setInterval(handler, POLL_INTERVAL);
 
     // Initial call
@@ -111,6 +124,7 @@ export const GameSync = {
     // Return unsubscribe function
     return () => {
       window.removeEventListener("gameConfigUpdated", handler);
+      window.removeEventListener("storage", storageHandler);
       clearInterval(interval);
     };
   },
