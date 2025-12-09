@@ -1,4 +1,4 @@
-export type BoardLayoutType = 'classic' | 'alchemist' | 'gardener';
+export type BoardLayoutType = 'classic' | 'alchemist' | 'gardener' | 'cyberpunk' | 'enchantedForest' | 'steampunk';
 
 export interface BoardLayoutConfig {
   type: BoardLayoutType;
@@ -22,6 +22,21 @@ export const BOARD_LAYOUTS: Record<BoardLayoutType, BoardLayoutConfig> = {
     type: 'gardener',
     name: "Gardener's Garden",
     description: 'Garden beds with seed planting and water flow puzzle',
+  },
+  cyberpunk: {
+    type: 'cyberpunk',
+    name: 'Neural Puzzle Matrix',
+    description: 'High-tech neon grid with holographic data streams',
+  },
+  enchantedForest: {
+    type: 'enchantedForest',
+    name: 'World Tree Puzzle',
+    description: 'Mystical leaf-shaped slots with floating fairy particles',
+  },
+  steampunk: {
+    type: 'steampunk',
+    name: 'Astrolabe of Ideas',
+    description: 'Mechanical gears and brass rivets with steam effects',
   },
 };
 

@@ -45,6 +45,9 @@ const themeToWorld: Record<ThemeId, GameTheme> = {
 const deriveGameTheme = (themeId: ThemeId, boardLayout?: BoardLayoutType): GameTheme => {
   if (boardLayout === "alchemist") return "alchemist";
   if (boardLayout === "gardener") return "gardener";
+  if (boardLayout === "cyberpunk") return "cyberpunk";
+  if (boardLayout === "enchantedForest") return "enchantedForest";
+  if (boardLayout === "steampunk") return "steampunk";
   if (boardLayout === "classic") return "ui";
   return themeToWorld[themeId] || "observatory";
 };

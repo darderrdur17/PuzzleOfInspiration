@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { GameTheme, gameThemes } from "@/lib/gameThemes";
-import { Palette, Sparkles, Star, Eye, Layout } from "lucide-react";
+import { Palette, Sparkles, Star, Eye, Layout, Cpu, TreePine, Cog } from "lucide-react";
 
 interface ThemeSelectorProps {
   selectedTheme: GameTheme;
@@ -17,6 +17,9 @@ const themeIcons = {
   gardener: Palette,
   explorer: Eye,
   ui: Layout,
+  cyberpunk: Cpu,
+  enchantedForest: TreePine,
+  steampunk: Cog,
 };
 
 export function ThemeSelector({ selectedTheme, onThemeSelect, isVisible, onClose }: ThemeSelectorProps) {

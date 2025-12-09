@@ -1,4 +1,4 @@
-export type GameTheme = 'observatory' | 'alchemist' | 'gardener' | 'explorer' | 'ui';
+export type GameTheme = 'observatory' | 'alchemist' | 'gardener' | 'explorer' | 'ui' | 'cyberpunk' | 'enchantedForest' | 'steampunk';
 
 export interface ThemeConfig {
   id: GameTheme;
@@ -246,7 +246,7 @@ export const gameThemes: Record<GameTheme, ThemeConfig> = {
     phaseHints: {
       preparation: 'Collect UI building blocks, colors, and layouts before assembling.',
       incubation: 'Let patterns and layouts mix; experiment with spacing and hierarchy.',
-      illumination: 'The “aha!” comes when the interface clicks and feels effortless.',
+      illumination: 'The "aha!" comes when the interface clicks and feels effortless.',
       verification: 'Test responsiveness across devices and refine the interaction polish.'
     },
     visualElements: {
@@ -282,6 +282,153 @@ export const gameThemes: Record<GameTheme, ThemeConfig> = {
       { id: 'ui2', text: 'Details are not details. They make the design.', author: 'Charles Eames', phase: 2 },
       { id: 'ui3', text: 'Good design is obvious. Great design is transparent.', author: 'Joe Sparano', phase: 3 },
       { id: 'ui4', text: 'Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away.', author: 'Antoine de Saint-Exupéry', phase: 4 },
+    ]
+  },
+
+  cyberpunk: {
+    id: 'cyberpunk',
+    name: 'Cyberpunk City',
+    description: 'A high-tech, neon-drenched journey through a futuristic neural network',
+    background: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #2d1f4a 100%)',
+    boardBackground: 'linear-gradient(135deg, rgba(0,255,255,0.1), rgba(255,0,255,0.1))',
+    badgeColor: '#00ffff',
+    phaseHints: {
+      preparation: 'Initialize your data streams and gather neural inputs before processing.',
+      incubation: 'Let algorithms run in the background; the network learns while you rest.',
+      illumination: 'A digital epiphany—the code compiles and the solution appears.',
+      verification: 'Debug, optimize, and deploy your creative protocol to the mainframe.'
+    },
+    visualElements: {
+      backgroundImage: undefined,
+      phaseImages: {
+        preparation: undefined,
+        incubation: undefined,
+        illumination: undefined,
+        verification: undefined
+      },
+      particleEffects: true,
+      specialAnimations: ['neon-flicker', 'grid-scroll', 'pulse-neon', 'circuit-flow', 'glitch-error'],
+      colorScheme: {
+        primary: '#00ffff',      // Cyan
+        secondary: '#ff00ff',    // Magenta
+        accent: '#ffff00',       // Yellow
+        background: '#0a0e27',   // Deep Blue
+        text: '#e0e0e0'          // Light Grey
+      }
+    },
+    mechanics: {
+      phaseNames: {
+        preparation: 'Data Initialization',
+        incubation: 'Neural Processing',
+        illumination: 'Digital Epiphany',
+        verification: 'System Verification'
+      },
+      specialFeatures: ['holographic-grid', 'circuit-patterns', 'neon-glow'],
+      puzzleVariants: ['data-stream-alignment', 'circuit-matching', 'neural-network']
+    },
+    quotes: [
+      { id: 'cyber1', text: 'The matrix has you. Now find the glitch that sets you free.', author: 'Neural Sage', phase: 1 },
+      { id: 'cyber2', text: 'In the glow of a thousand screens, inspiration compiles itself.', author: 'Circuit Poet', phase: 2 },
+      { id: 'cyber3', text: 'When the code clicks, reality bends to your vision.', author: 'Data Dreamer', phase: 3 },
+      { id: 'cyber4', text: 'Debug your doubts. Deploy your dreams.', author: 'Neon Prophet', phase: 4 },
+    ]
+  },
+
+  enchantedForest: {
+    id: 'enchantedForest',
+    name: 'Enchanted Forest',
+    description: 'A mystical exploration of an ancient, magical woodland',
+    background: 'linear-gradient(180deg, #1a2f1a 0%, #0f1f0f 50%, #1a2f1a 100%)',
+    boardBackground: 'radial-gradient(circle, rgba(74,222,128,0.2), rgba(26,47,26,0.9))',
+    badgeColor: '#4ade80',
+    phaseHints: {
+      preparation: 'Gather ingredients from the forest floor—acorns, moss, and moonlight.',
+      incubation: 'Let ideas grow like saplings; nature works in cycles, not deadlines.',
+      illumination: 'A firefly moment—sudden clarity in the dappled light.',
+      verification: 'Test your creation against the ancient laws of the woodland.'
+    },
+    visualElements: {
+      backgroundImage: undefined,
+      phaseImages: {
+        preparation: undefined,
+        incubation: undefined,
+        illumination: undefined,
+        verification: undefined
+      },
+      particleEffects: true,
+      specialAnimations: ['float', 'fairy-sparkle', 'rune-glow', 'leaf-fall'],
+      colorScheme: {
+        primary: '#4ade80',      // Emerald Green
+        secondary: '#60a5fa',    // Sky Blue
+        accent: '#fbbf24',       // Golden Amber
+        background: '#1a2f1a',   // Deep Forest
+        text: '#f0fdf4'          // Mint White
+      }
+    },
+    mechanics: {
+      phaseNames: {
+        preparation: 'Seed Gathering',
+        incubation: 'Moonlit Growth',
+        illumination: 'Firefly Moment',
+        verification: 'Forest Harmony'
+      },
+      specialFeatures: ['floating-particles', 'rune-patterns', 'organic-shapes'],
+      puzzleVariants: ['leaf-arrangement', 'rune-matching', 'nature-flow']
+    },
+    quotes: [
+      { id: 'forest1', text: 'In every walk with nature, one receives far more than one seeks.', author: 'John Muir', phase: 1 },
+      { id: 'forest2', text: 'The forest whispers secrets to those who listen with patience.', author: 'Woodland Sage', phase: 2 },
+      { id: 'forest3', text: 'Like fireflies at dusk, great ideas illuminate the darkness.', author: 'Nature Dreamer', phase: 3 },
+      { id: 'forest4', text: 'True creativity grows from roots planted in wonder.', author: 'Forest Guardian', phase: 4 },
+    ]
+  },
+
+  steampunk: {
+    id: 'steampunk',
+    name: 'Steampunk Workshop',
+    description: "An intricate mechanical challenge within an inventor's workshop",
+    background: 'linear-gradient(135deg, #2c1810 0%, #3d2817 50%, #4a3020 100%)',
+    boardBackground: 'linear-gradient(135deg, rgba(205,127,50,0.15), rgba(184,115,51,0.1))',
+    badgeColor: '#ffd700',
+    phaseHints: {
+      preparation: 'Gather your gears, cogs, and blueprints before the steam builds.',
+      incubation: 'Let the pressure build; great inventions need time to percolate.',
+      illumination: 'The clockwork clicks—your contraption springs to life!',
+      verification: 'Test every gear and valve; precision is the mark of a master.'
+    },
+    visualElements: {
+      backgroundImage: undefined,
+      phaseImages: {
+        preparation: undefined,
+        incubation: undefined,
+        illumination: undefined,
+        verification: undefined
+      },
+      particleEffects: true,
+      specialAnimations: ['steam-rise', 'gear-spin', 'gear-turn', 'steam-release', 'cog-jam'],
+      colorScheme: {
+        primary: '#cd7f32',      // Bronze
+        secondary: '#b87333',    // Copper
+        accent: '#ffd700',       // Gold
+        background: '#2c1810',   // Dark Mahogany
+        text: '#f5e6d3'          // Cream
+      }
+    },
+    mechanics: {
+      phaseNames: {
+        preparation: 'Blueprint Assembly',
+        incubation: 'Pressure Building',
+        illumination: 'Clockwork Epiphany',
+        verification: 'Precision Testing'
+      },
+      specialFeatures: ['rotating-gears', 'steam-effects', 'brass-rivets'],
+      puzzleVariants: ['gear-alignment', 'pressure-management', 'mechanism-assembly']
+    },
+    quotes: [
+      { id: 'steam1', text: 'Every great invention begins with a single gear in motion.', author: 'Master Tinkerer', phase: 1 },
+      { id: 'steam2', text: 'Patience is the steam that powers the engine of innovation.', author: 'Clockwork Sage', phase: 2 },
+      { id: 'steam3', text: 'When gears align, impossible machines become reality.', author: 'Brass Baron', phase: 3 },
+      { id: 'steam4', text: 'Test it thrice, build it once—the inventor\'s creed.', author: 'Workshop Master', phase: 4 },
     ]
   }
 };

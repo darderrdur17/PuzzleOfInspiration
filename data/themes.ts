@@ -370,7 +370,7 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     quotes: classicQuotes,
     rapidFireQuestions: [...defaultRapidFire],
     boardLayout: "classic",
-    availableLayouts: ["classic", "alchemist", "gardener"],
+    availableLayouts: ["classic", "alchemist", "gardener", "cyberpunk", "enchantedForest", "steampunk"],
   },
   science: {
     id: "science",
@@ -387,7 +387,7 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     quotes: scienceQuotes as ThemeDefinition["quotes"],
     rapidFireQuestions: [...scienceRapidFire],
     boardLayout: "alchemist",
-    availableLayouts: ["classic", "alchemist", "gardener"],
+    availableLayouts: ["classic", "alchemist", "gardener", "cyberpunk", "enchantedForest", "steampunk"],
   },
   art: {
     id: "art",
@@ -403,7 +403,7 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     quotes: artQuotes as ThemeDefinition["quotes"],
     rapidFireQuestions: [...artRapidFire],
     boardLayout: "gardener",
-    availableLayouts: ["classic", "alchemist", "gardener"],
+    availableLayouts: ["classic", "alchemist", "gardener", "cyberpunk", "enchantedForest", "steampunk"],
   },
   entrepreneurship: {
     id: "entrepreneurship",
@@ -418,8 +418,8 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     },
     quotes: entrepreneurshipQuotes as ThemeDefinition["quotes"],
     rapidFireQuestions: [...bizRapidFire],
-    boardLayout: "classic",
-    availableLayouts: ["classic", "alchemist", "gardener"],
+    boardLayout: "cyberpunk",
+    availableLayouts: ["classic", "alchemist", "gardener", "cyberpunk", "enchantedForest", "steampunk"],
   },
 };
 

@@ -8,6 +8,9 @@ import { cn } from "@/lib/utils";
 import { CheckCircle2 } from "lucide-react";
 import { AlchemistBoard } from "./AlchemistBoard";
 import { GardenerBoard } from "./GardenerBoard";
+import { CyberpunkBoard } from "./CyberpunkBoard";
+import { EnchantedForestBoard } from "./EnchantedForestBoard";
+import { SteampunkBoard } from "./SteampunkBoard";
 import { PuzzlePiece } from "./PuzzlePiece";
 import type { BoardLayoutType } from "@/types/boardLayout";
 
@@ -123,6 +126,66 @@ export function PuzzleBoard({
   if (boardLayout === "gardener") {
     return (
       <GardenerBoard
+        correctPlacements={correctPlacements}
+        totalPieces={totalPieces}
+        wrongAttempts={wrongAttempts}
+        placedQuotes={placedQuotes}
+        placedTitles={placedTitles}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        highlightedZone={highlightedZone}
+        onDragStart={onDragStart}
+        onDragStartTitle={onDragStartTitle}
+        onDragEnd={onDragEnd}
+        draggedQuote={draggedQuote}
+        draggedTitle={draggedTitle}
+      />
+    );
+  }
+
+  if (boardLayout === "cyberpunk") {
+    return (
+      <CyberpunkBoard
+        correctPlacements={correctPlacements}
+        totalPieces={totalPieces}
+        wrongAttempts={wrongAttempts}
+        placedQuotes={placedQuotes}
+        placedTitles={placedTitles}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        highlightedZone={highlightedZone}
+        onDragStart={onDragStart}
+        onDragStartTitle={onDragStartTitle}
+        onDragEnd={onDragEnd}
+        draggedQuote={draggedQuote}
+        draggedTitle={draggedTitle}
+      />
+    );
+  }
+
+  if (boardLayout === "enchantedForest") {
+    return (
+      <EnchantedForestBoard
+        correctPlacements={correctPlacements}
+        totalPieces={totalPieces}
+        wrongAttempts={wrongAttempts}
+        placedQuotes={placedQuotes}
+        placedTitles={placedTitles}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        highlightedZone={highlightedZone}
+        onDragStart={onDragStart}
+        onDragStartTitle={onDragStartTitle}
+        onDragEnd={onDragEnd}
+        draggedQuote={draggedQuote}
+        draggedTitle={draggedTitle}
+      />
+    );
+  }
+
+  if (boardLayout === "steampunk") {
+    return (
+      <SteampunkBoard
         correctPlacements={correctPlacements}
         totalPieces={totalPieces}
         wrongAttempts={wrongAttempts}
