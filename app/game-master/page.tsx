@@ -35,7 +35,7 @@ export default function GameMasterPage() {
   const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
   const [activePlayers, setActivePlayers] = useState<ActivePlayer[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>("classic");
-  const [selectedBoardLayout, setSelectedBoardLayout] = useState<BoardLayoutType>("classic");
+  const [selectedBoardLayout, setSelectedBoardLayout] = useState<BoardLayoutType>("cyberpunk");
   const [userManuallySelectedLayout, setUserManuallySelectedLayout] = useState(false);
   const [configSnapshot, setConfigSnapshot] = useState<GameConfig | null>(null);
   const [customQuotes, setCustomQuotes] = useState<CustomQuote[]>([]);
@@ -138,12 +138,21 @@ export default function GameMasterPage() {
       // Ensure boardLayout is always set for active games (backfill older configs)
       if (!config.boardLayout) {
         const fallbackTheme = themeList.find((t) => t.id === config.themeId);
-        const fallbackLayout = fallbackTheme?.boardLayout ?? "classic";
+        const fallbackLayout = fallbackTheme?.boardLayout ?? "cyberpunk";
         GameSync.updateConfig({ boardLayout: fallbackLayout });
         setSelectedBoardLayout(fallbackLayout);
         setUserManuallySelectedLayout(true);
       } else {
-        setSelectedBoardLayout(config.boardLayout);
+        // Migrate old layouts to new ones
+        const migratedLayout = ['classic', 'alchemist', 'gardener'].includes(config.boardLayout)
+          ? 'cyberpunk'
+          : config.boardLayout;
+        
+        if (migratedLayout !== config.boardLayout) {
+          GameSync.updateConfig({ boardLayout: migratedLayout });
+        }
+        
+        setSelectedBoardLayout(migratedLayout);
         setUserManuallySelectedLayout(true);
       }
     });
@@ -437,7 +446,9 @@ export default function GameMasterPage() {
                   Choose Board Layout Style
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {Object.values(BOARD_LAYOUTS).map((layout) => {
+                  {Object.values(BOARD_LAYOUTS)
+                    .filter((layout) => !['classic', 'alchemist', 'gardener'].includes(layout.type))
+                    .map((layout) => {
                     const isSelected = selectedBoardLayout === layout.type;
                     return (
                       <button
