@@ -25,3 +25,4 @@ export const BOARD_LAYOUTS: Record<BoardLayoutType, BoardLayoutConfig> = {
   },
 };
 
+

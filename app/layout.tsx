@@ -18,7 +18,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {children}
+        {/* Skip link for keyboard navigation */}
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
+        <main id="main-content">
+          {children}
+        </main>
         <Toaster position="top-center" richColors />
       </body>
     </html>
