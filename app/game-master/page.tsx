@@ -10,6 +10,7 @@ import { themeList, getRandomRapidFireQuestion } from "@/data/themes";
 import { CustomQuotes, type CustomQuote } from "@/lib/customQuotes";
 import { toast } from "sonner";
 import { BOARD_LAYOUTS, type BoardLayoutType } from "@/types/boardLayout";
+import { RealtimeStore } from "@/lib/realtimeStore";
 
 interface ActivePlayer {
   name: string;
@@ -59,58 +60,11 @@ export default function GameMasterPage() {
   });
 
   useEffect(() => {
-    // Load leaderboard from localStorage (for cross-tab sync) or sessionStorage (fallback)
-    const loadLeaderboard = () => {
-      const stored = localStorage.getItem("creativity-leaderboard") || sessionStorage.getItem("creativity-leaderboard");
-      if (stored) {
-        try {
-          setLeaderboard(JSON.parse(stored));
-        } catch (e) {
-          console.error("Failed to parse leaderboard", e);
-        }
-      }
-    };
-    
-    // Load active players
-    const loadActivePlayers = () => {
-      const stored = localStorage.getItem("creativity-active-players");
-      if (stored) {
-        try {
-          const players = JSON.parse(stored);
-          // Filter out players who haven't updated in 10 seconds (likely disconnected)
-          const now = Date.now();
-          const active = players.filter((p: ActivePlayer) => now - p.lastUpdate < 10000);
-          setActivePlayers(active);
-        } catch (e) {
-          console.error("Failed to parse active players", e);
-        }
-      }
-    };
-    
-    loadLeaderboard();
-    loadActivePlayers();
-    
-    // Listen for updates from other tabs
-    const handleUpdate = () => {
-      loadLeaderboard();
-      loadActivePlayers();
-    };
-    
-    window.addEventListener("leaderboardUpdated", handleUpdate);
-    window.addEventListener("activePlayersUpdated", handleUpdate);
-    window.addEventListener("storage", handleUpdate);
-    
-    // Also poll for changes as backup
-    const interval = setInterval(() => {
-      loadLeaderboard();
-      loadActivePlayers();
-    }, 1000);
-
+    const stopActive = RealtimeStore.subscribeActivePlayers(setActivePlayers);
+    const stopLeaderboard = RealtimeStore.subscribeLeaderboard(setLeaderboard);
     return () => {
-      clearInterval(interval);
-      window.removeEventListener("leaderboardUpdated", handleUpdate);
-      window.removeEventListener("activePlayersUpdated", handleUpdate);
-      window.removeEventListener("storage", handleUpdate);
+      stopActive?.();
+      stopLeaderboard?.();
     };
   }, []);
 

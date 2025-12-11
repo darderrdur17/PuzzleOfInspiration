@@ -21,6 +21,7 @@ An educational web-based jigsaw puzzle game that teaches the four phases of crea
 ### Prerequisites
 
 - Node.js 18+ and npm/yarn/pnpm
+- Supabase project (free tier is fine) with anon/public API key
 
 ### Installation
 
@@ -46,6 +47,17 @@ pnpm dev
 ```
 
 4. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+### Supabase setup (for cross-device sync)
+
+1. Create a Supabase project (free tier).
+2. Run `supabase_schema.sql` in the SQL editor to create tables and RLS policies.
+3. Create `.env.local` with:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your-project-url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   ```
+4. Restart `npm run dev`.
 
 ## 🎮 How to Play
 

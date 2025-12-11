@@ -1,6 +1,5 @@
-// Shared game state synchronization using localStorage
-// This allows game master and players to sync game settings
-
+// Shared game state synchronization using Supabase (cross-device) with a
+// localStorage fallback for offline/single-device play.
 import type {
   ChallengeMode,
   RapidFireQuestion,
@@ -8,6 +7,7 @@ import type {
   ThemeId,
 } from "@/types/game";
 import type { BoardLayoutType } from "@/types/boardLayout";
+import { getSupabaseClient, isSupabaseConfigured } from "./supabaseClient";
 
 export interface GameConfig {
   timeLimit: number; // in seconds
@@ -24,38 +24,159 @@ export interface GameConfig {
 }
 
 const GAME_CONFIG_KEY = "puzzle-game-config";
-const POLL_INTERVAL = 1000; // Check every second
+const DEFAULT_SESSION_ID = "default";
+const POLL_INTERVAL = 1000; // local fallback polling
+
+let cachedConfig: GameConfig | null = null;
+let unsubscribeRealtime: (() => void) | null = null;
+
+const toGameConfig = (row: any): GameConfig => {
+  return {
+    timeLimit: row.time_limit,
+    maxQuotes: row.max_quotes,
+    isGameActive: row.is_game_active,
+    gameStartTime: row.game_start_time,
+    gameEndTime: row.game_end_time,
+    sessionId: row.id,
+    themeId: row.theme_id,
+    challengeMode: row.challenge_mode,
+    rapidFireQuestion: row.rapid_fire_question,
+    activeHint: row.active_hint,
+    boardLayout: row.board_layout,
+  };
+};
+
+const toDbRow = (config: GameConfig) => ({
+  id: config.sessionId,
+  is_game_active: config.isGameActive,
+  time_limit: config.timeLimit,
+  max_quotes: config.maxQuotes,
+  game_start_time: config.gameStartTime,
+  game_end_time: config.gameEndTime,
+  theme_id: config.themeId,
+  challenge_mode: config.challengeMode,
+  rapid_fire_question: config.rapidFireQuestion,
+  active_hint: config.activeHint,
+  board_layout: config.boardLayout ?? null,
+});
+
+const writeLocal = (config: GameConfig | null) => {
+  if (typeof window === "undefined") return;
+  if (!config) {
+    localStorage.removeItem(GAME_CONFIG_KEY);
+    return;
+  }
+  localStorage.setItem(GAME_CONFIG_KEY, JSON.stringify(config));
+  window.dispatchEvent(new CustomEvent("gameConfigUpdated"));
+};
+
+const readLocal = (): GameConfig | null => {
+  if (typeof window === "undefined") return null;
+  const stored = localStorage.getItem(GAME_CONFIG_KEY);
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return null;
+  }
+};
+
+const fetchConfigFromSupabase = async (): Promise<GameConfig | null> => {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("id", DEFAULT_SESSION_ID)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Supabase fetch config failed", error);
+    return null;
+  }
+
+  if (!data) return null;
+  return toGameConfig(data);
+};
+
+const upsertConfigToSupabase = async (config: GameConfig) => {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  const { error } = await supabase.from("sessions").upsert(toDbRow(config));
+  if (error) {
+    console.error("Supabase upsert config failed", error);
+  }
+};
+
+const ensureRealtimeSubscription = (callback: (config: GameConfig | null) => void) => {
+  if (unsubscribeRealtime || !isSupabaseConfigured) return;
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const channel = supabase
+    .channel("sessions-default")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "sessions", filter: `id=eq.${DEFAULT_SESSION_ID}` },
+      (payload) => {
+        const row = (payload.new ?? payload.old) as any;
+        if (!row) return;
+        const cfg = toGameConfig(row);
+        cachedConfig = cfg;
+        writeLocal(cfg);
+        callback(cfg);
+      }
+    )
+    .subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        const existing = await fetchConfigFromSupabase();
+        if (existing) {
+          cachedConfig = existing;
+          writeLocal(existing);
+          callback(existing);
+        }
+      }
+    });
+
+  unsubscribeRealtime = () => {
+    supabase.removeChannel(channel);
+    unsubscribeRealtime = null;
+  };
+};
 
 export const GameSync = {
-  // Get current game config
   getConfig(): GameConfig | null {
-    if (typeof window === "undefined") return null;
-    const stored = localStorage.getItem(GAME_CONFIG_KEY);
-    if (!stored) return null;
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return null;
+    if (cachedConfig) return cachedConfig;
+    const local = readLocal();
+    if (local) {
+      cachedConfig = local;
+      return local;
+    }
+    return null;
+  },
+
+  setConfig(config: GameConfig): void {
+    cachedConfig = config;
+    writeLocal(config);
+    if (isSupabaseConfigured) {
+      void upsertConfigToSupabase(config);
     }
   },
 
-  // Set game config (game master only)
-  setConfig(config: GameConfig): void {
-    if (typeof window === "undefined") return;
-    localStorage.setItem(GAME_CONFIG_KEY, JSON.stringify(config));
-    // Trigger custom event for immediate sync
-    window.dispatchEvent(new CustomEvent("gameConfigUpdated"));
-  },
-
-  // Start game
-  startGame(timeLimit: number, maxQuotes: number, sessionId?: string, themeId: ThemeId = "classic", boardLayout: BoardLayoutType = "classic"): void {
+  startGame(
+    timeLimit: number,
+    maxQuotes: number,
+    sessionId: string = DEFAULT_SESSION_ID,
+    themeId: ThemeId = "classic",
+    boardLayout: BoardLayoutType = "classic"
+  ): void {
     const config: GameConfig = {
       timeLimit,
       maxQuotes,
       isGameActive: true,
       gameStartTime: Date.now(),
       gameEndTime: Date.now() + timeLimit * 1000,
-      sessionId: sessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      sessionId,
       themeId,
       challengeMode: "normal",
       rapidFireQuestion: null,
@@ -65,16 +186,14 @@ export const GameSync = {
     this.setConfig(config);
   },
 
-  // End game
   endGame(): void {
     const config = this.getConfig();
     if (config) {
-      config.isGameActive = false;
-      this.setConfig(config);
+      const next = { ...config, isGameActive: false };
+      this.setConfig(next);
     }
   },
 
-  // Check if game is active
   isGameActive(): boolean {
     const config = this.getConfig();
     if (!config) return false;
@@ -86,7 +205,6 @@ export const GameSync = {
     return true;
   },
 
-  // Get remaining time
   getRemainingTime(): number {
     const config = this.getConfig();
     if (!config || !config.gameEndTime) return 0;
@@ -94,34 +212,62 @@ export const GameSync = {
     return remaining;
   },
 
-  // Subscribe to config changes
   subscribe(callback: (config: GameConfig | null) => void): () => void {
     if (typeof window === "undefined") return () => {};
-    
+
+    if (isSupabaseConfigured) {
+      ensureRealtimeSubscription(callback);
+      void (async () => {
+        const remote = await fetchConfigFromSupabase();
+        if (remote) {
+          cachedConfig = remote;
+          writeLocal(remote);
+          callback(remote);
+          return;
+        }
+        // if no remote row yet, seed with a default inactive config
+        const seed: GameConfig = {
+          timeLimit: 300,
+          maxQuotes: 20,
+          isGameActive: false,
+          gameStartTime: null,
+          gameEndTime: null,
+          sessionId: DEFAULT_SESSION_ID,
+          themeId: "classic",
+          challengeMode: "normal",
+          rapidFireQuestion: null,
+          activeHint: null,
+          boardLayout: "cyberpunk",
+        };
+        cachedConfig = seed;
+        writeLocal(seed);
+        callback(seed);
+        await upsertConfigToSupabase(seed);
+      })();
+
+      return () => {
+        if (unsubscribeRealtime) {
+          unsubscribeRealtime();
+        }
+      };
+    }
+
+    // Local fallback
     const handler = () => {
       callback(this.getConfig());
     };
 
-    // Storage event handler (separate function for proper cleanup)
     const storageHandler = (e: StorageEvent) => {
       if (e.key === GAME_CONFIG_KEY) {
         handler();
       }
     };
 
-    // Listen for custom events
     window.addEventListener("gameConfigUpdated", handler);
-    
-    // Listen for storage events (cross-tab sync)
     window.addEventListener("storage", storageHandler);
-
-    // Also poll for changes (in case of multiple tabs/devices)
     const interval = setInterval(handler, POLL_INTERVAL);
-
-    // Initial call
     handler();
 
-    // Return unsubscribe function
     return () => {
       window.removeEventListener("gameConfigUpdated", handler);
       window.removeEventListener("storage", storageHandler);

@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Zap, Palette } from "lucide-react";
 import { BOARD_LAYOUTS, type BoardLayoutType } from "@/types/boardLayout";
+import { RealtimeStore } from "@/lib/realtimeStore";
 
 const phaseTitles: PhaseTitle[] = [
   { id: "title-preparation", title: "Preparation", phase: "preparation" },
@@ -137,29 +138,8 @@ export default function PlayPage() {
   const hintRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Load leaderboard from localStorage (for cross-tab sync) or sessionStorage (fallback)
-    const loadLeaderboard = () => {
-      const stored = localStorage.getItem("creativity-leaderboard") || sessionStorage.getItem("creativity-leaderboard");
-      if (stored) {
-        try {
-          setLeaderboard(JSON.parse(stored));
-        } catch (e) {
-          console.error("Failed to parse leaderboard", e);
-        }
-      }
-    };
-    
-    loadLeaderboard();
-    
-    // Listen for leaderboard updates from other tabs
-    const handleLeaderboardUpdate = () => {
-      loadLeaderboard();
-    };
-    
-    window.addEventListener("leaderboardUpdated", handleLeaderboardUpdate);
-    window.addEventListener("storage", handleLeaderboardUpdate);
+    const stopLeaderboard = RealtimeStore.subscribeLeaderboard(setLeaderboard);
 
-    // Subscribe to game config changes
     const unsubscribe = GameSync.subscribe((config) => {
       setGameConfig(config);
       
@@ -182,9 +162,8 @@ export default function PlayPage() {
     });
 
     return () => {
+      stopLeaderboard?.();
       unsubscribe();
-      window.removeEventListener("leaderboardUpdated", handleLeaderboardUpdate);
-      window.removeEventListener("storage", handleLeaderboardUpdate);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState.isStarted, gameState.isCompleted]);
@@ -339,13 +318,7 @@ export default function PlayPage() {
       startTime: gameStartTime,
       lastUpdate: gameStartTime,
     };
-    const activePlayers = JSON.parse(localStorage.getItem("creativity-active-players") || "[]");
-    const updatedActivePlayers = activePlayers.filter((p: any) => p.name !== name);
-    updatedActivePlayers.push(activePlayer);
-    localStorage.setItem("creativity-active-players", JSON.stringify(updatedActivePlayers));
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("activePlayersUpdated"));
-    }
+    void RealtimeStore.upsertActivePlayer(activePlayer);
 
     toast.success(`Welcome to ${themeConfig.name}! Drag titles and quotes to the correct phases.`);
   };
@@ -465,30 +438,16 @@ export default function PlayPage() {
       sessionId,
     };
 
-          // Remove from active players
-          const activePlayers = JSON.parse(localStorage.getItem("creativity-active-players") || "[]");
-          const updatedActivePlayers = activePlayers.filter((p: any) => p.name !== playerName);
-          localStorage.setItem("creativity-active-players", JSON.stringify(updatedActivePlayers));
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("activePlayersUpdated"));
-          }
+          // Remove from active players and push leaderboard to Supabase
+          void RealtimeStore.removeActivePlayer(playerName);
 
           setLeaderboard((prev) => {
-            // Keep all entries (don't limit to 10) so we can group by session
-            const updated = [...prev, newScore]
-              .sort((a, b) => {
-                if (b.points !== a.points) return b.points - a.points;
-                if (b.score !== a.score) return b.score - a.score;
-                return a.time - b.time;
-              });
-            // Use localStorage for cross-tab sync
-            localStorage.setItem("creativity-leaderboard", JSON.stringify(updated));
-            // Also keep in sessionStorage for backward compatibility
-            sessionStorage.setItem("creativity-leaderboard", JSON.stringify(updated));
-            // Trigger custom event for real-time sync
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(new CustomEvent("leaderboardUpdated"));
-            }
+            const updated = [...prev, newScore].sort((a, b) => {
+              if (b.points !== a.points) return b.points - a.points;
+              if (b.score !== a.score) return b.score - a.score;
+              return a.time - b.time;
+            });
+            void RealtimeStore.addLeaderboardEntry(newScore);
             return updated;
           });
 
@@ -518,31 +477,14 @@ export default function PlayPage() {
   useEffect(() => {
     if (gameState.isStarted && !gameState.isCompleted && playerName) {
       const updateActivePlayer = () => {
-        const activePlayers = JSON.parse(localStorage.getItem("creativity-active-players") || "[]");
-        const playerIndex = activePlayers.findIndex((p: any) => p.name === playerName);
         const correctCount = calculateCorrectCount();
-        
-        if (playerIndex >= 0) {
-          activePlayers[playerIndex] = {
-            ...activePlayers[playerIndex],
-            points: gameState.points,
-            score: correctCount,
-            lastUpdate: Date.now(),
-          };
-        } else {
-          activePlayers.push({
-            name: playerName,
-            points: gameState.points,
-            score: correctCount,
-            startTime: gameState.startTime || Date.now(),
-            lastUpdate: Date.now(),
-          });
-        }
-        
-        localStorage.setItem("creativity-active-players", JSON.stringify(activePlayers));
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("activePlayersUpdated"));
-        }
+        void RealtimeStore.upsertActivePlayer({
+          name: playerName,
+          points: gameState.points,
+          score: correctCount,
+          startTime: gameState.startTime || Date.now(),
+          lastUpdate: Date.now(),
+        });
       };
       
       updateActivePlayer();
