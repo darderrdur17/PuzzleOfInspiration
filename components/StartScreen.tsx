@@ -107,15 +107,11 @@ export function StartScreen({ onStart }: StartScreenProps) {
       <div
         className="min-h-screen flex items-center justify-center p-2 sm:p-4 relative overflow-hidden"
         style={{
-          backgroundImage: 'url(/6.png)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center center',
-          backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed',
+          background: "radial-gradient(circle at 20% 20%, #fef3c7 0%, #bfdbfe 45%, #ecfccb 85%)",
         }}
       >
       {/* Overlay for better text readability */}
-      <div className="absolute inset-0 bg-black/10"></div>
+      <div className="absolute inset-0 bg-white/30 backdrop-blur-sm"></div>
 
       {/* Form */}
       <div className="max-w-md w-full space-y-4 sm:space-y-8 animate-slide-in relative z-10 mt-16 sm:mt-32 px-2">

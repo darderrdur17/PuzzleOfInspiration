@@ -36,7 +36,7 @@ export default function GameMasterPage() {
   const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
   const [activePlayers, setActivePlayers] = useState<ActivePlayer[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>("classic");
-  const [selectedBoardLayout, setSelectedBoardLayout] = useState<BoardLayoutType>("cyberpunk");
+  const [selectedBoardLayout, setSelectedBoardLayout] = useState<BoardLayoutType>("elephant");
   const [userManuallySelectedLayout, setUserManuallySelectedLayout] = useState(false);
   const [configSnapshot, setConfigSnapshot] = useState<GameConfig | null>(null);
   const [customQuotes, setCustomQuotes] = useState<CustomQuote[]>([]);
@@ -92,14 +92,14 @@ export default function GameMasterPage() {
       // Ensure boardLayout is always set for active games (backfill older configs)
       if (!config.boardLayout) {
         const fallbackTheme = themeList.find((t) => t.id === config.themeId);
-        const fallbackLayout = fallbackTheme?.boardLayout ?? "cyberpunk";
+        const fallbackLayout = fallbackTheme?.boardLayout ?? "elephant";
         GameSync.updateConfig({ boardLayout: fallbackLayout });
         setSelectedBoardLayout(fallbackLayout);
         setUserManuallySelectedLayout(true);
       } else {
         // Migrate old layouts to new ones
         const migratedLayout = ['classic', 'alchemist', 'gardener'].includes(config.boardLayout)
-          ? 'cyberpunk'
+          ? 'elephant'
           : config.boardLayout;
         
         if (migratedLayout !== config.boardLayout) {
@@ -154,10 +154,10 @@ export default function GameMasterPage() {
   const themeSpecificCustomQuotes = customQuotes.filter((quote) => quote.themeId === selectedTheme);
 
   const handleStartGame = () => {
-    const sessionId = sessionName.trim() || `Class-${new Date().toLocaleDateString()}-${Date.now()}`;
     const themeDefaultLayout = themeList.find((theme) => theme.id === selectedTheme)?.boardLayout;
     const layoutToUse = userManuallySelectedLayout ? selectedBoardLayout : themeDefaultLayout || selectedBoardLayout;
-    GameSync.startGame(timeLimit * 60, maxQuotes, sessionId, selectedTheme, layoutToUse);
+    const friendlyName = sessionName.trim() || "Current Session";
+    GameSync.startGame(timeLimit * 60, maxQuotes, friendlyName, selectedTheme, layoutToUse);
     setIsGameActive(true);
   };
 

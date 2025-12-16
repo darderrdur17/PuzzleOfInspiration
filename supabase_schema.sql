@@ -69,3 +69,5 @@ alter publication supabase_realtime add table public.active_players;
 alter publication supabase_realtime add table public.leaderboard;
 alter publication supabase_realtime add table public.custom_quotes;
 
+
+

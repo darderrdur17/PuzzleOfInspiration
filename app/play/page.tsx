@@ -151,7 +151,7 @@ export default function PlayPage() {
       // Backfill missing board layout so players don't fall back to theme defaults
       if (config && !config.boardLayout) {
         const themeDef = themeLibrary[config.themeId] ?? themeLibrary.classic;
-        const fallbackLayout = themeDef.boardLayout ?? "cyberpunk";
+        const fallbackLayout = themeDef.boardLayout ?? "elephant";
         GameSync.updateConfig({ boardLayout: fallbackLayout });
       }
       
@@ -802,9 +802,9 @@ export default function PlayPage() {
 
   const correctPlacements = calculateCorrectCount();
   // Migrate old layouts to new ones
-  const rawBoardLayout = gameConfig?.boardLayout ?? activeTheme.boardLayout ?? "cyberpunk";
+  const rawBoardLayout = gameConfig?.boardLayout ?? activeTheme.boardLayout ?? "elephant";
   const derivedBoardLayout = ['classic', 'alchemist', 'gardener'].includes(rawBoardLayout) 
-    ? 'cyberpunk' 
+    ? 'elephant' 
     : rawBoardLayout;
 
   // Get remaining time from game config

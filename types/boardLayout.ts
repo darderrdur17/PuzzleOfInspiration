@@ -1,4 +1,11 @@
-export type BoardLayoutType = 'classic' | 'alchemist' | 'gardener' | 'cyberpunk' | 'enchantedForest' | 'steampunk';
+export type BoardLayoutType =
+  | 'classic'
+  | 'alchemist'
+  | 'gardener'
+  | 'cyberpunk'
+  | 'enchantedForest'
+  | 'steampunk'
+  | 'elephant';
 
 export interface BoardLayoutConfig {
   type: BoardLayoutType;
@@ -12,6 +19,11 @@ export const BOARD_LAYOUTS: Record<BoardLayoutType, BoardLayoutConfig> = {
     type: 'classic',
     name: 'Classic Puzzle Board',
     description: 'Traditional four-phase drop zone layout',
+  },
+  elephant: {
+    type: 'elephant',
+    name: 'Paper Elephant Journey',
+    description: 'Original paper-cut elephant board with four cozy drop zones',
   },
   alchemist: {
     type: 'alchemist',

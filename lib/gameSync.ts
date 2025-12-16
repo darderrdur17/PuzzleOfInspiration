@@ -15,7 +15,8 @@ export interface GameConfig {
   isGameActive: boolean;
   gameStartTime: number | null;
   gameEndTime: number | null;
-  sessionId: string; // Unique session/class identifier
+  sessionId: string; // Unique session/class identifier (storage key)
+  sessionName?: string; // Friendly name shown to users
   themeId: ThemeId;
   challengeMode: ChallengeMode;
   rapidFireQuestion: RapidFireQuestion | null;
@@ -38,6 +39,7 @@ const toGameConfig = (row: any): GameConfig => {
     gameStartTime: row.game_start_time,
     gameEndTime: row.game_end_time,
     sessionId: row.id,
+    sessionName: row.session_name ?? row.id,
     themeId: row.theme_id,
     challengeMode: row.challenge_mode,
     rapidFireQuestion: row.rapid_fire_question,
@@ -47,12 +49,13 @@ const toGameConfig = (row: any): GameConfig => {
 };
 
 const toDbRow = (config: GameConfig) => ({
-  id: config.sessionId,
+  id: DEFAULT_SESSION_ID,
   is_game_active: config.isGameActive,
   time_limit: config.timeLimit,
   max_quotes: config.maxQuotes,
   game_start_time: config.gameStartTime,
   game_end_time: config.gameEndTime,
+  session_name: config.sessionName ?? config.sessionId,
   theme_id: config.themeId,
   challenge_mode: config.challengeMode,
   rapid_fire_question: config.rapidFireQuestion,
@@ -166,9 +169,9 @@ export const GameSync = {
   startGame(
     timeLimit: number,
     maxQuotes: number,
-    sessionId: string = DEFAULT_SESSION_ID,
+    sessionName: string = "Default Session",
     themeId: ThemeId = "classic",
-    boardLayout: BoardLayoutType = "classic"
+    boardLayout: BoardLayoutType = "elephant"
   ): void {
     const config: GameConfig = {
       timeLimit,
@@ -176,7 +179,8 @@ export const GameSync = {
       isGameActive: true,
       gameStartTime: Date.now(),
       gameEndTime: Date.now() + timeLimit * 1000,
-      sessionId,
+      sessionId: DEFAULT_SESSION_ID,
+      sessionName,
       themeId,
       challengeMode: "normal",
       rapidFireQuestion: null,
@@ -233,11 +237,12 @@ export const GameSync = {
           gameStartTime: null,
           gameEndTime: null,
           sessionId: DEFAULT_SESSION_ID,
+          sessionName: "Default Session",
           themeId: "classic",
           challengeMode: "normal",
           rapidFireQuestion: null,
           activeHint: null,
-          boardLayout: "cyberpunk",
+          boardLayout: "elephant",
         };
         cachedConfig = seed;
         writeLocal(seed);

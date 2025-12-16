@@ -13,6 +13,7 @@ import { EnchantedForestBoard } from "./EnchantedForestBoard";
 import { SteampunkBoard } from "./SteampunkBoard";
 import { PuzzlePiece } from "./PuzzlePiece";
 import type { BoardLayoutType } from "@/types/boardLayout";
+import { ElephantBoard } from "./ElephantBoard";
 
 interface PuzzleBoardProps {
   correctPlacements: number;
@@ -103,6 +104,26 @@ export function PuzzleBoard({
   }, []);
 
   // Render different board layouts based on boardLayout prop
+  if (boardLayout === "elephant") {
+    return (
+      <ElephantBoard
+        correctPlacements={correctPlacements}
+        totalPieces={totalPieces}
+        wrongAttempts={wrongAttempts}
+        placedQuotes={placedQuotes}
+        placedTitles={placedTitles}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        highlightedZone={highlightedZone}
+        onDragStart={onDragStart}
+        onDragStartTitle={onDragStartTitle}
+        onDragEnd={onDragEnd}
+        draggedQuote={draggedQuote}
+        draggedTitle={draggedTitle}
+      />
+    );
+  }
+
   if (boardLayout === "alchemist") {
     return (
       <AlchemistBoard
