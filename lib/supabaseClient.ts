@@ -26,3 +26,4 @@ export const getSupabaseClient = (): SupabaseClient | null => {
 
 
 
+

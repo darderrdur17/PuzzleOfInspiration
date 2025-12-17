@@ -39,7 +39,7 @@ export function ThemeSelector({ selectedTheme, onThemeSelect, isVisible, onClose
               <h2 className="text-2xl font-bold text-foreground">Choose Your Creative World</h2>
               <p className="text-muted-foreground mt-1">Each theme brings unique visuals and creative inspiration</p>
             </div>
-            <Button variant="outline" onClick={onClose} className="shrink-0">
+            <Button variant="outline" onClick={onClose} className="shrink-0" aria-label="Close theme selector">
               ✕
             </Button>
           </div>

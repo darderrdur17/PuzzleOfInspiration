@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Settings, Play as PlayIcon, BookOpen, Sparkles, Cpu, TreePine, Cog } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
+import { useTheme } from "@/lib/themeContext";
 
 // Generate floating particles for background
 const generateParticles = (count: number) => {
@@ -19,20 +20,27 @@ const generateParticles = (count: number) => {
 
 export default function Home() {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const { homepageTheme, setHomepageTheme } = useTheme();
   const particles = useMemo(() => generateParticles(30), []);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       {/* Dynamic gradient background */}
-      <div 
+      <div
         className="absolute inset-0 transition-all duration-1000"
         style={{
-          background: hoveredCard === 'master' 
+          background: hoveredCard === 'master'
             ? 'linear-gradient(135deg, #1e1b4b 0%, #581c87 50%, #1e1b4b 100%)'
             : hoveredCard === 'play'
             ? 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #2d1f4a 100%)'
             : hoveredCard === 'rules'
             ? 'linear-gradient(135deg, #1a2f1a 0%, #0f1f0f 50%, #1a2f1a 100%)'
+            : homepageTheme === 'cyberpunk'
+            ? 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 30%, #0a0e27 60%, #1a1f3a 100%)'
+            : homepageTheme === 'enchanted'
+            ? 'linear-gradient(135deg, #1a2f1a 0%, #0f1f0f 30%, #1a2f1a 60%, #0f1f0f 100%)'
+            : homepageTheme === 'steampunk'
+            ? 'linear-gradient(135deg, #2c1810 0%, #3d2817 30%, #2c1810 60%, #3d2817 100%)'
             : 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 30%, #0a0e27 60%, #1a2f1a 100%)',
         }}
       />
@@ -103,18 +111,54 @@ export default function Home() {
           
           {/* Theme showcase badges */}
           <div className="flex justify-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-500/40">
+            <button
+              onClick={() => setHomepageTheme('cyberpunk')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 cursor-pointer hover:scale-105 ${
+                homepageTheme === 'cyberpunk'
+                  ? 'bg-cyan-500/40 border-2 border-cyan-500 shadow-lg shadow-cyan-500/25'
+                  : 'bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30'
+              }`}
+              aria-label="Switch to Cyberpunk theme"
+            >
               <Cpu className="w-4 h-4 text-cyan-400" />
               <span className="text-xs text-cyan-300 font-medium">Cyberpunk</span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/20 border border-green-500/40">
+            </button>
+            <button
+              onClick={() => setHomepageTheme('enchanted')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 cursor-pointer hover:scale-105 ${
+                homepageTheme === 'enchanted'
+                  ? 'bg-green-500/40 border-2 border-green-500 shadow-lg shadow-green-500/25'
+                  : 'bg-green-500/20 border border-green-500/40 hover:bg-green-500/30'
+              }`}
+              aria-label="Switch to Enchanted theme"
+            >
               <TreePine className="w-4 h-4 text-green-400" />
               <span className="text-xs text-green-300 font-medium">Enchanted</span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/40">
+            </button>
+            <button
+              onClick={() => setHomepageTheme('steampunk')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 cursor-pointer hover:scale-105 ${
+                homepageTheme === 'steampunk'
+                  ? 'bg-amber-500/40 border-2 border-amber-500 shadow-lg shadow-amber-500/25'
+                  : 'bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30'
+              }`}
+              aria-label="Switch to Steampunk theme"
+            >
               <Cog className="w-4 h-4 text-amber-400" />
               <span className="text-xs text-amber-300 font-medium">Steampunk</span>
-            </div>
+            </button>
+            <button
+              onClick={() => setHomepageTheme('default')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 cursor-pointer hover:scale-105 ${
+                homepageTheme === 'default'
+                  ? 'bg-purple-500/40 border-2 border-purple-500 shadow-lg shadow-purple-500/25'
+                  : 'bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30'
+              }`}
+              aria-label="Switch to Default theme"
+            >
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span className="text-xs text-purple-300 font-medium">Default</span>
+            </button>
           </div>
         </header>
 

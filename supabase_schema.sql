@@ -71,3 +71,4 @@ alter publication supabase_realtime add table public.custom_quotes;
 
 
 
+
