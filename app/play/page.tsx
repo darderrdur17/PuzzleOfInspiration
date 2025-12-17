@@ -130,6 +130,7 @@ export default function PlayPage() {
       return [];
     }
   });
+  const [currentJigsawMode, setCurrentJigsawMode] = useState<boolean>(false);
 
   const activeTheme = themeLibrary[themeId] ?? themeLibrary.classic;
   const resolvedGameTheme = deriveGameTheme(gameConfig?.themeId ?? themeId, gameConfig?.boardLayout);
@@ -264,6 +265,7 @@ export default function PlayPage() {
     const themeDefinition = themeLibrary[activeThemeId] ?? themeLibrary.classic;
     const resolvedTheme = deriveGameTheme(activeThemeId, config.boardLayout);
     const themeConfig = getThemeConfig(resolvedTheme);
+    const gameJigsawMode = config.jigsawMode ?? false;
 
     // Use theme-specific quotes mixed with general quotes
     const customQuotes = CustomQuotes.byTheme(activeThemeId);
@@ -290,6 +292,7 @@ export default function PlayPage() {
     setPlayerName(name);
     setThemeId(activeThemeId);
     setGameTheme(resolvedTheme);
+    setCurrentJigsawMode(gameJigsawMode);
     setUserPuzzlePiece(userQuote);
     setPuzzleQuotes(selectedQuotes);
     setAvailableQuotes(selectedQuotes);
@@ -860,6 +863,7 @@ export default function PlayPage() {
     setBonusAdjustments(0);
     setSelectedHintPhase("preparation");
     setAnsweredQuizzes([]);
+    setCurrentJigsawMode(false);
   };
 
   if (!gameState.isStarted) {
@@ -1193,7 +1197,7 @@ export default function PlayPage() {
                 </p>
               </div>
             )}
-            {isJigsawMode ? (
+            {currentJigsawMode ? (
               <JigsawBoard
                 quotes={puzzleQuotes}
                 themeConfig={jigsawThemeConfigs[themeId] || jigsawThemeConfigs.classic}

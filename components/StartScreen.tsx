@@ -18,6 +18,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [isGameActive, setIsGameActive] = useState(false);
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
+  const [gameMasterTheme, setGameMasterTheme] = useState<GameTheme | null>(null);
 
   // Subscribe to game config changes
   useEffect(() => {
@@ -28,9 +29,22 @@ export function StartScreen({ onStart }: StartScreenProps) {
           const remaining = Math.max(0, Math.floor((config.gameEndTime - Date.now()) / 1000));
           setRemainingTime(remaining);
         }
+        // Get the actual theme that will be used (from Game Master settings)
+        if (config.themeId) {
+          // Map themeId to GameTheme
+          const themeMapping: Record<string, GameTheme> = {
+            classic: 'ui',
+            science: 'alchemist',
+            art: 'gardener',
+            entrepreneurship: 'explorer'
+          };
+          const resolvedTheme = themeMapping[config.themeId] || 'ui';
+          setGameMasterTheme(resolvedTheme);
+        }
       } else {
         setIsGameActive(false);
         setRemainingTime(null);
+        setGameMasterTheme(null);
       }
     });
     return unsubscribe;
@@ -76,24 +90,27 @@ export function StartScreen({ onStart }: StartScreenProps) {
     }
   };
 
+  // Determine the effective theme (Game Master's choice overrides player's)
+  const effectiveTheme = gameMasterTheme || selectedTheme;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate name
     if (!validateName(name)) {
       return;
     }
-    
+
     // Check if game master has started the game
     if (!isGameActive) {
       setError("Please wait for the Game Master to start the game before joining.");
       return;
     }
-    
+
     // Creative moment is optional, use default if empty
     const finalAnswer = answer.trim() || "A moment of creative thinking";
     setError("");
-    onStart(name.trim(), finalAnswer, selectedTheme);
+    onStart(name.trim(), finalAnswer, effectiveTheme);
   };
 
   return (
@@ -233,6 +250,22 @@ export function StartScreen({ onStart }: StartScreenProps) {
                   Change
                 </Button>
               </div>
+
+              {/* Theme Override Notification */}
+              {gameMasterTheme && gameMasterTheme !== selectedTheme && (
+                <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-amber-800">Theme Override</p>
+                      <p className="text-amber-700 mt-1">
+                        The Game Master has selected the <strong>{gameMasterTheme.charAt(0).toUpperCase() + gameMasterTheme.slice(1)}</strong> theme for this session.
+                        Your selection will be overridden to ensure consistency.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {error && (
@@ -255,8 +288,8 @@ export function StartScreen({ onStart }: StartScreenProps) {
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
             >
-              {isGameActive 
-                ? `Start ${selectedTheme.charAt(0).toUpperCase() + selectedTheme.slice(1)} Journey`
+              {isGameActive
+                ? `Start ${effectiveTheme.charAt(0).toUpperCase() + effectiveTheme.slice(1)} Journey`
                 : "Waiting for Game Master..."}
             </button>
             

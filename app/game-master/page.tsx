@@ -159,7 +159,10 @@ export default function GameMasterPage() {
     setUserManuallySelectedLayout(true);
 
     // Find the theme that corresponds to the new layout and update theme dropdown
-    const correspondingTheme = themeList.find(theme => theme.boardLayout === newLayout);
+    // If multiple themes use the same layout, prefer the current theme if it matches, otherwise pick the first one
+    const correspondingThemes = themeList.filter(theme => theme.boardLayout === newLayout);
+    const correspondingTheme = correspondingThemes.find(theme => theme.id === selectedTheme) || correspondingThemes[0];
+
     if (correspondingTheme && correspondingTheme.id !== selectedTheme) {
       setSelectedTheme(correspondingTheme.id);
     }
@@ -379,12 +382,12 @@ export default function GameMasterPage() {
                   onChange={(e) => {
                     const newTheme = e.target.value as ThemeId;
                     setSelectedTheme(newTheme);
-                    // Auto-select default board layout for theme only if user hasn't manually selected one
-                    if (!userManuallySelectedLayout) {
-                      const theme = themeList.find(t => t.id === newTheme);
-                      if (theme?.boardLayout) {
-                        setSelectedBoardLayout(theme.boardLayout);
-                      }
+                    // Always sync the board layout to match the selected theme
+                    const theme = themeList.find(t => t.id === newTheme);
+                    if (theme?.boardLayout) {
+                      setSelectedBoardLayout(theme.boardLayout);
+                      // Reset manual selection flag when theme changes
+                      setUserManuallySelectedLayout(false);
                     }
                   }}
                   disabled={isGameActive}

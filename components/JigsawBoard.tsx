@@ -116,7 +116,14 @@ export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete
           <div
             key={phase}
             id={phase}
-            className="absolute border-2 border-dashed border-white/50 rounded-lg bg-white/10 backdrop-blur-sm"
+            className={cn(
+              "absolute border-2 border-dashed rounded-lg backdrop-blur-sm transition-all duration-300",
+              draggedPiece
+                ? draggedPiece.phase === phase
+                  ? "border-green-400 bg-green-400/20 shadow-lg shadow-green-400/30 scale-105"
+                  : "border-red-400 bg-red-400/10"
+                : "border-white/50 bg-white/10"
+            )}
             style={{
               left: zone.x,
               top: zone.y,
@@ -126,6 +133,9 @@ export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete
           >
             <div className="absolute -top-6 left-0 text-white font-bold text-sm bg-black/50 px-2 py-1 rounded">
               {phase.charAt(0).toUpperCase() + phase.slice(1)}
+              {draggedPiece && draggedPiece.phase === phase && (
+                <span className="ml-1 text-green-300">✓</span>
+              )}
             </div>
           </div>
         ))}
@@ -138,11 +148,12 @@ export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete
           return (
             <div
               key={pieceId}
-              className="absolute animate-pulse"
+              className="absolute transition-all duration-300 ease-out hover:scale-105 shadow-lg"
               style={{
                 left: placement.position.x,
                 top: placement.position.y,
                 clipPath: piece.shape,
+                filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))',
               }}
             >
               <PuzzlePiece
@@ -157,20 +168,21 @@ export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete
       </div>
 
       {/* Piece Tray */}
-      <div className="mt-4 p-4 bg-gray-200 rounded-lg">
-        <h3 className="text-lg font-bold mb-3">Available Pieces</h3>
-        <div className="flex flex-wrap gap-3">
+      <div className="mt-4 p-4 bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg border-2 border-gray-300">
+        <h3 className="text-lg font-bold mb-3 text-gray-800">Available Pieces</h3>
+        <div className="flex flex-wrap gap-3 justify-center">
           {unplacedPieces.map((piece) => (
             <div
               key={piece.id}
               id={piece.id}
               draggable
               className={cn(
-                "cursor-move transform transition-transform hover:scale-105",
-                draggedPiece?.id === piece.id ? "opacity-50" : ""
+                "cursor-move transform transition-all duration-200 hover:scale-110 hover:rotate-1 hover:shadow-lg",
+                draggedPiece?.id === piece.id ? "opacity-50 scale-95" : "hover:shadow-xl"
               )}
               style={{
                 clipPath: piece.shape,
+                filter: draggedPiece?.id === piece.id ? 'none' : 'drop-shadow(1px 1px 3px rgba(0,0,0,0.2))',
               }}
             >
               <PuzzlePiece
@@ -181,12 +193,24 @@ export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete
             </div>
           ))}
         </div>
+        {unplacedPieces.length === 0 && (
+          <div className="text-center text-gray-600 mt-4">
+            <p className="text-lg font-medium">🎉 Puzzle Complete!</p>
+            <p className="text-sm">All pieces have been placed correctly.</p>
+          </div>
+        )}
       </div>
 
       {/* Drag Overlay */}
       <DragOverlay>
         {draggedPiece && (
-          <div style={{ clipPath: draggedPiece.shape }}>
+          <div
+            className="transform rotate-3 shadow-2xl"
+            style={{
+              clipPath: draggedPiece.shape,
+              filter: 'drop-shadow(4px 4px 8px rgba(0,0,0,0.4)) brightness(1.1)',
+            }}
+          >
             <PuzzlePiece
               quote={draggedPiece.quote}
               variant="purple"
