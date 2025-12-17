@@ -13,11 +13,11 @@ interface EnchantedForestBoardProps {
   placedQuotes: Record<string, Quote[]>;
   placedTitles: Record<string, PhaseTitle | null>;
   onDrop: (phase: Phase) => void;
-  onDragOver: (e: React.DragEvent, zone: Phase) => void;
+  onDragOver?: (e: React.DragEvent, zone: Phase) => void;
   highlightedZone: Phase | null;
-  onDragStart: (quote: Quote) => void;
-  onDragStartTitle: (title: PhaseTitle) => void;
-  onDragEnd: () => void;
+  onDragStart?: (quote: Quote) => void;
+  onDragStartTitle?: (title: PhaseTitle) => void;
+  onDragEnd?: () => void;
   draggedQuote: Quote | null;
   draggedTitle: PhaseTitle | null;
 }
@@ -193,7 +193,7 @@ export function EnchantedForestBoard({
                 <div
                   onDragOver={(e) => {
                     e.preventDefault();
-                    if (draggedTitle) onDragOver(e, phase.id);
+                    if (draggedTitle) onDragOver?.(e, phase.id);
                   }}
                   onDrop={(e) => {
                     e.preventDefault();
@@ -243,7 +243,7 @@ export function EnchantedForestBoard({
 
                 {/* Quote Drop Zone - Leaf shape */}
                 <div
-                  onDragOver={(e) => onDragOver(e, phase.id)}
+                  onDragOver={(e) => onDragOver?.(e, phase.id)}
                   onDrop={(e) => {
                     e.preventDefault();
                     onDrop(phase.id);
@@ -298,8 +298,8 @@ export function EnchantedForestBoard({
                         <div
                           key={quote.id}
                           draggable
-                          onDragStart={() => onDragStart(quote)}
-                          onDragEnd={onDragEnd}
+                          onDragStart={() => onDragStart?.(quote)}
+                          onDragEnd={() => onDragEnd?.()}
                           className="cursor-move touch-manipulation"
                         >
                           <PuzzlePiece

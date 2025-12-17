@@ -13,11 +13,11 @@ interface GardenerBoardProps {
   placedQuotes: Record<string, Quote[]>;
   placedTitles: Record<string, PhaseTitle | null>;
   onDrop: (phase: Phase) => void;
-  onDragOver: (e: React.DragEvent, zone: Phase) => void;
+  onDragOver?: (e: React.DragEvent, zone: Phase) => void;
   highlightedZone: Phase | null;
-  onDragStart: (quote: Quote) => void;
-  onDragStartTitle: (title: PhaseTitle) => void;
-  onDragEnd: () => void;
+  onDragStart?: (quote: Quote) => void;
+  onDragStartTitle?: (title: PhaseTitle) => void;
+  onDragEnd?: () => void;
   draggedQuote: Quote | null;
   draggedTitle: PhaseTitle | null;
 }
@@ -137,8 +137,8 @@ export function GardenerBoard({
                 <div
                   onDragOver={(e) => {
                     e.preventDefault();
-                    if (draggedTitle) onDragOver(e, phase);
-                    if (draggedQuote) onDragOver(e, phase);
+                    if (draggedTitle) onDragOver?.(e, phase);
+                    if (draggedQuote) onDragOver?.(e, phase);
                   }}
                   onDrop={(e) => {
                     e.preventDefault();
@@ -159,7 +159,7 @@ export function GardenerBoard({
                   <div
                     onDragOver={(e) => {
                       e.preventDefault();
-                      if (draggedTitle) onDragOver(e, phase);
+                      if (draggedTitle) onDragOver?.(e, phase);
                     }}
                     onDrop={(e) => {
                       e.preventDefault();
@@ -205,8 +205,8 @@ export function GardenerBoard({
                         <div
                           key={quote.id}
                           draggable
-                          onDragStart={() => onDragStart(quote)}
-                          onDragEnd={onDragEnd}
+                          onDragStart={() => onDragStart?.(quote)}
+                          onDragEnd={() => onDragEnd?.()}
                           className="cursor-move touch-manipulation"
                         >
                           <PuzzlePiece

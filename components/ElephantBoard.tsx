@@ -11,11 +11,11 @@ interface ElephantBoardProps {
   placedQuotes: Record<string, Quote[]>;
   placedTitles: Record<string, PhaseTitle | null>;
   onDrop: (phase: Phase) => void;
-  onDragOver: (e: React.DragEvent, zone: Phase) => void;
+  onDragOver?: (e: React.DragEvent, zone: Phase) => void;
   highlightedZone: Phase | null;
-  onDragStart: (quote: Quote) => void;
-  onDragStartTitle: (title: PhaseTitle) => void;
-  onDragEnd: () => void;
+  onDragStart?: (quote: Quote) => void;
+  onDragStartTitle?: (title: PhaseTitle) => void;
+  onDragEnd?: () => void;
   draggedQuote: Quote | null;
   draggedTitle: PhaseTitle | null;
 }
@@ -161,7 +161,7 @@ export function ElephantBoard(props: ElephantBoardProps) {
               <div
                 onDragOver={(e) => {
                   e.preventDefault();
-                  if (draggedTitle) onDragOver(e, phase.id as Phase);
+                  if (draggedTitle) onDragOver?.(e, phase.id as Phase);
                 }}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -200,7 +200,7 @@ export function ElephantBoard(props: ElephantBoardProps) {
           return (
             <div key={phase.id} className="absolute z-20" style={phase.quotePos}>
               <div
-                onDragOver={(e) => onDragOver(e, phase.id as Phase)}
+                onDragOver={(e) => onDragOver?.(e, phase.id as Phase)}
                 onDrop={(e) => {
                   e.preventDefault();
                   onDrop(phase.id as Phase);
@@ -229,8 +229,8 @@ export function ElephantBoard(props: ElephantBoardProps) {
                       <div
                         key={quote.id}
                         draggable
-                        onDragStart={() => onDragStart(quote)}
-                        onDragEnd={onDragEnd}
+                        onDragStart={() => onDragStart?.(quote)}
+                        onDragEnd={() => onDragEnd?.()}
                         className="cursor-move touch-manipulation"
                       >
                         <PuzzlePiece quote={quote} variant={variant} size="small" isPlaced />

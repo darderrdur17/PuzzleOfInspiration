@@ -12,6 +12,7 @@ import { CyberpunkBoard } from "./CyberpunkBoard";
 import { EnchantedForestBoard } from "./EnchantedForestBoard";
 import { SteampunkBoard } from "./SteampunkBoard";
 import { PuzzlePiece } from "./PuzzlePiece";
+import { DroppableZone, DraggableQuote, DraggableTitle } from "./DragDropProvider";
 import type { BoardLayoutType } from "@/types/boardLayout";
 import { ElephantBoard } from "./ElephantBoard";
 
@@ -23,11 +24,11 @@ interface PuzzleBoardProps {
   placedQuotes: Record<string, Quote[]>;
   placedTitles: Record<string, PhaseTitle | null>;
   onDrop: (phase: Phase) => void;
-  onDragOver: (e: React.DragEvent, zone: Phase) => void;
+  onDragOver?: (e: React.DragEvent, zone: Phase) => void;
   highlightedZone: Phase | null;
-  onDragStart: (quote: Quote) => void;
-  onDragStartTitle: (title: PhaseTitle) => void;
-  onDragEnd: () => void;
+  onDragStart?: (quote: Quote) => void;
+  onDragStartTitle?: (title: PhaseTitle) => void;
+  onDragEnd?: () => void;
   draggedQuote: Quote | null;
   draggedTitle: PhaseTitle | null;
   themeConfig?: ThemeConfig;
@@ -292,32 +293,45 @@ export function PuzzleBoard({
               style={isSmallScreen ? phase.goosePositionMobile : phase.goosePosition}
             >
               {/* Phase Label Drop Zone - positioned near geese in image */}
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  if (draggedTitle) onDragOver(e, phase.id as Phase);
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (draggedTitle) onDrop(phase.id as Phase);
-                }}
+              <DroppableZone
+                id={phase.id}
+                onDrop={onDrop}
                 className={cn(
                   "w-24 sm:w-28 md:w-32 lg:w-36 h-10 sm:h-12 md:h-14 flex items-center justify-center rounded-lg border-2 transition-all cursor-pointer shadow-xl backdrop-blur-sm touch-manipulation",
                   title
                     ? "bg-green-500/50 border-green-600"
-                    : "bg-orange-400/60 border-orange-600 border-dashed"
+                    : ""
                 )}
+                style={title ? {} : {
+                  backgroundColor: `${phase.color}40`,
+                  borderColor: phase.color,
+                  borderStyle: 'dashed'
+                }}
               >
                 {title ? (
                   <span className="text-xs sm:text-sm font-bold text-green-800 text-center px-1">{title.title}</span>
                 ) : (
-                  <span className="text-[10px] sm:text-xs text-orange-800 font-semibold text-center px-1">Drop &quot;{phase.label}&quot;</span>
+                  <span
+                    className="text-[10px] sm:text-xs font-semibold text-center px-1"
+                    style={{ color: phase.color }}
+                  >
+                    Drop &quot;{phase.label}&quot;
+                  </span>
                 )}
-              </div>
+              </DroppableZone>
               
               {/* Phase Label Below Drop Zone */}
               <div className="text-center mt-1 sm:mt-2">
-                <span className="text-xs sm:text-sm md:text-base font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded bg-white/90 shadow-md" style={{ color: phase.color }}>
+                <span
+                  className="text-xs sm:text-sm md:text-base font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded shadow-md"
+                  style={{
+                    color: phase.color,
+                    backgroundColor: title
+                      ? `${phase.color}20` // Semi-transparent background when title is placed
+                      : 'rgba(255, 255, 255, 0.9)',
+                    border: title ? `2px solid ${phase.color}` : 'none'
+                  }}
+                >
                   {phase.label}
                 </span>
               </div>
@@ -351,17 +365,12 @@ export function PuzzleBoard({
               className="absolute z-20"
               style={position}
             >
-              <div
-                onDragOver={(e) => onDragOver(e, phase.id as Phase)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  onDrop(phase.id as Phase);
-                }}
+              <DroppableZone
+                id={phase.id}
+                onDrop={onDrop}
+                isHighlighted={isHighlighted}
                 className={cn(
                   "relative w-full min-w-[140px] sm:min-w-[180px] md:min-w-[220px] min-h-[100px] sm:min-h-[120px] md:min-h-[140px] rounded-lg border-2 transition-all p-2 sm:p-3 shadow-lg touch-manipulation",
-                  isHighlighted
-                    ? "ring-4 ring-primary ring-offset-2 scale-105 sm:scale-110 z-30"
-                    : "",
                   title && quotes.length > 0
                     ? "bg-green-100/90 border-green-500"
                     : "bg-white/80 border-dashed border-gray-400"
@@ -387,12 +396,10 @@ export function PuzzleBoard({
                     const variants: Array<"purple" | "orange" | "green" | "gold"> = ["purple", "orange", "green", "gold"];
                     const variant = variants[index % variants.length];
                     return (
-                      <div
+                      <DraggableQuote
                         key={quote.id}
-                        draggable
-                        onDragStart={() => onDragStart(quote)}
-                        onDragEnd={onDragEnd}
-                        className="cursor-move touch-manipulation"
+                        quote={quote}
+                        id={`quote-${quote.id}`}
                       >
                         <PuzzlePiece
                           quote={quote}
@@ -400,7 +407,7 @@ export function PuzzleBoard({
                           size="small"
                           isPlaced={true}
                         />
-                      </div>
+                      </DraggableQuote>
                     );
                   })}
                 </div>
@@ -411,7 +418,7 @@ export function PuzzleBoard({
                     Drop quotes here
                   </div>
                 )}
-              </div>
+              </DroppableZone>
             </div>
           );
         })}

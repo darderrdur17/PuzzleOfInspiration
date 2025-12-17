@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { GameSync, type GameConfig } from "@/lib/gameSync";
 import { PlayerScore, type ThemeId, type Phase } from "@/types/game";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, Settings, Trophy, Play, Square, Zap, Sparkles, Lightbulb, Layout, AlertCircle } from "lucide-react";
+import { Clock, Users, Settings, Trophy, Play, Square, Zap, Sparkles, Lightbulb, Layout, AlertCircle, Puzzle } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 import { themeList, getRandomRapidFireQuestion } from "@/data/themes";
 import { CustomQuotes, type CustomQuote } from "@/lib/customQuotes";
@@ -38,6 +38,7 @@ export default function GameMasterPage() {
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>("classic");
   const [selectedBoardLayout, setSelectedBoardLayout] = useState<BoardLayoutType>("elephant");
   const [userManuallySelectedLayout, setUserManuallySelectedLayout] = useState(false);
+  const [jigsawMode, setJigsawMode] = useState(false);
   const [configSnapshot, setConfigSnapshot] = useState<GameConfig | null>(null);
   const [customQuotes, setCustomQuotes] = useState<CustomQuote[]>([]);
   const [newQuote, setNewQuote] = useState<{
@@ -153,11 +154,27 @@ export default function GameMasterPage() {
   const isRapidFireActive = challengeMode === "rapid-fire" && !!activeRapidFire;
   const themeSpecificCustomQuotes = customQuotes.filter((quote) => quote.themeId === selectedTheme);
 
+  const handleLayoutChange = (newLayout: BoardLayoutType) => {
+    setSelectedBoardLayout(newLayout);
+    setUserManuallySelectedLayout(true);
+
+    // Find the theme that corresponds to the new layout and update theme dropdown
+    const correspondingTheme = themeList.find(theme => theme.boardLayout === newLayout);
+    if (correspondingTheme && correspondingTheme.id !== selectedTheme) {
+      setSelectedTheme(correspondingTheme.id);
+    }
+
+    // Live-sync layout when a game is active so all players switch immediately
+    if (configSnapshot?.isGameActive) {
+      GameSync.updateConfig({ boardLayout: newLayout });
+    }
+  };
+
   const handleStartGame = () => {
     const themeDefaultLayout = themeList.find((theme) => theme.id === selectedTheme)?.boardLayout;
     const layoutToUse = userManuallySelectedLayout ? selectedBoardLayout : themeDefaultLayout || selectedBoardLayout;
     const friendlyName = sessionName.trim() || "Current Session";
-    GameSync.startGame(timeLimit * 60, maxQuotes, friendlyName, selectedTheme, layoutToUse);
+    GameSync.startGame(timeLimit * 60, maxQuotes, friendlyName, selectedTheme, layoutToUse, jigsawMode);
     setIsGameActive(true);
   };
 
@@ -408,14 +425,7 @@ export default function GameMasterPage() {
                       <button
                         key={layout.type}
                         type="button"
-                        onClick={() => {
-                          setSelectedBoardLayout(layout.type);
-                          setUserManuallySelectedLayout(true);
-                          // Live-sync layout when a game is active so all players switch immediately
-                          if (configSnapshot?.isGameActive) {
-                            GameSync.updateConfig({ boardLayout: layout.type });
-                          }
-                        }}
+                        onClick={() => handleLayoutChange(layout.type)}
                         className={`p-3 rounded-lg border-2 transition-all text-left ${
                           isSelected
                             ? "border-puzzle-purple bg-puzzle-purple/10 shadow-lg ring-2 ring-puzzle-purple/20"
@@ -438,6 +448,43 @@ export default function GameMasterPage() {
                   )}
                 </p>
               </div>
+            </div>
+
+            {/* Jigsaw Puzzle Mode */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Puzzle className="w-4 h-4 text-purple-500" />
+                Game Mode
+              </label>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="gameMode"
+                    checked={!jigsawMode}
+                    onChange={() => setJigsawMode(false)}
+                    disabled={isGameActive}
+                    className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-sm text-gray-700">Classic Card Sorting</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="gameMode"
+                    checked={jigsawMode}
+                    onChange={() => setJigsawMode(true)}
+                    disabled={isGameActive}
+                    className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-sm text-gray-700">Jigsaw Puzzle Mode</span>
+                </label>
+              </div>
+              <p className="text-xs text-gray-500">
+                {jigsawMode
+                  ? "Players assemble irregular puzzle pieces on a themed background image"
+                  : "Players drag rectangular cards to phase drop zones"}
+              </p>
             </div>
           </div>
           </div>

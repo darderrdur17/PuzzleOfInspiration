@@ -20,6 +20,9 @@ import { Timer } from "@/components/Timer";
 import { PuzzleBoard } from "@/components/PuzzleBoard";
 import { GameGuide } from "@/components/GameGuide";
 import { ThemeSelector } from "@/components/ThemeSelector";
+import { DragDropProvider, DraggableQuote, DraggableTitle } from "@/components/DragDropProvider";
+import { JigsawBoard } from "@/components/JigsawBoard";
+import { jigsawThemeConfigs } from "@/lib/jigsawThemes";
 import { GameSync } from "@/lib/gameSync";
 import { CustomQuotes } from "@/lib/customQuotes";
 import { playSuccessTone, playErrorTone, playAlertTone } from "@/lib/soundboard";
@@ -28,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Zap, Palette } from "lucide-react";
 import { BOARD_LAYOUTS, type BoardLayoutType } from "@/types/boardLayout";
 import { RealtimeStore } from "@/lib/realtimeStore";
+import { DragStartEvent, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
 
 const phaseTitles: PhaseTitle[] = [
   { id: "title-preparation", title: "Preparation", phase: "preparation" },
@@ -493,25 +497,104 @@ export default function PlayPage() {
     }
   }, [gameState.points, gameState.placements, gameState.titlePlacements, gameState.isStarted, gameState.isCompleted, playerName, gameState.startTime, calculateCorrectCount]);
 
-  const handleDragStart = (quote: Quote) => {
-    setDraggedQuote(quote);
-    setDraggedTitle(null);
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const data = active.data.current;
+
+    if (data?.type === 'quote') {
+      setDraggedQuote(data.quote);
+      setDraggedTitle(null);
+    } else if (data?.type === 'title') {
+      setDraggedTitle(data.title);
+      setDraggedQuote(null);
+    }
   };
 
-  const handleDragStartTitle = (title: PhaseTitle) => {
-    setDraggedTitle(title);
-    setDraggedQuote(null);
-  };
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    const data = active.data.current;
 
-  const handleDragEnd = () => {
+    if (over && data) {
+      const dropZoneData = over.data.current;
+      if (dropZoneData?.type === 'drop-zone') {
+        const phase = dropZoneData.phase as Phase;
+
+        if (data.type === 'quote') {
+          handleDrop(phase);
+        } else if (data.type === 'title') {
+          // Handle title drop
+          const isCorrect = data.title.phase === phase;
+
+          if (isCorrect) {
+            // Correct placement - keep it there
+            setAvailableTitles((prev) => prev.filter((t) => t.id !== data.title.id));
+
+            setPlacedTitles((prev) => {
+              const newPlacements = { ...prev };
+              Object.keys(newPlacements).forEach((key) => {
+                if (newPlacements[key]?.id === data.title.id) {
+                  newPlacements[key] = null;
+                }
+              });
+              newPlacements[phase] = data.title;
+              return newPlacements;
+            });
+
+            setGameState((prev) => ({
+              ...prev,
+              titlePlacements: {
+                ...prev.titlePlacements,
+                [data.title.id]: phase,
+              },
+            }));
+
+            toast.success(`Correct! +${POINTS_CORRECT_TITLE} points`);
+            recordCorrectPlacement(data.title.phase);
+          } else {
+            // Wrong placement - return to available titles
+            toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points. Try again!`);
+
+            // Remove from any previous placement
+            setPlacedTitles((prev) => {
+              const newPlacements = { ...prev };
+              Object.keys(newPlacements).forEach((key) => {
+                if (newPlacements[key]?.id === data.title.id) {
+                  newPlacements[key] = null;
+                }
+              });
+              return newPlacements;
+            });
+
+            setGameState((prev) => {
+              const newTitlePlacements = { ...prev.titlePlacements };
+              delete newTitlePlacements[data.title.id];
+              return {
+                ...prev,
+                titlePlacements: newTitlePlacements,
+              };
+            });
+
+            registerWrongAttempt(phase);
+          }
+        }
+      }
+    }
+
     setDraggedQuote(null);
     setDraggedTitle(null);
     setHighlightedZone(null);
   };
 
-  const handleDragOver = (e: React.DragEvent, zone: Phase) => {
-    e.preventDefault();
-    setHighlightedZone(zone);
+  const handleDragOver = (event: DragOverEvent) => {
+    const { over } = event;
+    if (over) {
+      const dropZoneData = over.data.current;
+      if (dropZoneData?.type === 'drop-zone') {
+        setHighlightedZone(dropZoneData.phase as Phase);
+      }
+    } else {
+      setHighlightedZone(null);
+    }
   };
 
   const handleDrop = (phase: Phase) => {
@@ -817,9 +900,22 @@ export default function PlayPage() {
   const hasAnsweredRapidFire =
     isRapidFireActive && rapidFireQuestion ? answeredQuizzes.includes(rapidFireQuestion.id) : false;
   const activeHint = gameConfig?.activeHint ?? null;
+  const isJigsawMode = gameConfig?.jigsawMode ?? false;
 
   return (
-    <>
+    <DragDropProvider
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragOver={handleDragOver}
+      draggedQuote={draggedQuote}
+      draggedTitle={draggedTitle}
+      quoteComponent={PuzzlePiece}
+      titleComponent={({ title, isDragging }) => (
+        <div className={`bg-accent/30 border-2 border-accent rounded-lg p-2 sm:p-3 text-center font-bold text-xs sm:text-sm hover:bg-accent/40 transition-colors ${isDragging ? 'opacity-50' : ''}`}>
+          {title.title}
+        </div>
+      )}
+    >
       <ThemeSelector
         selectedTheme={gameTheme}
         onThemeSelect={setGameTheme}
@@ -1022,16 +1118,15 @@ export default function PlayPage() {
                 </p>
                 <div className="space-y-1.5 sm:space-y-2">
                   {availableTitles.map((title) => (
-                    <div
+                    <DraggableTitle
                       key={title.id}
-                      draggable
-                      onDragStart={() => handleDragStartTitle(title)}
-                      onDragEnd={handleDragEnd}
-                      className="cursor-move touch-manipulation bg-accent/30 border-2 border-accent rounded-lg p-2 sm:p-3 text-center font-bold text-xs sm:text-sm hover:bg-accent/40 transition-colors active:scale-95"
-                      style={{ opacity: draggedTitle?.id === title.id ? 0.5 : 1 }}
+                      title={title}
+                      id={`title-${title.id}`}
                     >
-                      {title.title}
-                    </div>
+                      <div className="bg-accent/30 border-2 border-accent rounded-lg p-2 sm:p-3 text-center font-bold text-xs sm:text-sm hover:bg-accent/40 transition-colors">
+                        {title.title}
+                      </div>
+                    </DraggableTitle>
                   ))}
                 </div>
               </div>
@@ -1042,17 +1137,15 @@ export default function PlayPage() {
                 <h3 className="text-xs sm:text-sm font-bold text-primary mb-2 sm:mb-3">
                   Your Creative Moment
                 </h3>
-                <div
-                  draggable
-                  onDragStart={() => setDraggedQuote(userPuzzlePiece)}
-                  onDragEnd={handleDragEnd}
-                  className="cursor-move touch-manipulation active:scale-95"
+                <DraggableQuote
+                  quote={userPuzzlePiece}
+                  id={`quote-${userPuzzlePiece.id}`}
                 >
                   <QuoteCard
                     quote={userPuzzlePiece}
                     isDragging={draggedQuote?.id === userPuzzlePiece.id}
                   />
-                </div>
+                </DraggableQuote>
               </div>
             )}
 
@@ -1069,12 +1162,10 @@ export default function PlayPage() {
                     const variants: Array<"purple" | "orange" | "green" | "gold"> = ["purple", "orange", "green", "gold"];
                     const variant = variants[index % variants.length];
                     return (
-                      <div
+                      <DraggableQuote
                         key={quote.id}
-                        draggable
-                        onDragStart={() => handleDragStart(quote)}
-                        onDragEnd={handleDragEnd}
-                        className="cursor-move touch-manipulation active:scale-95"
+                        quote={quote}
+                        id={`quote-${quote.id}`}
                       >
                         <PuzzlePiece
                           quote={quote}
@@ -1082,7 +1173,7 @@ export default function PlayPage() {
                           size="small"
                           isDragging={draggedQuote?.id === quote.id}
                         />
-                      </div>
+                      </DraggableQuote>
                     );
                   })}
                 </div>
@@ -1102,33 +1193,44 @@ export default function PlayPage() {
                 </p>
               </div>
             )}
-            <PuzzleBoard
-              correctPlacements={correctPlacements}
-              totalPieces={puzzleQuotes.length + 1 + phaseTitles.length}
-              wrongAttempts={wrongAttempts}
-              boardBackground={themeConfig.boardBackground}
-              placedQuotes={placedQuotes}
-              boardLayout={derivedBoardLayout}
-              placedTitles={placedTitles}
-              onDrop={
-                userPuzzlePiece && draggedQuote?.id === "user-answer"
-                  ? handleDropUserPiece
-                  : handleDrop
-              }
-              onDragOver={handleDragOver}
-              highlightedZone={highlightedZone}
-              onDragStart={handleDragStart}
-              onDragStartTitle={handleDragStartTitle}
-              onDragEnd={handleDragEnd}
-              draggedQuote={draggedQuote}
-              draggedTitle={draggedTitle}
-              themeConfig={themeConfig}
-            />
+            {isJigsawMode ? (
+              <JigsawBoard
+                quotes={puzzleQuotes}
+                themeConfig={jigsawThemeConfigs[themeId] || jigsawThemeConfigs.classic}
+                onPiecePlaced={(quoteId, phase) => {
+                  // Handle piece placement for jigsaw mode
+                  const quote = puzzleQuotes.find(q => q.id === quoteId);
+                  if (quote && quote.phase === phase) {
+                    recordCorrectPlacement(phase);
+                  }
+                }}
+                onGameComplete={handleGameEnd}
+              />
+            ) : (
+              <PuzzleBoard
+                correctPlacements={correctPlacements}
+                totalPieces={puzzleQuotes.length + 1 + phaseTitles.length}
+                wrongAttempts={wrongAttempts}
+                boardBackground={themeConfig.boardBackground}
+                placedQuotes={placedQuotes}
+                boardLayout={derivedBoardLayout}
+                placedTitles={placedTitles}
+                onDrop={
+                  userPuzzlePiece && draggedQuote?.id === "user-answer"
+                    ? handleDropUserPiece
+                    : handleDrop
+                }
+                highlightedZone={highlightedZone}
+                draggedQuote={draggedQuote}
+                draggedTitle={draggedTitle}
+                themeConfig={themeConfig}
+              />
+            )}
           </div>
         </div>
       </div>
     </div>
-    </>
+    </DragDropProvider>
   );
 }
 
