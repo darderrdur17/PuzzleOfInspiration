@@ -29,6 +29,7 @@ interface JigsawBoardProps {
 export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete }: JigsawBoardProps) {
   const [placedPieces, setPlacedPieces] = useState<Record<string, { phase: Phase; position: { x: number; y: number } }>>({});
   const [draggedPiece, setDraggedPiece] = useState<JigsawPiece | null>(null);
+  const [successAnimation, setSuccessAnimation] = useState<string | null>(null);
 
   // Generate jigsaw pieces from quotes
   const jigsawPieces = useMemo(() => {
@@ -87,6 +88,10 @@ export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete
           [pieceId]: { phase: targetPhase, position: newPosition }
         }));
 
+        // Trigger success animation
+        setSuccessAnimation(pieceId);
+        setTimeout(() => setSuccessAnimation(null), 1000);
+
         onPiecePlaced?.(pieceId, targetPhase);
 
         // Check for game completion
@@ -101,7 +106,8 @@ export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete
   const unplacedPieces = jigsawPieces.filter(piece => !placedPieces[piece.id]);
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <>
+      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="relative w-full h-[600px] sm:h-[700px] bg-gray-100 rounded-lg overflow-hidden">
         {/* Background Image */}
         {themeConfig.backgroundImage && (
@@ -117,12 +123,12 @@ export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete
             key={phase}
             id={phase}
             className={cn(
-              "absolute border-2 border-dashed rounded-lg backdrop-blur-sm transition-all duration-300",
+              "absolute border-2 border-dashed rounded-lg backdrop-blur-sm transition-all duration-300 flex items-center justify-center",
               draggedPiece
                 ? draggedPiece.phase === phase
-                  ? "border-green-400 bg-green-400/20 shadow-lg shadow-green-400/30 scale-105"
-                  : "border-red-400 bg-red-400/10"
-                : "border-white/50 bg-white/10"
+                  ? "border-green-400 bg-green-400/30 shadow-lg shadow-green-400/50 scale-105 ring-4 ring-green-400/20"
+                  : "border-red-400 bg-red-400/20 shadow-lg shadow-red-400/30 scale-95 opacity-75"
+                : "border-white/50 bg-white/10 hover:bg-white/20"
             )}
             style={{
               left: zone.x,
@@ -131,6 +137,11 @@ export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete
               height: zone.height,
             }}
           >
+            {draggedPiece && draggedPiece.phase === phase && (
+              <div className="text-green-300 font-bold text-sm animate-pulse">
+                ✓ Drop Here
+              </div>
+            )}
             <div className="absolute -top-6 left-0 text-white font-bold text-sm bg-black/50 px-2 py-1 rounded">
               {phase.charAt(0).toUpperCase() + phase.slice(1)}
               {draggedPiece && draggedPiece.phase === phase && (
@@ -148,12 +159,17 @@ export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete
           return (
             <div
               key={pieceId}
-              className="absolute transition-all duration-300 ease-out hover:scale-105 shadow-lg"
+              className={cn(
+                "absolute transition-all duration-300 ease-out shadow-lg",
+                successAnimation === pieceId ? "animate-bounce scale-110 ring-4 ring-green-400/50" : "hover:scale-105"
+              )}
               style={{
                 left: placement.position.x,
                 top: placement.position.y,
                 clipPath: piece.shape,
-                filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))',
+                filter: successAnimation === pieceId
+                  ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.6)) brightness(1.1)'
+                  : 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))',
               }}
             >
               <PuzzlePiece
@@ -219,6 +235,7 @@ export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete
           </div>
         )}
       </DragOverlay>
-    </DndContext>
+      </DndContext>
+    </>
   );
 }

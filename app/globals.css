@@ -478,3 +478,28 @@ html {
   --homepage-secondary: #cd7f32;
 }
 
+/* Button press animations for enhanced UX */
+.theme-button:active,
+button:active,
+.button:active {
+  transform: translateY(2px) scale(0.98);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+/* Smooth transitions for interactive elements */
+.theme-button,
+button,
+.button {
+  transition: all 0.2s ease;
+}
+
+/* Enhanced focus states */
+.theme-button:focus-visible,
+button:focus-visible,
+.button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+

@@ -28,6 +28,14 @@ const phaseLabels: Record<Phase, string> = {
   verification: "Verification",
 };
 
+// Enhanced theme-layout mapping for better synchronization
+const themeLayoutMapping: Record<ThemeId, BoardLayoutType[]> = {
+  classic: ['elephant'],
+  science: ['cyberpunk'],
+  art: ['enchantedForest'],
+  entrepreneurship: ['cyberpunk', 'steampunk']
+};
+
 export default function GameMasterPage() {
   const [timeLimit, setTimeLimit] = useState(5); // minutes
   const [maxQuotes, setMaxQuotes] = useState(20);
@@ -158,13 +166,17 @@ export default function GameMasterPage() {
     setSelectedBoardLayout(newLayout);
     setUserManuallySelectedLayout(true);
 
-    // Find the theme that corresponds to the new layout and update theme dropdown
-    // If multiple themes use the same layout, prefer the current theme if it matches, otherwise pick the first one
-    const correspondingThemes = themeList.filter(theme => theme.boardLayout === newLayout);
-    const correspondingTheme = correspondingThemes.find(theme => theme.id === selectedTheme) || correspondingThemes[0];
+    // Find themes that support this layout
+    const compatibleThemes = Object.entries(themeLayoutMapping)
+      .filter(([_, layouts]) => layouts.includes(newLayout))
+      .map(([themeId, _]) => themeId as ThemeId);
 
-    if (correspondingTheme && correspondingTheme.id !== selectedTheme) {
-      setSelectedTheme(correspondingTheme.id);
+    // If current theme supports this layout, keep it; otherwise switch to first compatible theme
+    if (!compatibleThemes.includes(selectedTheme)) {
+      const newTheme = compatibleThemes[0];
+      if (newTheme) {
+        setSelectedTheme(newTheme);
+      }
     }
 
     // Live-sync layout when a game is active so all players switch immediately
@@ -382,10 +394,10 @@ export default function GameMasterPage() {
                   onChange={(e) => {
                     const newTheme = e.target.value as ThemeId;
                     setSelectedTheme(newTheme);
-                    // Always sync the board layout to match the selected theme
-                    const theme = themeList.find(t => t.id === newTheme);
-                    if (theme?.boardLayout) {
-                      setSelectedBoardLayout(theme.boardLayout);
+                    // Sync to the first available layout for this theme
+                    const availableLayouts = themeLayoutMapping[newTheme];
+                    if (availableLayouts && availableLayouts.length > 0) {
+                      setSelectedBoardLayout(availableLayouts[0]);
                       // Reset manual selection flag when theme changes
                       setUserManuallySelectedLayout(false);
                     }
@@ -421,7 +433,7 @@ export default function GameMasterPage() {
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {Object.values(BOARD_LAYOUTS)
-                    .filter((layout) => !['classic', 'alchemist', 'gardener'].includes(layout.type))
+                    .filter((layout) => themeLayoutMapping[selectedTheme]?.includes(layout.type))
                     .map((layout) => {
                     const isSelected = selectedBoardLayout === layout.type;
                     return (
