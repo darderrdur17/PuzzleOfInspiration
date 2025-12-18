@@ -114,7 +114,7 @@ const PhaseDropZone: React.FC<{
   );
 };
 
-export function JigsawBoard({ quotes, themeId = 'classic', onPiecePlaced, onGameComplete, placedQuotes }: JigsawBoardProps) {
+export function JigsawBoard({ quotes, themeId = 'classic', onGameComplete, placedQuotes }: JigsawBoardProps) {
   // Use theme config for background and zones
   const jigsawConfig = jigsawThemeConfigs[themeId] || jigsawThemeConfigs.classic;
   const themeConfig = getThemeConfig(themeId);
