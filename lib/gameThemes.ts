@@ -91,7 +91,7 @@ export const gameThemes: Record<GameTheme, ThemeConfig> = {
 
   alchemist: {
     id: 'alchemist',
-    name: "Alchemist's Workshop",
+    name: "Science Lab",
     description: 'Transform base ideas into golden insights through magical alchemy',
     background: 'linear-gradient(135deg, #6b21a8 0%, #059669 50%, #d97706 100%)',
     boardBackground: 'radial-gradient(circle at center, #6b21a8 0%, #1a1a2e 100%)',
@@ -140,7 +140,7 @@ export const gameThemes: Record<GameTheme, ThemeConfig> = {
 
   gardener: {
     id: 'gardener',
-    name: "Gardener's Journey",
+    name: "Art Studio",
     description: 'Cultivate creativity through organic growth and natural cycles',
     background: 'linear-gradient(135deg, #92400e 0%, #16a34a 50%, #f472b6 100%)',
     boardBackground: "url('/images/ui/13_tablet_garden_interface.png')",
@@ -189,7 +189,7 @@ export const gameThemes: Record<GameTheme, ThemeConfig> = {
 
   explorer: {
     id: 'explorer',
-    name: "Explorer's Map",
+    name: "Startup Sprint",
     description: 'Chart unknown territories and discover creative frontiers',
     background: 'linear-gradient(135deg, #fef3c7 0%, #ca8a04 50%, #0284c7 100%)',
     boardBackground: 'radial-gradient(circle at center, #fef3c7 0%, #2e2e2e 100%)',
@@ -238,7 +238,7 @@ export const gameThemes: Record<GameTheme, ThemeConfig> = {
 
   ui: {
     id: 'ui',
-    name: "UI Lab",
+    name: "Classic Creativity",
     description: 'Modern responsive interface lab inspired by the component library',
     background: 'linear-gradient(135deg, #fce8d5 0%, #fef3e9 45%, #f3e8ff 100%)',
     boardBackground: 'url(/images/ui/15_responsive_ui_components.png)',

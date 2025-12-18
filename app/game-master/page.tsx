@@ -198,13 +198,20 @@ export default function GameMasterPage() {
     const friendlyName = sessionName.trim() || "Current Session";
     GameSync.startGame(timeLimit * 60, maxQuotes, friendlyName, selectedTheme, layoutToUse, gameMode);
     setIsGameActive(true);
+    toast.success(`Game session "${friendlyName}" started!`, {
+      description: `Theme: ${getThemeConfig(selectedTheme).gameMasterName} • Mode: ${gameMode === 'jigsaw' ? 'Jigsaw' : 'Classic'}`,
+    });
   };
 
   const handleEndGame = () => {
-    GameSync.endGame();
-    setIsGameActive(false);
-    // Reset manual selection flag when game ends so theme defaults apply next time
-    setUserManuallySelectedLayout(false);
+    const confirmEnd = window.confirm("Are you sure you want to end the game for all players? This will immediately stop their sessions.");
+    if (confirmEnd) {
+      GameSync.endGame();
+      setIsGameActive(false);
+      // Reset manual selection flag when game ends so theme defaults apply next time
+      setUserManuallySelectedLayout(false);
+      toast.success("Game session ended.");
+    }
   };
 
   const handleToggleDoublePoints = () => {

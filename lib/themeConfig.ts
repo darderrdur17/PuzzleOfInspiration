@@ -12,32 +12,32 @@ export const THEME_CONFIG: Record<string, ThemeConfig> = {
   classic: {
     id: 'classic',
     gameMasterName: 'Classic Creativity',
-    playerOverrideName: 'Paper Elephant',
-    playerSelectName: 'UI Theme',
+    playerOverrideName: 'Classic Creativity',
+    playerSelectName: 'Classic Creativity',
     description: 'Original classroom set with the watercolor elephant board.',
     badgeColor: '#f97316'
   },
   science: {
     id: 'science',
     gameMasterName: 'Science Lab',
-    playerOverrideName: 'Alchemist',
-    playerSelectName: 'Cyberpunk City',
+    playerOverrideName: 'Science Lab',
+    playerSelectName: 'Science Lab',
     description: 'STEM-focused quotes with cool blue-green gradients.',
     badgeColor: '#0ea5e9'
   },
   art: {
     id: 'art',
     gameMasterName: 'Art Studio',
-    playerOverrideName: 'Gardener',
-    playerSelectName: 'Enchanted Forest',
+    playerOverrideName: 'Art Studio',
+    playerSelectName: 'Art Studio',
     description: 'Color-forward set perfect for design or art history lessons.',
     badgeColor: '#ec4899'
   },
   entrepreneurship: {
     id: 'entrepreneurship',
     gameMasterName: 'Startup Sprint',
-    playerOverrideName: 'Explorer',
-    playerSelectName: 'Steampunk Workshop',
+    playerOverrideName: 'Startup Sprint',
+    playerSelectName: 'Startup Sprint',
     description: 'Business and innovation quotes with bold gradients.',
     badgeColor: '#6366f1'
   }

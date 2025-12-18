@@ -129,7 +129,6 @@ export default function PlayPage() {
       return [];
     }
   });
-  const [currentJigsawMode, setCurrentJigsawMode] = useState<boolean>(false);
 
   const activeTheme = themeLibrary[themeId] ?? themeLibrary.classic;
   const resolvedGameTheme = deriveGameTheme(gameConfig?.themeId ?? themeId, gameConfig?.boardLayout);
@@ -291,7 +290,6 @@ export default function PlayPage() {
     setPlayerName(name);
     setThemeId(activeThemeId);
     setGameTheme(resolvedTheme);
-    setCurrentJigsawMode(gameJigsawMode);
     setUserPuzzlePiece(userQuote);
     setPuzzleQuotes(selectedQuotes);
     setAvailableQuotes(selectedQuotes);
@@ -862,7 +860,6 @@ export default function PlayPage() {
     setBonusAdjustments(0);
     setSelectedHintPhase("preparation");
     setAnsweredQuizzes([]);
-    setCurrentJigsawMode(false);
   };
 
   if (!gameState.isStarted) {
@@ -903,7 +900,7 @@ export default function PlayPage() {
   const hasAnsweredRapidFire =
     isRapidFireActive && rapidFireQuestion ? answeredQuizzes.includes(rapidFireQuestion.id) : false;
   const activeHint = gameConfig?.activeHint ?? null;
-  const isJigsawMode = gameConfig?.jigsawMode ?? false;
+  const isJigsawMode = gameConfig?.jigsawMode === 'jigsaw';
 
   return (
     <DragDropProvider
@@ -912,13 +909,48 @@ export default function PlayPage() {
       onDragOver={handleDragOver}
       draggedQuote={draggedQuote}
       draggedTitle={draggedTitle}
-      quoteComponent={PuzzlePiece}
+      quoteComponent={({ quote, isDragging }) => {
+        // If it's a jigsaw piece, we want to render it with a clip-path if we're in jigsaw mode
+        const isJigsawPiece = isJigsawMode;
+        if (isJigsawPiece) {
+          // Find the shape for this quote
+          const index = puzzleQuotes.findIndex(q => q.id === quote.id);
+          const shapeId = `jigsaw-${((index % 3) + 1)}`;
+          return (
+            <div 
+              style={{ 
+                width: '180px', 
+                height: '120px',
+                clipPath: `url(#${shapeId})`,
+              }}
+              className="shadow-2xl"
+            >
+              <PuzzlePiece quote={quote} isDragging={isDragging} size="small" variant="purple" />
+            </div>
+          );
+        }
+        return <PuzzlePiece quote={quote} isDragging={isDragging} />;
+      }}
       titleComponent={({ title, isDragging }) => (
         <div className={`bg-accent/30 border-2 border-accent rounded-lg p-2 sm:p-3 text-center font-bold text-xs sm:text-sm hover:bg-accent/40 transition-colors ${isDragging ? 'opacity-50' : ''}`}>
           {title.title}
         </div>
       )}
     >
+      {/* Include Jigsaw SVGs for the DragOverlay to work */}
+      <svg width="0" height="0" style={{ position: 'absolute' }}>
+        <defs>
+          <clipPath id="jigsaw-1" clipPathUnits="objectBoundingBox">
+            <path d="M0.001,0.202 C0.001,0.32,0.001,0.68,0.001,0.801 C0.001,0.922,0.081,1,0.203,1 C0.324,1,0.675,1,0.796,1 C0.917,1,1,0.922,1,0.801 C1,0.68,1,0.32,1,0.202 C1,0.081,0.917,0,0.796,0 C0.675,0,0.551,0,0.499,0 C0.443,0,0.44,0.054,0.499,0.054 C0.563,0.054,0.563,0,0.621,0 C0.676,0,0.324,0,0.203,0 C0.081,0,0.001,0.081,0.001,0.202 Z" />
+          </clipPath>
+          <clipPath id="jigsaw-2" clipPathUnits="objectBoundingBox">
+            <path d="M0,0.2 C0,0.089,0.089,0,0.2,0 H0.8 C0.911,0,1,0.089,1,0.2 V0.5 C1,0.444,0.946,0.44,0.946,0.5 C0.946,0.556,1,0.552,1,0.6 V0.8 C1,0.911,0.911,1,0.8,1 H0.5 C0.556,1,0.56,0.946,0.5,0.946 C0.444,0.946,0.448,1,0.4,1 H0.2 C0.089,1,0,0.911,0,0.8 V0.2 Z" />
+          </clipPath>
+          <clipPath id="jigsaw-3" clipPathUnits="objectBoundingBox">
+            <path d="M0.1,0.1 C0.1,0,0.2,0,0.3,0 C0.4,0,0.7,0,0.8,0 C0.9,0,1,0.1,1,0.2 C1,0.3,1,0.4,1,0.5 C1,0.6,0.9,0.7,0.9,0.7 C0.9,0.8,1,0.8,1,0.9 C1,1,0.9,1,0.8,1 C0.7,1,0.4,1,0.3,1 C0.2,1,0.1,0.9,0.1,0.9 C0,0.9,0,0.8,0,0.7 C0,0.6,0.1,0.5,0.1,0.5 C0.1,0.4,0.1,0.3,0.1,0.2 C0.1,0.1,0.1,0.1,0.1,0.1 Z" />
+          </clipPath>
+        </defs>
+      </svg>
       <ThemeSelector
         selectedTheme={gameTheme}
         onThemeSelect={setGameTheme}
@@ -1009,6 +1041,12 @@ export default function PlayPage() {
             </div>
           </div>
           <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
+            <div className="bg-primary/20 border-2 border-primary rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-center flex-1 sm:flex-none">
+              <div className="text-xs sm:text-sm text-muted-foreground mb-0.5 sm:mb-1">Mode</div>
+              <div className="text-lg sm:text-xl font-bold text-primary capitalize">
+                {isJigsawMode ? "Jigsaw" : "Classic"}
+              </div>
+            </div>
             <Timer startTime={gameState.startTime} isCompleted={gameState.isCompleted} />
             <div
               className={`bg-card rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-center flex-1 sm:flex-none border-2 transition-all ${
@@ -1020,30 +1058,6 @@ export default function PlayPage() {
               <div className="text-xs sm:text-sm text-muted-foreground mb-0.5 sm:mb-1">Points</div>
               <div className="text-xl sm:text-2xl font-bold text-primary font-mono">
                 {gameState.points}
-              </div>
-            </div>
-            <div
-              className={`bg-card border-2 rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-center flex-1 sm:flex-none transition-colors ${
-                wrongAttempts > 0 ? "border-destructive/60 shadow-lg shadow-destructive/10" : "border-border"
-              }`}
-              aria-live="polite"
-            >
-              <div className="text-xs sm:text-sm text-muted-foreground mb-0.5 sm:mb-1">
-                Wrong Attempts
-              </div>
-              <div
-                className={`text-xl sm:text-2xl font-bold font-mono ${
-                  wrongAttempts > 0 ? "text-destructive" : "text-muted-foreground"
-                }`}
-              >
-                {wrongAttempts}
-              </div>
-              <div
-                className={`text-[10px] sm:text-xs font-semibold ${
-                  wrongAttempts > 0 ? "text-destructive/80" : "text-muted-foreground"
-                }`}
-              >
-                -5 pts each
               </div>
             </div>
           </div>
@@ -1196,17 +1210,11 @@ export default function PlayPage() {
                 </p>
               </div>
             )}
-            {currentJigsawMode ? (
+            {isJigsawMode ? (
               <JigsawBoard
                 quotes={puzzleQuotes}
                 themeId={themeId}
-                onPiecePlaced={(quoteId, phase) => {
-                  // Handle piece placement for jigsaw mode
-                  const quote = puzzleQuotes.find(q => q.id === quoteId);
-                  if (quote && quote.phase === phase) {
-                    recordCorrectPlacement(phase);
-                  }
-                }}
+                placedQuotes={placedQuotes}
                 onGameComplete={handleGameEnd}
               />
             ) : (

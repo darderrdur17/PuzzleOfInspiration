@@ -46,7 +46,7 @@ const toGameConfig = (row: any): GameConfig => {
     rapidFireQuestion: row.rapid_fire_question,
     activeHint: row.active_hint,
     boardLayout: row.board_layout,
-    jigsawMode: row.jigsaw_mode,
+    jigsawMode: row.jigsaw_mode || 'classic',
   };
 };
 
@@ -63,6 +63,7 @@ const toDbRow = (config: GameConfig) => ({
   rapid_fire_question: config.rapidFireQuestion,
   active_hint: config.activeHint,
   board_layout: config.boardLayout ?? null,
+  jigsaw_mode: config.jigsawMode ?? 'classic',
 });
 
 const writeLocal = (config: GameConfig | null) => {

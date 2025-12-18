@@ -5,6 +5,8 @@ import { GameTheme, getRandomTheme } from "@/lib/gameThemes";
 import { Palette, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { GameSync } from "@/lib/gameSync";
 
+import { THEME_CONFIG, getThemeConfig as getThemeNameConfig } from "@/lib/themeConfig";
+
 interface StartScreenProps {
   onStart: (name: string, answer: string, theme: GameTheme) => void;
 }
@@ -19,12 +21,14 @@ export function StartScreen({ onStart }: StartScreenProps) {
   const [isGameActive, setIsGameActive] = useState(false);
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
   const [gameMasterTheme, setGameMasterTheme] = useState<GameTheme | null>(null);
+  const [gameConfigThemeId, setGameConfigThemeId] = useState<string | null>(null);
 
   // Subscribe to game config changes
   useEffect(() => {
     const unsubscribe = GameSync.subscribe((config) => {
       if (config && config.isGameActive) {
         setIsGameActive(true);
+        setGameConfigThemeId(config.themeId);
         if (config.gameEndTime) {
           const remaining = Math.max(0, Math.floor((config.gameEndTime - Date.now()) / 1000));
           setRemainingTime(remaining);
@@ -45,6 +49,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
         setIsGameActive(false);
         setRemainingTime(null);
         setGameMasterTheme(null);
+        setGameConfigThemeId(null);
       }
     });
     return unsubscribe;
@@ -231,13 +236,19 @@ export function StartScreen({ onStart }: StartScreenProps) {
               </label>
               <div className="flex items-center gap-3">
                 <div className="flex-1 p-3 bg-blue-50 border-2 border-blue-200 rounded-lg text-sm">
-                  <div className="font-medium text-gray-800">{selectedTheme.charAt(0).toUpperCase() + selectedTheme.slice(1)} Theme</div>
+                  <div className="font-medium text-gray-800">
+                    {gameConfigThemeId ? getThemeNameConfig(gameConfigThemeId).gameMasterName : (selectedTheme.charAt(0).toUpperCase() + selectedTheme.slice(1))} Theme
+                  </div>
                   <div className="text-xs text-gray-600 mt-1">
-                    {selectedTheme === 'observatory' && 'A cosmic journey through creativity'}
-                    {selectedTheme === 'alchemist' && 'Transform ideas through magical alchemy'}
-                    {selectedTheme === 'gardener' && 'Grow ideas through organic cultivation'}
-                    {selectedTheme === 'explorer' && 'Discover ideas through adventurous exploration'}
-                    {selectedTheme === 'ui' && 'Assemble responsive layouts with the modern UI lab palette'}
+                    {gameConfigThemeId ? getThemeNameConfig(gameConfigThemeId).description : (
+                      <>
+                        {selectedTheme === 'observatory' && 'A cosmic journey through creativity'}
+                        {selectedTheme === 'alchemist' && 'Transform ideas through magical alchemy'}
+                        {selectedTheme === 'gardener' && 'Grow ideas through organic cultivation'}
+                        {selectedTheme === 'explorer' && 'Discover ideas through adventurous exploration'}
+                        {selectedTheme === 'ui' && 'Assemble responsive layouts with the modern UI lab palette'}
+                      </>
+                    )}
                   </div>
                 </div>
                 <Button
@@ -245,22 +256,23 @@ export function StartScreen({ onStart }: StartScreenProps) {
                   onClick={() => setShowThemeSelector(true)}
                   variant="outline"
                   className="px-4 py-3 border-2 border-blue-300 hover:bg-blue-50"
+                  disabled={!!gameConfigThemeId}
                 >
                   <Palette className="w-4 h-4 mr-2" />
-                  Change
+                  {gameConfigThemeId ? "Locked" : "Change"}
                 </Button>
               </div>
 
               {/* Theme Override Notification */}
-              {gameMasterTheme && gameMasterTheme !== selectedTheme && (
+              {gameConfigThemeId && (
                 <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-3 text-sm">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="font-medium text-amber-800">Theme Override</p>
                       <p className="text-amber-700 mt-1">
-                        The Game Master has selected the <strong>{gameMasterTheme.charAt(0).toUpperCase() + gameMasterTheme.slice(1)}</strong> theme for this session.
-                        Your selection will be overridden to ensure consistency.
+                        The Game Master has selected the <strong>{getThemeNameConfig(gameConfigThemeId).gameMasterName}</strong> theme for this session.
+                        Your experience will be synced to ensure consistency.
                       </p>
                     </div>
                   </div>
