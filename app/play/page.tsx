@@ -22,7 +22,6 @@ import { GameGuide } from "@/components/GameGuide";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { DragDropProvider, DraggableQuote, DraggableTitle } from "@/components/DragDropProvider";
 import { JigsawBoard } from "@/components/JigsawBoard";
-import { jigsawThemeConfigs } from "@/lib/jigsawThemes";
 import { GameSync } from "@/lib/gameSync";
 import { CustomQuotes } from "@/lib/customQuotes";
 import { playSuccessTone, playErrorTone, playAlertTone } from "@/lib/soundboard";
@@ -265,7 +264,7 @@ export default function PlayPage() {
     const themeDefinition = themeLibrary[activeThemeId] ?? themeLibrary.classic;
     const resolvedTheme = deriveGameTheme(activeThemeId, config.boardLayout);
     const themeConfig = getThemeConfig(resolvedTheme);
-    const gameJigsawMode = config.jigsawMode ?? false;
+    const gameJigsawMode = config.jigsawMode === 'jigsaw';
 
     // Use theme-specific quotes mixed with general quotes
     const customQuotes = CustomQuotes.byTheme(activeThemeId);
@@ -1200,7 +1199,7 @@ export default function PlayPage() {
             {currentJigsawMode ? (
               <JigsawBoard
                 quotes={puzzleQuotes}
-                themeConfig={jigsawThemeConfigs[themeId] || jigsawThemeConfigs.classic}
+                themeId={themeId}
                 onPiecePlaced={(quoteId, phase) => {
                   // Handle piece placement for jigsaw mode
                   const quote = puzzleQuotes.find(q => q.id === quoteId);

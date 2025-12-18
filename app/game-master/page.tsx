@@ -11,6 +11,7 @@ import { CustomQuotes, type CustomQuote } from "@/lib/customQuotes";
 import { toast } from "sonner";
 import { BOARD_LAYOUTS, type BoardLayoutType } from "@/types/boardLayout";
 import { RealtimeStore } from "@/lib/realtimeStore";
+import { THEME_CONFIG, getThemeConfig } from "@/lib/themeConfig";
 
 interface ActivePlayer {
   name: string;
@@ -29,7 +30,7 @@ const phaseLabels: Record<Phase, string> = {
 };
 
 // Enhanced theme-layout mapping for better synchronization
-const themeLayoutMapping: Record<ThemeId, BoardLayoutType[]> = {
+const themeLayoutMapping: Record<string, BoardLayoutType[]> = {
   classic: ['elephant'],
   science: ['cyberpunk'],
   art: ['enchantedForest'],
@@ -46,7 +47,7 @@ export default function GameMasterPage() {
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>("classic");
   const [selectedBoardLayout, setSelectedBoardLayout] = useState<BoardLayoutType>("elephant");
   const [userManuallySelectedLayout, setUserManuallySelectedLayout] = useState(false);
-  const [jigsawMode, setJigsawMode] = useState(false);
+  const [gameMode, setGameMode] = useState<'classic' | 'jigsaw'>('classic');
   const [configSnapshot, setConfigSnapshot] = useState<GameConfig | null>(null);
   const [customQuotes, setCustomQuotes] = useState<CustomQuote[]>([]);
   const [newQuote, setNewQuote] = useState<{
@@ -60,6 +61,7 @@ export default function GameMasterPage() {
     phase: "preparation",
     themeId: "classic",
   });
+  const [previewTheme, setPreviewTheme] = useState(getThemeConfig(selectedTheme));
   const [quoteErrors, setQuoteErrors] = useState<{
     text: string;
     author: string;
@@ -132,6 +134,11 @@ export default function GameMasterPage() {
     setNewQuote((prev) => ({ ...prev, themeId: selectedTheme }));
   }, [selectedTheme]);
 
+  // Update preview immediately when theme changes
+  useEffect(() => {
+    setPreviewTheme(getThemeConfig(selectedTheme));
+  }, [selectedTheme]);
+
   useEffect(() => {
     if (!configSnapshot?.isGameActive || !configSnapshot.gameEndTime) {
       setRemainingTime(0);
@@ -189,7 +196,7 @@ export default function GameMasterPage() {
     const themeDefaultLayout = themeList.find((theme) => theme.id === selectedTheme)?.boardLayout;
     const layoutToUse = userManuallySelectedLayout ? selectedBoardLayout : themeDefaultLayout || selectedBoardLayout;
     const friendlyName = sessionName.trim() || "Current Session";
-    GameSync.startGame(timeLimit * 60, maxQuotes, friendlyName, selectedTheme, layoutToUse, jigsawMode);
+    GameSync.startGame(timeLimit * 60, maxQuotes, friendlyName, selectedTheme, layoutToUse, gameMode);
     setIsGameActive(true);
   };
 
@@ -405,23 +412,21 @@ export default function GameMasterPage() {
                   disabled={isGameActive}
                   className="flex-1 px-4 py-3 rounded-lg border-2 border-gray-300 bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50"
                 >
-                  {themeList.map((theme) => (
+                  {Object.values(THEME_CONFIG).map((theme) => (
                     <option key={theme.id} value={theme.id}>
-                      {theme.name} {theme.boardLayout ? `(${BOARD_LAYOUTS[theme.boardLayout].name})` : ""}
+                      {theme.gameMasterName}
                     </option>
                   ))}
                 </select>
                 <div
                   className="flex-1 rounded-lg border-2 border-dashed border-gray-200 p-4 text-sm text-gray-600 bg-gradient-to-r from-gray-50 via-white to-gray-50"
-                  style={{ borderColor: currentTheme.badgeColor }}
+                  style={{ borderColor: previewTheme.badgeColor }}
                 >
-                  <p className="font-semibold text-gray-800 mb-1">Preview: {currentTheme.name}</p>
-                  <p>{currentTheme.description}</p>
-                  {currentTheme.boardLayout && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Default Layout: {BOARD_LAYOUTS[currentTheme.boardLayout].name}
-                    </p>
-                  )}
+                  <p className="font-semibold text-gray-800 mb-1">Preview: {previewTheme.gameMasterName}</p>
+                  <p>{previewTheme.description}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Theme ID: {previewTheme.id}
+                  </p>
                 </div>
               </div>
               
@@ -476,8 +481,8 @@ export default function GameMasterPage() {
                   <input
                     type="radio"
                     name="gameMode"
-                    checked={!jigsawMode}
-                    onChange={() => setJigsawMode(false)}
+                    checked={gameMode === 'classic'}
+                    onChange={() => setGameMode('classic')}
                     disabled={isGameActive}
                     className="w-4 h-4 text-purple-600 focus:ring-purple-500"
                   />
@@ -487,8 +492,8 @@ export default function GameMasterPage() {
                   <input
                     type="radio"
                     name="gameMode"
-                    checked={jigsawMode}
-                    onChange={() => setJigsawMode(true)}
+                    checked={gameMode === 'jigsaw'}
+                    onChange={() => setGameMode('jigsaw')}
                     disabled={isGameActive}
                     className="w-4 h-4 text-purple-600 focus:ring-purple-500"
                   />
@@ -496,7 +501,7 @@ export default function GameMasterPage() {
                 </label>
               </div>
               <p className="text-xs text-gray-500">
-                {jigsawMode
+                {gameMode === 'jigsaw'
                   ? "Players assemble irregular puzzle pieces on a themed background image"
                   : "Players drag rectangular cards to phase drop zones"}
               </p>

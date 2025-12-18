@@ -1,58 +1,144 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { DndContext, DragEndEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core';
 import { Quote, Phase } from '@/types/game';
 import { PuzzlePiece } from './PuzzlePiece';
 import { cn } from '@/lib/utils';
+import { getThemeConfig } from '@/lib/themeConfig';
 
-interface JigsawPiece {
+interface JigsawPieceData {
   id: string;
   quote: Quote;
   phase: Phase;
-  shape: string; // CSS clip-path value
+  shapeId: string;
   position: { x: number; y: number };
   isPlaced: boolean;
 }
 
 interface JigsawBoardProps {
   quotes: Quote[];
-  themeConfig: {
-    backgroundImage?: string;
-    pieceShapes: Record<Phase, string[]>;
-    phaseZones: Record<Phase, { x: number; y: number; width: number; height: number }>;
-  };
+  themeId?: string;
   onPiecePlaced?: (quoteId: string, phase: Phase) => void;
   onGameComplete?: () => void;
 }
 
-export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete }: JigsawBoardProps) {
+// SVG clip-path definitions for jigsaw pieces
+const JigsawSVGs = () => (
+  <svg width="0" height="0" style={{ position: 'absolute' }}>
+    <defs>
+      <clipPath id="jigsaw-1" clipPathUnits="objectBoundingBox">
+        <path d="M0.001,0.202 C0.001,0.32,0.001,0.68,0.001,0.801 C0.001,0.922,0.081,1,0.203,1 C0.324,1,0.675,1,0.796,1 C0.917,1,1,0.922,1,0.801 C1,0.68,1,0.32,1,0.202 C1,0.081,0.917,0,0.796,0 C0.675,0,0.551,0,0.499,0 C0.443,0,0.44,0.054,0.499,0.054 C0.563,0.054,0.563,0,0.621,0 C0.676,0,0.324,0,0.203,0 C0.081,0,0.001,0.081,0.001,0.202 Z" />
+      </clipPath>
+      <clipPath id="jigsaw-2" clipPathUnits="objectBoundingBox">
+        <path d="M0,0.2 C0,0.089,0.089,0,0.2,0 H0.8 C0.911,0,1,0.089,1,0.2 V0.5 C1,0.444,0.946,0.44,0.946,0.5 C0.946,0.556,1,0.552,1,0.6 V0.8 C1,0.911,0.911,1,0.8,1 H0.5 C0.556,1,0.56,0.946,0.5,0.946 C0.444,0.946,0.448,1,0.4,1 H0.2 C0.089,1,0,0.911,0,0.8 V0.2 Z" />
+      </clipPath>
+      <clipPath id="jigsaw-3" clipPathUnits="objectBoundingBox">
+        <path d="M0.1,0.1 C0.1,0,0.2,0,0.3,0 C0.4,0,0.7,0,0.8,0 C0.9,0,1,0.1,1,0.2 C1,0.3,1,0.4,1,0.5 C1,0.6,0.9,0.7,0.9,0.7 C0.9,0.8,1,0.8,1,0.9 C1,1,0.9,1,0.8,1 C0.7,1,0.4,1,0.3,1 C0.2,1,0.1,0.9,0.1,0.9 C0,0.9,0,0.8,0,0.7 C0,0.6,0.1,0.5,0.1,0.5 C0.1,0.4,0.1,0.3,0.1,0.2 C0.1,0.1,0.1,0.1,0.1,0.1 Z" />
+      </clipPath>
+    </defs>
+  </svg>
+);
+
+// Draggable jigsaw piece component
+const DraggableJigsawPiece: React.FC<{
+  piece: JigsawPieceData;
+  isDragging?: boolean;
+}> = ({ piece, isDragging }) => {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: piece.id,
+    data: { type: 'jigsaw-piece', piece },
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : {};
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        ...style,
+        clipPath: `url(#${piece.shapeId})`,
+        position: 'absolute',
+        width: '180px',
+        height: '120px',
+        left: piece.position.x,
+        top: piece.position.y,
+      }}
+      {...listeners}
+      {...attributes}
+      className={cn(
+        "cursor-grab active:cursor-grabbing transition-transform duration-200",
+        isDragging ? "z-50 scale-110" : "hover:scale-105"
+      )}
+    >
+      <PuzzlePiece
+        quote={piece.quote}
+        variant="orange"
+        size="small"
+      />
+    </div>
+  );
+};
+
+// Drop zone component for phases
+const PhaseDropZone: React.FC<{
+  phase: Phase;
+  isHighlighted: boolean;
+  children?: React.ReactNode;
+}> = ({ phase, isHighlighted, children }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: phase,
+    data: { type: 'phase-zone', phase },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "absolute border-2 border-dashed rounded-lg transition-all duration-300 flex items-center justify-center",
+        isOver || isHighlighted
+          ? "border-green-400 bg-green-400/20 shadow-lg shadow-green-400/50 scale-105 ring-4 ring-green-400/20"
+          : "border-white/50 bg-white/10 hover:bg-white/20"
+      )}
+      style={{
+        width: '250px',
+        height: '180px',
+      }}
+    >
+      {children}
+      {isOver && (
+        <div className="text-green-300 font-bold text-sm animate-pulse">
+          ✓ Drop Here
+        </div>
+      )}
+    </div>
+  );
+};
+
+export function JigsawBoard({ quotes, themeId = 'classic', onPiecePlaced, onGameComplete }: JigsawBoardProps) {
   const [placedPieces, setPlacedPieces] = useState<Record<string, { phase: Phase; position: { x: number; y: number } }>>({});
-  const [draggedPiece, setDraggedPiece] = useState<JigsawPiece | null>(null);
-  const [successAnimation, setSuccessAnimation] = useState<string | null>(null);
+  const [draggedPiece, setDraggedPiece] = useState<JigsawPieceData | null>(null);
 
   // Generate jigsaw pieces from quotes
   const jigsawPieces = useMemo(() => {
-    const pieces: JigsawPiece[] = [];
-    const phaseShapes = themeConfig.pieceShapes;
-
+    const pieces: JigsawPieceData[] = [];
     quotes.forEach((quote, index) => {
-      const phase = quote.phase as Phase;
-      const shapes = phaseShapes[phase] || [];
-      const shapeIndex = index % shapes.length;
-
       pieces.push({
         id: quote.id,
         quote,
-        phase,
-        shape: shapes[shapeIndex],
-        position: { x: Math.random() * 300, y: Math.random() * 200 }, // Random initial position in tray
+        phase: quote.phase as Phase,
+        shapeId: `jigsaw-${((index % 3) + 1)}`, // Cycle through 3 different shapes
+        position: {
+          x: 50 + (index * 200) % 600, // Spread pieces across the tray
+          y: 400 + Math.floor(index / 3) * 140,
+        },
         isPlaced: false,
       });
     });
-
     return pieces;
-  }, [quotes, themeConfig.pieceShapes]);
+  }, [quotes]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -76,21 +162,25 @@ export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete
     if (targetPhase) {
       const piece = jigsawPieces.find(p => p.id === pieceId);
       if (piece && piece.phase === targetPhase && !placedPieces[pieceId]) {
-        // Correct placement
-        const zone = themeConfig.phaseZones[targetPhase];
-        const newPosition = {
-          x: zone.x + Math.random() * (zone.width - 100), // Random position within zone
-          y: zone.y + Math.random() * (zone.height - 100),
+        // Correct placement - snap to phase zone
+        const zonePositions = {
+          preparation: { x: 50, y: 50 },
+          incubation: { x: 350, y: 50 },
+          illumination: { x: 50, y: 270 },
+          verification: { x: 350, y: 270 },
+        };
+
+        const basePosition = zonePositions[targetPhase];
+        const placedInZone = Object.values(placedPieces).filter(p => p.phase === targetPhase).length;
+        const offsetPosition = {
+          x: basePosition.x + (placedInZone % 2) * 60,
+          y: basePosition.y + Math.floor(placedInZone / 2) * 40,
         };
 
         setPlacedPieces(prev => ({
           ...prev,
-          [pieceId]: { phase: targetPhase, position: newPosition }
+          [pieceId]: { phase: targetPhase, position: offsetPosition }
         }));
-
-        // Trigger success animation
-        setSuccessAnimation(pieceId);
-        setTimeout(() => setSuccessAnimation(null), 1000);
 
         onPiecePlaced?.(pieceId, targetPhase);
 
@@ -103,138 +193,122 @@ export function JigsawBoard({ quotes, themeConfig, onPiecePlaced, onGameComplete
     }
   };
 
+  const themeConfig = getThemeConfig(themeId);
   const unplacedPieces = jigsawPieces.filter(piece => !placedPieces[piece.id]);
 
   return (
     <>
       <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="relative w-full h-[600px] sm:h-[700px] bg-gray-100 rounded-lg overflow-hidden">
-        {/* Background Image */}
-        {themeConfig.backgroundImage && (
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${themeConfig.backgroundImage})` }}
-          />
-        )}
+        <JigsawSVGs />
 
-        {/* Phase Drop Zones */}
-        {Object.entries(themeConfig.phaseZones).map(([phase, zone]) => (
-          <div
-            key={phase}
-            id={phase}
-            className={cn(
-              "absolute border-2 border-dashed rounded-lg backdrop-blur-sm transition-all duration-300 flex items-center justify-center",
-              draggedPiece
-                ? draggedPiece.phase === phase
-                  ? "border-green-400 bg-green-400/30 shadow-lg shadow-green-400/50 scale-105 ring-4 ring-green-400/20"
-                  : "border-red-400 bg-red-400/20 shadow-lg shadow-red-400/30 scale-95 opacity-75"
-                : "border-white/50 bg-white/10 hover:bg-white/20"
-            )}
-            style={{
-              left: zone.x,
-              top: zone.y,
-              width: zone.width,
-              height: zone.height,
-            }}
-          >
-            {draggedPiece && draggedPiece.phase === phase && (
-              <div className="text-green-300 font-bold text-sm animate-pulse">
-                ✓ Drop Here
-              </div>
-            )}
-            <div className="absolute -top-6 left-0 text-white font-bold text-sm bg-black/50 px-2 py-1 rounded">
-              {phase.charAt(0).toUpperCase() + phase.slice(1)}
-              {draggedPiece && draggedPiece.phase === phase && (
-                <span className="ml-1 text-green-300">✓</span>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {/* Placed Pieces */}
-        {Object.entries(placedPieces).map(([pieceId, placement]) => {
-          const piece = jigsawPieces.find(p => p.id === pieceId);
-          if (!piece) return null;
-
-          return (
+        {/* Main game board */}
+        <div className="relative w-full h-[500px] bg-gray-900 rounded-lg overflow-hidden shadow-2xl">
+          {/* Background with theme styling */}
+          <div className="absolute inset-0 opacity-20">
             <div
-              key={pieceId}
-              className={cn(
-                "absolute transition-all duration-300 ease-out shadow-lg",
-                successAnimation === pieceId ? "animate-bounce scale-110 ring-4 ring-green-400/50" : "hover:scale-105"
-              )}
+              className="w-full h-full"
               style={{
-                left: placement.position.x,
-                top: placement.position.y,
-                clipPath: piece.shape,
-                filter: successAnimation === pieceId
-                  ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.6)) brightness(1.1)'
-                  : 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))',
+                background: `linear-gradient(135deg, ${themeConfig.badgeColor}20, ${themeConfig.badgeColor}10)`,
               }}
-            >
-              <PuzzlePiece
-                quote={piece.quote}
-                variant="purple"
-                size="small"
-                isPlaced={true}
-              />
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Piece Tray */}
-      <div className="mt-4 p-4 bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg border-2 border-gray-300">
-        <h3 className="text-lg font-bold mb-3 text-gray-800">Available Pieces</h3>
-        <div className="flex flex-wrap gap-3 justify-center">
-          {unplacedPieces.map((piece) => (
-            <div
-              key={piece.id}
-              id={piece.id}
-              draggable
-              className={cn(
-                "cursor-move transform transition-all duration-200 hover:scale-110 hover:rotate-1 hover:shadow-lg",
-                draggedPiece?.id === piece.id ? "opacity-50 scale-95" : "hover:shadow-xl"
-              )}
-              style={{
-                clipPath: piece.shape,
-                filter: draggedPiece?.id === piece.id ? 'none' : 'drop-shadow(1px 1px 3px rgba(0,0,0,0.2))',
-              }}
-            >
-              <PuzzlePiece
-                quote={piece.quote}
-                variant="orange"
-                size="small"
-              />
-            </div>
-          ))}
-        </div>
-        {unplacedPieces.length === 0 && (
-          <div className="text-center text-gray-600 mt-4">
-            <p className="text-lg font-medium">🎉 Puzzle Complete!</p>
-            <p className="text-sm">All pieces have been placed correctly.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Drag Overlay */}
-      <DragOverlay>
-        {draggedPiece && (
-          <div
-            className="transform rotate-3 shadow-2xl"
-            style={{
-              clipPath: draggedPiece.shape,
-              filter: 'drop-shadow(4px 4px 8px rgba(0,0,0,0.4)) brightness(1.1)',
-            }}
-          >
-            <PuzzlePiece
-              quote={draggedPiece.quote}
-              variant="purple"
-              size="small"
             />
           </div>
-        )}
-      </DragOverlay>
+
+          {/* Phase drop zones */}
+          <PhaseDropZone phase="preparation" isHighlighted={draggedPiece?.phase === 'preparation'}>
+            <div className="text-white text-center">
+              <div className="font-bold text-lg">Preparation</div>
+              <div className="text-sm opacity-80">Research & Planning</div>
+            </div>
+          </PhaseDropZone>
+
+          <PhaseDropZone phase="incubation" isHighlighted={draggedPiece?.phase === 'incubation'}>
+            <div className="text-white text-center">
+              <div className="font-bold text-lg">Incubation</div>
+              <div className="text-sm opacity-80">Rest & Reflection</div>
+            </div>
+          </PhaseDropZone>
+
+          <PhaseDropZone phase="illumination" isHighlighted={draggedPiece?.phase === 'illumination'}>
+            <div className="text-white text-center">
+              <div className="font-bold text-lg">Illumination</div>
+              <div className="text-sm opacity-80">The &ldquo;Aha!&rdquo; Moment</div>
+            </div>
+          </PhaseDropZone>
+
+          <PhaseDropZone phase="verification" isHighlighted={draggedPiece?.phase === 'verification'}>
+            <div className="text-white text-center">
+              <div className="font-bold text-lg">Verification</div>
+              <div className="text-sm opacity-80">Testing & Implementation</div>
+            </div>
+          </PhaseDropZone>
+
+          {/* Placed pieces */}
+          {Object.entries(placedPieces).map(([pieceId, placement]) => {
+            const piece = jigsawPieces.find(p => p.id === pieceId);
+            if (!piece) return null;
+
+            return (
+              <div
+                key={pieceId}
+                className="absolute animate-pulse"
+                style={{
+                  left: placement.position.x,
+                  top: placement.position.y,
+                  clipPath: `url(#${piece.shapeId})`,
+                }}
+              >
+                <PuzzlePiece
+                  quote={piece.quote}
+                  variant="purple"
+                  size="small"
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Piece tray */}
+        <div className="mt-6 p-4 bg-gray-800 rounded-lg border border-gray-600">
+          <h3 className="text-xl font-bold text-white mb-4">Available Pieces</h3>
+          <div className="relative min-h-[200px]">
+            {unplacedPieces.map((piece) => (
+              <DraggableJigsawPiece
+                key={piece.id}
+                piece={piece}
+                isDragging={draggedPiece?.id === piece.id}
+              />
+            ))}
+            {unplacedPieces.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center text-gray-400">
+                  <div className="text-2xl mb-2">🎉</div>
+                  <p className="text-lg font-medium">Puzzle Complete!</p>
+                  <p className="text-sm">All pieces have been placed correctly.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Drag overlay */}
+        <DragOverlay>
+          {draggedPiece && (
+            <div
+              style={{
+                clipPath: `url(#${draggedPiece.shapeId})`,
+                width: '180px',
+                height: '120px',
+              }}
+              className="shadow-2xl rotate-3"
+            >
+              <PuzzlePiece
+                quote={draggedPiece.quote}
+                variant="purple"
+                size="small"
+              />
+            </div>
+          )}
+        </DragOverlay>
       </DndContext>
     </>
   );

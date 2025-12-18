@@ -22,7 +22,7 @@ export interface GameConfig {
   rapidFireQuestion: RapidFireQuestion | null;
   activeHint: SharedHint | null;
   boardLayout?: BoardLayoutType; // Board layout type
-  jigsawMode?: boolean; // Whether to use jigsaw puzzle mode
+  jigsawMode?: 'classic' | 'jigsaw'; // Game mode selection
 }
 
 const GAME_CONFIG_KEY = "puzzle-game-config";
@@ -174,7 +174,7 @@ export const GameSync = {
     sessionName: string = "Default Session",
     themeId: ThemeId = "classic",
     boardLayout: BoardLayoutType = "elephant",
-    jigsawMode: boolean = false
+    jigsawMode: 'classic' | 'jigsaw' = 'classic'
   ): void {
     const config: GameConfig = {
       timeLimit,
