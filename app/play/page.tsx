@@ -160,7 +160,7 @@ export default function PlayPage() {
       
       // Migrate old layouts to new ones
       if (config && config.boardLayout && ['classic', 'alchemist', 'gardener'].includes(config.boardLayout)) {
-        GameSync.updateConfig({ boardLayout: 'cyberpunk' });
+        GameSync.updateConfig({ boardLayout: 'elephant' });
       }
     });
 
@@ -251,11 +251,20 @@ export default function PlayPage() {
     hintRef.current = hintId;
   }, [gameConfig?.activeHint?.id]);
 
-  const handleStart = (name: string, answer: string, theme?: GameTheme) => {
+  const handleStart = async (name: string, answer: string, theme?: GameTheme) => {
+    // Force refresh the config from server to avoid stale state issues
+    await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure state is current
 
     const config = GameSync.getConfig();
     if (!config || !config.isGameActive) {
       toast.error("Game master has not started the game yet!");
+      return;
+    }
+
+    // Additional validation: check if timer has expired
+    const remainingTime = GameSync.getRemainingTime();
+    if (remainingTime <= 0) {
+      toast.error("The game session has expired. Please wait for the Game Master to start a new game.");
       return;
     }
 

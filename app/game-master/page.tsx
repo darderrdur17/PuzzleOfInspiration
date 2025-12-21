@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { GameSync, type GameConfig } from "@/lib/gameSync";
 import { PlayerScore, type ThemeId, type Phase } from "@/types/game";
 import { Button } from "@/components/ui/button";
@@ -32,9 +32,9 @@ const phaseLabels: Record<Phase, string> = {
 // Enhanced theme-layout mapping for better synchronization
 const themeLayoutMapping: Record<string, BoardLayoutType[]> = {
   classic: ['elephant'],
-  science: ['cyberpunk'],
-  art: ['enchantedForest'],
-  entrepreneurship: ['cyberpunk', 'steampunk']
+  science: ['cyberpunk', 'elephant'],
+  art: ['enchantedForest', 'elephant'],
+  entrepreneurship: ['cyberpunk', 'steampunk', 'elephant']
 };
 
 export default function GameMasterPage() {
@@ -49,6 +49,7 @@ export default function GameMasterPage() {
   const [userManuallySelectedLayout, setUserManuallySelectedLayout] = useState(false);
   const [gameMode, setGameMode] = useState<'classic' | 'jigsaw'>('classic');
   const [configSnapshot, setConfigSnapshot] = useState<GameConfig | null>(null);
+  const hydratedFromConfigRef = useRef(false);
   const [customQuotes, setCustomQuotes] = useState<CustomQuote[]>([]);
   const [newQuote, setNewQuote] = useState<{
     text: string;
@@ -79,6 +80,16 @@ export default function GameMasterPage() {
     };
   }, []);
 
+  // Filter out stale players (from previous rounds or disconnected clients)
+  useEffect(() => {
+    if (!configSnapshot?.isGameActive || !configSnapshot.gameStartTime) return;
+    const startTime = configSnapshot.gameStartTime;
+    const cutoff = Date.now() - 15_000; // last update within 15s
+    setActivePlayers((prev) =>
+      prev.filter((p) => p.startTime >= startTime && p.lastUpdate >= cutoff)
+    );
+  }, [configSnapshot?.isGameActive, configSnapshot?.gameStartTime]);
+
   useEffect(() => {
     // Subscribe to game config changes
     const unsubscribe = GameSync.subscribe((config) => {
@@ -89,10 +100,29 @@ export default function GameMasterPage() {
         return;
       }
 
-      // If game not active, keep user selections (don't overwrite theme/layout)
+      // If game not active, hydrate the GM form from the last saved config once
+      // so navigation doesn't reset settings.
       if (!config.isGameActive) {
         setIsGameActive(false);
         setRemainingTime(0);
+        if (!hydratedFromConfigRef.current) {
+          hydratedFromConfigRef.current = true;
+          setTimeLimit(Math.max(1, Math.min(60, Math.round((config.timeLimit ?? 300) / 60))));
+          setMaxQuotes(Math.max(4, Math.min(48, config.maxQuotes ?? 20)));
+          setSelectedTheme((config.themeId ?? "classic") as ThemeId);
+          if (config.boardLayout) {
+            const migratedLayout = ['classic', 'alchemist', 'gardener'].includes(config.boardLayout)
+              ? 'elephant'
+              : config.boardLayout;
+            setSelectedBoardLayout(migratedLayout as BoardLayoutType);
+          }
+          if (config.jigsawMode === "jigsaw" || config.jigsawMode === "classic") {
+            setGameMode(config.jigsawMode);
+          }
+          if (config.sessionName) {
+            setSessionName(config.sessionName);
+          }
+        }
         return;
       }
 
@@ -148,7 +178,9 @@ export default function GameMasterPage() {
     const updateTime = () => {
       const remaining = Math.max(0, Math.floor((configSnapshot.gameEndTime! - Date.now()) / 1000));
       setRemainingTime(remaining);
-      if (remaining === 0) {
+      if (remaining === 0 && configSnapshot.isGameActive) {
+        // Timer has expired - properly end the game
+        GameSync.endGame();
         setIsGameActive(false);
       }
     };
@@ -192,15 +224,27 @@ export default function GameMasterPage() {
     }
   };
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
     const themeDefaultLayout = themeList.find((theme) => theme.id === selectedTheme)?.boardLayout;
     const layoutToUse = userManuallySelectedLayout ? selectedBoardLayout : themeDefaultLayout || selectedBoardLayout;
     const friendlyName = sessionName.trim() || "Current Session";
-    GameSync.startGame(timeLimit * 60, maxQuotes, friendlyName, selectedTheme, layoutToUse, gameMode);
+
+    // Optimistically update UI first for immediate feedback
     setIsGameActive(true);
-    toast.success(`Game session "${friendlyName}" started!`, {
-      description: `Theme: ${getThemeConfig(selectedTheme).gameMasterName} • Mode: ${gameMode === 'jigsaw' ? 'Jigsaw' : 'Classic'}`,
-    });
+
+    try {
+      // Clear out any stale players from a previous round
+      await RealtimeStore.clearActivePlayers();
+      GameSync.startGame(timeLimit * 60, maxQuotes, friendlyName, selectedTheme, layoutToUse, gameMode);
+      toast.success(`Game session "${friendlyName}" started!`, {
+        description: `Theme: ${getThemeConfig(selectedTheme).gameMasterName} • Mode: ${gameMode === 'jigsaw' ? 'Jigsaw' : 'Classic'}`,
+      });
+    } catch (error) {
+      // Revert optimistic update if startGame fails
+      setIsGameActive(false);
+      toast.error("Failed to start game. Please try again.");
+      console.error("Game start failed:", error);
+    }
   };
 
   const handleEndGame = () => {
@@ -210,6 +254,7 @@ export default function GameMasterPage() {
       setIsGameActive(false);
       // Reset manual selection flag when game ends so theme defaults apply next time
       setUserManuallySelectedLayout(false);
+      hydratedFromConfigRef.current = false;
       toast.success("Game session ended.");
     }
   };

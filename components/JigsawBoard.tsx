@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { useDraggable, useDroppable } from '@dnd-kit/core';
+import { DroppableZone, DraggableQuote } from './DragDropProvider';
 import { Quote, Phase } from '@/types/game';
 import { PuzzlePiece } from './PuzzlePiece';
 import { cn } from '@/lib/utils';
@@ -24,49 +24,35 @@ interface JigsawBoardProps {
   placedQuotes: Record<string, Quote[]>;
 }
 
-// Draggable jigsaw piece component (for the tray)
-const DraggableJigsawPiece: React.FC<{
+// Jigsaw piece component for the tray
+const JigsawTrayPiece: React.FC<{
   piece: JigsawPieceData;
-  isDragging?: boolean;
-}> = ({ piece, isDragging }) => {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: piece.id,
-    data: { type: 'quote', quote: piece.quote, jigsaw: true },
-  });
-
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : {};
-
+}> = ({ piece }) => {
   return (
     <div
-      ref={setNodeRef}
       style={{
-        ...style,
         position: 'absolute',
         width: '180px',
         height: '120px',
         left: piece.position.x,
         top: piece.position.y,
-        zIndex: isDragging ? 50 : 1,
       }}
-      {...listeners}
-      {...attributes}
-      className={cn(
-        "cursor-grab active:cursor-grabbing transition-transform duration-200",
-        isDragging ? "scale-110" : "hover:scale-105"
-      )}
     >
-      <div 
-        className="w-full h-full shadow-lg"
-        style={{ clipPath: `url(#${piece.shapeId})` }}
+      <DraggableQuote
+        quote={piece.quote}
+        id={`jigsaw-${piece.id}`}
       >
-        <PuzzlePiece
-          quote={piece.quote}
-          variant="orange"
-          size="small"
-        />
-      </div>
+        <div
+          className="w-full h-full shadow-lg cursor-grab active:cursor-grabbing transition-transform duration-200 hover:scale-105"
+          style={{ clipPath: `url(#${piece.shapeId})` }}
+        >
+          <PuzzlePiece
+            quote={piece.quote}
+            variant="orange"
+            size="small"
+          />
+        </div>
+      </DraggableQuote>
     </div>
   );
 };
@@ -74,27 +60,18 @@ const DraggableJigsawPiece: React.FC<{
 // Drop zone component for phases
 const PhaseDropZone: React.FC<{
   phase: Phase;
-  isHighlighted: boolean;
   label: string;
   description: string;
   x: number;
   y: number;
   width: number;
   height: number;
-}> = ({ phase, isHighlighted, label, description, x, y, width, height }) => {
-  const { setNodeRef, isOver } = useDroppable({
-    id: phase,
-    data: { type: 'drop-zone', phase },
-  });
-
+}> = ({ phase, label, description, x, y, width, height }) => {
   return (
-    <div
-      ref={setNodeRef}
+    <DroppableZone
+      id={phase}
       className={cn(
-        "absolute border-2 border-dashed rounded-lg transition-all duration-300 flex flex-col items-center justify-center p-2 text-center",
-        isOver || isHighlighted
-          ? "border-green-400 bg-green-400/20 shadow-lg shadow-green-400/50 scale-105 ring-4 ring-green-400/20 z-10"
-          : "border-white/30 bg-black/20 hover:bg-black/30"
+        "absolute border-2 border-dashed rounded-lg transition-all duration-300 flex flex-col items-center justify-center p-2 text-center border-white/30 bg-black/20 hover:bg-black/30"
       )}
       style={{
         left: x,
@@ -105,12 +82,7 @@ const PhaseDropZone: React.FC<{
     >
       <div className="text-white font-bold text-lg leading-tight">{label}</div>
       <div className="text-white/70 text-xs mt-1">{description}</div>
-      {isOver && (
-        <div className="text-green-300 font-bold text-sm animate-pulse mt-2">
-          ✓ Drop Here
-        </div>
-      )}
-    </div>
+    </DroppableZone>
   );
 };
 
@@ -169,7 +141,7 @@ export function JigsawBoard({ quotes, themeId = 'classic', onGameComplete, place
       </svg>
 
       {/* Main game board */}
-      <div 
+      <div
         className="relative w-full h-[500px] rounded-xl overflow-hidden shadow-2xl bg-gray-900 border-4 border-white/20"
         style={{
           backgroundImage: `url(${jigsawConfig.backgroundImage})`,
@@ -194,7 +166,6 @@ export function JigsawBoard({ quotes, themeId = 'classic', onGameComplete, place
               y={zone.y}
               width={zone.width}
               height={zone.height}
-              isHighlighted={false} // Will be handled by dnd-kit automatically
             />
           );
         })}
@@ -204,7 +175,7 @@ export function JigsawBoard({ quotes, themeId = 'classic', onGameComplete, place
           quotes.map((quote, idx) => {
             const piece = jigsawPieces.find(p => p.id === quote.id);
             if (!piece) return null;
-            
+
             const zone = jigsawConfig.phaseZones[phase as Phase];
             // Snap to zone with slight offset for multiple pieces
             const offset = {
@@ -223,7 +194,7 @@ export function JigsawBoard({ quotes, themeId = 'classic', onGameComplete, place
                   height: '120px',
                 }}
               >
-                <div 
+                <div
                   className="w-full h-full shadow-lg"
                   style={{ clipPath: `url(#${piece.shapeId})` }}
                 >
@@ -253,15 +224,15 @@ export function JigsawBoard({ quotes, themeId = 'classic', onGameComplete, place
             Drag pieces to their correct creative phase on the board
           </div>
         </div>
-        
+
         <div className="relative min-h-[300px] bg-muted/30 rounded-lg overflow-x-auto">
           {unplacedPieces.map((piece) => (
-            <DraggableJigsawPiece
+            <JigsawTrayPiece
               key={piece.id}
               piece={piece}
             />
           ))}
-          
+
           {unplacedPieces.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center p-8 text-center">
               <div className="max-w-xs">
@@ -278,3 +249,5 @@ export function JigsawBoard({ quotes, themeId = 'classic', onGameComplete, place
     </div>
   );
 }
+
+

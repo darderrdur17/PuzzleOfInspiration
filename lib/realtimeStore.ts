@@ -53,8 +53,10 @@ export const RealtimeStore = {
         name: p.name,
         points: p.points ?? 0,
         score: p.score ?? 0,
-        startTime: p.start_time ?? Date.now(),
-        lastUpdate: p.last_update ?? Date.now(),
+        // Avoid "Date.now()" fallbacks here, otherwise legacy rows with null timestamps
+        // can incorrectly look like brand-new players.
+        startTime: typeof p.start_time === "number" ? p.start_time : 0,
+        lastUpdate: typeof p.last_update === "number" ? p.last_update : 0,
       })) ?? [];
     writeLocal(ACTIVE_KEY, players);
     return players;
@@ -79,6 +81,19 @@ export const RealtimeStore = {
     });
     if (error) {
       console.error("Supabase upsert active player failed", error);
+    }
+  },
+
+  async clearActivePlayers(): Promise<void> {
+    if (!isSupabaseConfigured) {
+      writeLocal(ACTIVE_KEY, []);
+      return;
+    }
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    const { error } = await supabase.from("active_players").delete().eq("session_id", DEFAULT_SESSION_ID);
+    if (error) {
+      console.error("Supabase clear active players failed", error);
     }
   },
 
@@ -216,6 +231,8 @@ export const RealtimeStore = {
     };
   },
 };
+
+
 
 
 

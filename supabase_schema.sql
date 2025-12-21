@@ -15,6 +15,7 @@ create table if not exists public.sessions (
   rapid_fire_question jsonb,
   active_hint jsonb,
   board_layout text,
+  jigsaw_mode text not null default 'classic',
   updated_at timestamptz not null default now()
 );
 
@@ -68,6 +69,8 @@ alter publication supabase_realtime add table public.sessions;
 alter publication supabase_realtime add table public.active_players;
 alter publication supabase_realtime add table public.leaderboard;
 alter publication supabase_realtime add table public.custom_quotes;
+
+
 
 
 

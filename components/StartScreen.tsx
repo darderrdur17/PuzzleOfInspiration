@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { GameTheme, getRandomTheme } from "@/lib/gameThemes";
+import { getThemeConfig } from "@/lib/themeConfig";
 import { Palette, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { GameSync } from "@/lib/gameSync";
 
@@ -27,23 +28,30 @@ export function StartScreen({ onStart }: StartScreenProps) {
   useEffect(() => {
     const unsubscribe = GameSync.subscribe((config) => {
       if (config && config.isGameActive) {
-        setIsGameActive(true);
-        setGameConfigThemeId(config.themeId);
-        if (config.gameEndTime) {
-          const remaining = Math.max(0, Math.floor((config.gameEndTime - Date.now()) / 1000));
+        // Additional validation: check if timer hasn't expired
+        const remaining = config.gameEndTime ? Math.max(0, Math.floor((config.gameEndTime - Date.now()) / 1000)) : 0;
+        if (remaining > 0) {
+          setIsGameActive(true);
+          setGameConfigThemeId(config.themeId);
           setRemainingTime(remaining);
-        }
-        // Get the actual theme that will be used (from Game Master settings)
-        if (config.themeId) {
-          // Map themeId to GameTheme
-          const themeMapping: Record<string, GameTheme> = {
-            classic: 'ui',
-            science: 'alchemist',
-            art: 'gardener',
-            entrepreneurship: 'explorer'
-          };
-          const resolvedTheme = themeMapping[config.themeId] || 'ui';
-          setGameMasterTheme(resolvedTheme);
+          // Get the actual theme that will be used (from Game Master settings)
+          if (config.themeId) {
+            // Map themeId to GameTheme
+            const themeMapping: Record<string, GameTheme> = {
+              classic: 'ui',
+              science: 'alchemist',
+              art: 'gardener',
+              entrepreneurship: 'explorer'
+            };
+            const resolvedTheme = themeMapping[config.themeId] || 'ui';
+            setGameMasterTheme(resolvedTheme);
+          }
+        } else {
+          // Timer has expired, game is effectively ended
+          setIsGameActive(false);
+          setRemainingTime(null);
+          setGameMasterTheme(null);
+          setGameConfigThemeId(null);
         }
       } else {
         setIsGameActive(false);
@@ -237,10 +245,10 @@ export function StartScreen({ onStart }: StartScreenProps) {
               <div className="flex items-center gap-3">
                 <div className="flex-1 p-3 bg-blue-50 border-2 border-blue-200 rounded-lg text-sm">
                   <div className="font-medium text-gray-800">
-                    {gameConfigThemeId ? getThemeNameConfig(gameConfigThemeId).gameMasterName : (selectedTheme.charAt(0).toUpperCase() + selectedTheme.slice(1))} Theme
+                    {gameConfigThemeId ? getThemeConfig(gameConfigThemeId).gameMasterName : (selectedTheme.charAt(0).toUpperCase() + selectedTheme.slice(1))} Theme
                   </div>
                   <div className="text-xs text-gray-600 mt-1">
-                    {gameConfigThemeId ? getThemeNameConfig(gameConfigThemeId).description : (
+                    {gameConfigThemeId ? getThemeConfig(gameConfigThemeId).description : (
                       <>
                         {selectedTheme === 'observatory' && 'A cosmic journey through creativity'}
                         {selectedTheme === 'alchemist' && 'Transform ideas through magical alchemy'}
@@ -271,7 +279,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
                     <div>
                       <p className="font-medium text-amber-800">Theme Override</p>
                       <p className="text-amber-700 mt-1">
-                        The Game Master has selected the <strong>{getThemeNameConfig(gameConfigThemeId).gameMasterName}</strong> theme for this session.
+                        The Game Master has selected the <strong>{getThemeConfig(gameConfigThemeId).gameMasterName}</strong> theme for this session.
                         Your experience will be synced to ensure consistency.
                       </p>
                     </div>
