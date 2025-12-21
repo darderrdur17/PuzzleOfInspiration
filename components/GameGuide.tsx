@@ -66,6 +66,20 @@ export function GameGuide() {
             </div>
           </div>
 
+          {/* Hint System */}
+          <div>
+            <h3 className="font-semibold text-foreground mb-2 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              Hints & Team Boosts
+            </h3>
+            <ul className="text-sm text-muted-foreground space-y-1 ml-5 list-disc">
+              <li>Spend <strong>15 points</strong> to unlock a collaborative hint for everyone.</li>
+              <li>The highlighted phase will glow on every screen until the Game Master clears it.</li>
+              <li>Use hints strategically—points are deducted immediately when the hint triggers.</li>
+              <li>Rapid-fire and Double Points rounds stack with hints for big comebacks.</li>
+            </ul>
+          </div>
+
           {/* The Four Phases */}
           <div>
             <h3 className="font-semibold text-foreground mb-2">The Four Phases</h3>

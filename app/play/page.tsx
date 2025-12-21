@@ -46,14 +46,33 @@ const themeToWorld: Record<ThemeId, GameTheme> = {
   entrepreneurship: "explorer",
 };
 
+const layoutThemeOverrides: Partial<Record<BoardLayoutType, GameTheme>> = {
+  classic: "ui",
+  alchemist: "alchemist",
+  gardener: "gardener",
+  cyberpunk: "cyberpunk",
+  enchantedForest: "enchantedForest",
+  steampunk: "steampunk",
+};
+
 const deriveGameTheme = (themeId: ThemeId, boardLayout?: BoardLayoutType): GameTheme => {
-  if (boardLayout === "alchemist") return "alchemist";
-  if (boardLayout === "gardener") return "gardener";
-  if (boardLayout === "cyberpunk") return "cyberpunk";
-  if (boardLayout === "enchantedForest") return "enchantedForest";
-  if (boardLayout === "steampunk") return "steampunk";
-  if (boardLayout === "classic") return "ui";
-  return themeToWorld[themeId] || "observatory";
+  const themeFromId = themeToWorld[themeId] || "observatory";
+  // Only fall back to layout-specific visuals when the GM selected the default theme.
+  if (themeId === "classic" && boardLayout && layoutThemeOverrides[boardLayout]) {
+    return layoutThemeOverrides[boardLayout]!;
+  }
+  return themeFromId;
+};
+
+const dedupeQuotes = (quotes: Quote[]): Quote[] => {
+  const seen = new Map<string, Quote>();
+  quotes.forEach((quote) => {
+    const key = `${quote.text.trim().toLowerCase()}::${(quote.author ?? "").trim().toLowerCase()}`;
+    if (!seen.has(key)) {
+      seen.set(key, quote);
+    }
+  });
+  return Array.from(seen.values());
 };
 
 // Scoring constants
@@ -283,7 +302,7 @@ export default function PlayPage() {
       phase: ["preparation", "incubation", "illumination", "verification"][q.phase - 1] as Phase
     }));
 
-    const quotePool = [...themeDefinition.quotes, ...customQuotes, ...themeQuotes];
+    const quotePool = dedupeQuotes([...themeDefinition.quotes, ...customQuotes, ...themeQuotes]);
     const shuffled = [...quotePool].sort(() => Math.random() - 0.5);
     const requested = Math.max(4, config.maxQuotes - 4);
     const sliceCount = Math.min(requested, quotePool.length);
@@ -1216,6 +1235,9 @@ export default function PlayPage() {
                 <p className="text-sm text-yellow-900 mt-1">{activeHint.message}</p>
                 <p className="text-[10px] text-yellow-700 mt-1">
                   Triggered by {activeHint.activatedBy}
+                  <span className="font-semibold ml-1">
+                    Drop a piece into the glowing phase to follow this hint.
+                  </span>
                 </p>
               </div>
             )}
@@ -1225,6 +1247,7 @@ export default function PlayPage() {
                 themeId={themeId}
                 placedQuotes={placedQuotes}
                 onGameComplete={handleGameEnd}
+                hintPhase={activeHint?.phase ?? null}
               />
             ) : (
               <PuzzleBoard
@@ -1240,7 +1263,7 @@ export default function PlayPage() {
                     ? handleDropUserPiece
                     : handleDrop
                 }
-                highlightedZone={highlightedZone}
+                highlightedZone={highlightedZone ?? activeHint?.phase ?? null}
                 draggedQuote={draggedQuote}
                 draggedTitle={draggedTitle}
                 themeConfig={themeConfig}

@@ -47,7 +47,8 @@ export function DraggableQuote({
       style={style}
       {...listeners}
       {...attributes}
-      className={`${isDragging ? 'opacity-50' : ''} cursor-move touch-manipulation`}
+      data-dragging={isDragging ? 'true' : 'false'}
+      className={`cursor-move touch-manipulation transition-all duration-150 ${isDragging ? 'opacity-70 scale-[1.03]' : ''}`}
     >
       {children}
     </div>
@@ -149,5 +150,6 @@ export function DragDropProvider({
     </DndContext>
   );
 }
+
 
 

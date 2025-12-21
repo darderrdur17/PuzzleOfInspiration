@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { GameSync, type GameConfig } from "@/lib/gameSync";
 import { PlayerScore, type ThemeId, type Phase } from "@/types/game";
 import { Button } from "@/components/ui/button";
@@ -81,14 +81,15 @@ export default function GameMasterPage() {
   }, []);
 
   // Filter out stale players (from previous rounds or disconnected clients)
-  useEffect(() => {
-    if (!configSnapshot?.isGameActive || !configSnapshot.gameStartTime) return;
-    const startTime = configSnapshot.gameStartTime;
-    const cutoff = Date.now() - 15_000; // last update within 15s
-    setActivePlayers((prev) =>
-      prev.filter((p) => p.startTime >= startTime && p.lastUpdate >= cutoff)
+  const filteredActivePlayers = useMemo(() => {
+    if (!configSnapshot?.gameStartTime) {
+      return activePlayers;
+    }
+    const cutoff = Date.now() - 15_000;
+    return activePlayers.filter(
+      (player) => player.startTime >= configSnapshot.gameStartTime! && player.lastUpdate >= cutoff
     );
-  }, [configSnapshot?.isGameActive, configSnapshot?.gameStartTime]);
+  }, [activePlayers, configSnapshot?.gameStartTime]);
 
   useEffect(() => {
     // Subscribe to game config changes
@@ -235,6 +236,7 @@ export default function GameMasterPage() {
     try {
       // Clear out any stale players from a previous round
       await RealtimeStore.clearActivePlayers();
+      setActivePlayers([]);
       GameSync.startGame(timeLimit * 60, maxQuotes, friendlyName, selectedTheme, layoutToUse, gameMode);
       toast.success(`Game session "${friendlyName}" started!`, {
         description: `Theme: ${getThemeConfig(selectedTheme).gameMasterName} • Mode: ${gameMode === 'jigsaw' ? 'Jigsaw' : 'Classic'}`,
@@ -923,14 +925,14 @@ export default function GameMasterPage() {
         </div>
 
         {/* Active Players */}
-        {activePlayers.length > 0 && (
+        {filteredActivePlayers.length > 0 && (
           <section className="bg-white border-2 border-blue-300 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl" aria-labelledby="active-players-heading">
             <h2 id="active-players-heading" className="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
               <Users className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" />
-              Active Players ({activePlayers.length})
+              Active Players ({filteredActivePlayers.length})
             </h2>
             <div className="space-y-2" role="list" aria-label="List of active players">
-              {activePlayers
+              {filteredActivePlayers
                 .sort((a, b) => {
                   if (b.points !== a.points) return b.points - a.points;
                   return b.score - a.score;

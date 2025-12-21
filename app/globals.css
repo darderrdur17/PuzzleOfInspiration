@@ -191,6 +191,20 @@ html {
   }
 }
 
+@layer components {
+  .jigsaw-piece {
+    @apply transition-transform duration-200 cursor-grab rounded-xl shadow-lg shadow-black/40 bg-white/90;
+  }
+
+  [data-dragging="true"] .jigsaw-piece {
+    @apply scale-105 shadow-2xl shadow-black/70 ring-2 ring-white/70 cursor-grabbing;
+  }
+
+  .hint-glow {
+    @apply ring-4 ring-amber-300/80 ring-offset-2 ring-offset-amber-100/40 shadow-[0_0_25px_rgba(251,191,36,0.45)];
+  }
+}
+
 /* Prevent iOS zoom on input focus */
 @media screen and (max-width: 768px) {
   input[type="text"],

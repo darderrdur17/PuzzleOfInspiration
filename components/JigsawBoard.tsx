@@ -22,6 +22,7 @@ interface JigsawBoardProps {
   themeId?: string;
   onGameComplete?: () => void;
   placedQuotes: Record<string, Quote[]>;
+  hintPhase?: Phase | null;
 }
 
 // Jigsaw piece component for the tray
@@ -43,7 +44,7 @@ const JigsawTrayPiece: React.FC<{
         id={`jigsaw-${piece.id}`}
       >
         <div
-          className="w-full h-full shadow-lg cursor-grab active:cursor-grabbing transition-transform duration-200 hover:scale-105"
+          className="jigsaw-piece w-full h-full hover:shadow-purple-500/30"
           style={{ clipPath: `url(#${piece.shapeId})` }}
         >
           <PuzzlePiece
@@ -66,12 +67,15 @@ const PhaseDropZone: React.FC<{
   y: number;
   width: number;
   height: number;
-}> = ({ phase, label, description, x, y, width, height }) => {
+  isHinted?: boolean;
+}> = ({ phase, label, description, x, y, width, height, isHinted = false }) => {
   return (
     <DroppableZone
       id={phase}
+      isHighlighted={isHinted}
       className={cn(
-        "absolute border-2 border-dashed rounded-lg transition-all duration-300 flex flex-col items-center justify-center p-2 text-center border-white/30 bg-black/20 hover:bg-black/30"
+        "absolute border-2 border-dashed rounded-lg transition-all duration-300 flex flex-col items-center justify-center p-2 text-center border-white/30 bg-black/20 hover:bg-black/30",
+        isHinted && "hint-glow"
       )}
       style={{
         left: x,
@@ -86,7 +90,7 @@ const PhaseDropZone: React.FC<{
   );
 };
 
-export function JigsawBoard({ quotes, themeId = 'classic', onGameComplete, placedQuotes }: JigsawBoardProps) {
+export function JigsawBoard({ quotes, themeId = 'classic', onGameComplete, placedQuotes, hintPhase = null }: JigsawBoardProps) {
   // Use theme config for background and zones
   const jigsawConfig = jigsawThemeConfigs[themeId] || jigsawThemeConfigs.classic;
   const themeConfig = getThemeConfig(themeId);
@@ -195,7 +199,7 @@ export function JigsawBoard({ quotes, themeId = 'classic', onGameComplete, place
                 }}
               >
                 <div
-                  className="w-full h-full shadow-lg"
+                  className="jigsaw-piece w-full h-full bg-gradient-to-br from-purple-600/90 to-blue-600/70 text-white"
                   style={{ clipPath: `url(#${piece.shapeId})` }}
                 >
                   <PuzzlePiece
@@ -249,5 +253,6 @@ export function JigsawBoard({ quotes, themeId = 'classic', onGameComplete, place
     </div>
   );
 }
+
 
 

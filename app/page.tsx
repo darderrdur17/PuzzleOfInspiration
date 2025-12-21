@@ -20,7 +20,59 @@ const generateParticles = (count: number) => {
 
 export default function Home() {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  type HomepageThemeOption = 'default' | 'cyberpunk' | 'enchanted' | 'steampunk';
   const { homepageTheme, setHomepageTheme } = useTheme();
+  const themeOptions: Array<{
+    id: HomepageThemeOption;
+    label: string;
+    icon: typeof Sparkles;
+    classes: { active: string; inactive: string; text: string; icon: string };
+  }> = [
+    {
+      id: 'cyberpunk',
+      label: 'Cyberpunk',
+      icon: Cpu,
+      classes: {
+        active: 'bg-cyan-500/40 border-2 border-cyan-500 shadow-lg shadow-cyan-500/25 focus-visible:ring-cyan-300',
+        inactive: 'bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30 focus-visible:ring-cyan-300',
+        text: 'text-cyan-200',
+        icon: 'text-cyan-300',
+      },
+    },
+    {
+      id: 'enchanted',
+      label: 'Enchanted',
+      icon: TreePine,
+      classes: {
+        active: 'bg-green-500/40 border-2 border-green-500 shadow-lg shadow-green-500/25 focus-visible:ring-green-300',
+        inactive: 'bg-green-500/20 border border-green-500/40 hover:bg-green-500/30 focus-visible:ring-green-300',
+        text: 'text-green-200',
+        icon: 'text-green-300',
+      },
+    },
+    {
+      id: 'steampunk',
+      label: 'Steampunk',
+      icon: Cog,
+      classes: {
+        active: 'bg-amber-500/40 border-2 border-amber-500 shadow-lg shadow-amber-500/25 focus-visible:ring-amber-300',
+        inactive: 'bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 focus-visible:ring-amber-300',
+        text: 'text-amber-200',
+        icon: 'text-amber-300',
+      },
+    },
+    {
+      id: 'default',
+      label: 'Default',
+      icon: Sparkles,
+      classes: {
+        active: 'bg-purple-500/40 border-2 border-purple-500 shadow-lg shadow-purple-500/25 focus-visible:ring-purple-300',
+        inactive: 'bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30 focus-visible:ring-purple-300',
+        text: 'text-purple-200',
+        icon: 'text-purple-300',
+      },
+    },
+  ];
   const particles = useMemo(() => generateParticles(30), []);
 
   return (
@@ -111,54 +163,30 @@ export default function Home() {
           
           {/* Theme showcase badges */}
           <div className="flex justify-center gap-4 flex-wrap">
-            <button
-              onClick={() => setHomepageTheme('cyberpunk')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 cursor-pointer hover:scale-105 ${
-                homepageTheme === 'cyberpunk'
-                  ? 'bg-cyan-500/40 border-2 border-cyan-500 shadow-lg shadow-cyan-500/25'
-                  : 'bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30'
-              }`}
-              aria-label="Switch to Cyberpunk theme"
-            >
-              <Cpu className="w-4 h-4 text-cyan-400" />
-              <span className="text-xs text-cyan-300 font-medium">Cyberpunk</span>
-            </button>
-            <button
-              onClick={() => setHomepageTheme('enchanted')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 cursor-pointer hover:scale-105 ${
-                homepageTheme === 'enchanted'
-                  ? 'bg-green-500/40 border-2 border-green-500 shadow-lg shadow-green-500/25'
-                  : 'bg-green-500/20 border border-green-500/40 hover:bg-green-500/30'
-              }`}
-              aria-label="Switch to Enchanted theme"
-            >
-              <TreePine className="w-4 h-4 text-green-400" />
-              <span className="text-xs text-green-300 font-medium">Enchanted</span>
-            </button>
-            <button
-              onClick={() => setHomepageTheme('steampunk')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 cursor-pointer hover:scale-105 ${
-                homepageTheme === 'steampunk'
-                  ? 'bg-amber-500/40 border-2 border-amber-500 shadow-lg shadow-amber-500/25'
-                  : 'bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30'
-              }`}
-              aria-label="Switch to Steampunk theme"
-            >
-              <Cog className="w-4 h-4 text-amber-400" />
-              <span className="text-xs text-amber-300 font-medium">Steampunk</span>
-            </button>
-            <button
-              onClick={() => setHomepageTheme('default')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 cursor-pointer hover:scale-105 ${
-                homepageTheme === 'default'
-                  ? 'bg-purple-500/40 border-2 border-purple-500 shadow-lg shadow-purple-500/25'
-                  : 'bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30'
-              }`}
-              aria-label="Switch to Default theme"
-            >
-              <Sparkles className="w-4 h-4 text-purple-400" />
-              <span className="text-xs text-purple-300 font-medium">Default</span>
-            </button>
+            {themeOptions.map(({ id, label, icon: Icon, classes }) => {
+              const isActive = homepageTheme === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setHomepageTheme(id)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 cursor-pointer hover:scale-105 focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                    isActive ? classes.active : classes.inactive
+                  }`}
+                  aria-label={`Switch to ${label} theme`}
+                  aria-pressed={isActive}
+                  data-active={isActive}
+                >
+                  <Icon className={`w-4 h-4 ${classes.icon}`} />
+                  <span className={`text-xs font-medium ${classes.text}`}>{label}</span>
+                  {isActive && (
+                    <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-white/80">
+                      <span className="inline-block w-2 h-2 rounded-full bg-white" />
+                      Active
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </header>
 

@@ -94,7 +94,9 @@ export const RealtimeStore = {
     const { error } = await supabase.from("active_players").delete().eq("session_id", DEFAULT_SESSION_ID);
     if (error) {
       console.error("Supabase clear active players failed", error);
+      return;
     }
+    writeLocal(ACTIVE_KEY, []);
   },
 
   async removeActivePlayer(name: string): Promise<void> {
