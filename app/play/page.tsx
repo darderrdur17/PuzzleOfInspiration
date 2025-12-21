@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { themeLibrary } from "@/data/themes";
 import {
   Quote,
@@ -31,6 +31,7 @@ import { Sparkles, Zap, Palette } from "lucide-react";
 import { BOARD_LAYOUTS, type BoardLayoutType } from "@/types/boardLayout";
 import { RealtimeStore } from "@/lib/realtimeStore";
 import { DragStartEvent, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
+import { quotePackagesById, getDefaultQuotePackIds, type QuotePackId } from "@/data/quotePackages";
 
 const phaseTitles: PhaseTitle[] = [
   { id: "title-preparation", title: "Preparation", phase: "preparation" },
@@ -73,6 +74,32 @@ const dedupeQuotes = (quotes: Quote[]): Quote[] => {
     }
   });
   return Array.from(seen.values());
+};
+
+const getQuotesFromPackIds = (packIds: string[] | undefined, themeId: ThemeId): Quote[] => {
+  const fallbackIds = packIds?.length ? packIds : getDefaultQuotePackIds(themeId);
+  const uniqueIds = Array.from(new Set(fallbackIds));
+  return uniqueIds.flatMap((id) => quotePackagesById[id as QuotePackId]?.quotes ?? []);
+};
+
+const mulberry32 = (seed: number) => {
+  return () => {
+    seed |= 0;
+    seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+};
+
+const shuffleWithSeed = (items: Quote[], seed: number): Quote[] => {
+  const random = mulberry32(seed);
+  const array = [...items];
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
 };
 
 // Scoring constants
@@ -153,6 +180,14 @@ export default function PlayPage() {
   const resolvedGameTheme = deriveGameTheme(gameConfig?.themeId ?? themeId, gameConfig?.boardLayout);
   const visualTheme = gameConfig ? resolvedGameTheme : gameTheme;
   const themeConfig = getThemeConfig(visualTheme);
+  const sessionQuotePackIds = useMemo(() => {
+    if (gameConfig?.quotePackIds?.length) {
+      return gameConfig.quotePackIds as QuotePackId[];
+    }
+    return getDefaultQuotePackIds(gameConfig?.themeId ?? themeId);
+  }, [gameConfig?.quotePackIds, gameConfig?.themeId, themeId]);
+  const sessionQuotePackNames = sessionQuotePackIds
+    .map((id) => quotePackagesById[id as QuotePackId]?.name ?? "Classic Core");
   const [scoreFlash, setScoreFlash] = useState(false);
   const [comboGlow, setComboGlow] = useState(false);
   const challengeModeRef = useRef<ChallengeMode | null>(null);
@@ -295,6 +330,7 @@ export default function PlayPage() {
 
     // Use theme-specific quotes mixed with general quotes
     const customQuotes = CustomQuotes.byTheme(activeThemeId);
+    const packQuotes = getQuotesFromPackIds(config.quotePackIds, activeThemeId);
     const themeQuotes = themeConfig.quotes.map(q => ({
       id: q.id,
       text: q.text,
@@ -302,8 +338,9 @@ export default function PlayPage() {
       phase: ["preparation", "incubation", "illumination", "verification"][q.phase - 1] as Phase
     }));
 
-    const quotePool = dedupeQuotes([...themeDefinition.quotes, ...customQuotes, ...themeQuotes]);
-    const shuffled = [...quotePool].sort(() => Math.random() - 0.5);
+    const quotePool = dedupeQuotes([...packQuotes, ...customQuotes, ...themeQuotes]);
+    const shuffleSeed = config.gameStartTime ?? Date.now();
+    const shuffled = shuffleWithSeed(quotePool, shuffleSeed);
     const requested = Math.max(4, config.maxQuotes - 4);
     const sliceCount = Math.min(requested, quotePool.length);
     const selectedQuotes = shuffled.slice(0, sliceCount); // -4 reserved for titles
@@ -1055,6 +1092,9 @@ export default function PlayPage() {
               </span>
               <span className="text-muted-foreground">
                 • Layout: {BOARD_LAYOUTS[derivedBoardLayout].name}
+              </span>
+              <span className="text-muted-foreground">
+                • Quote Packs: {sessionQuotePackNames.join(", ")}
               </span>
               <Button
                 size="sm"

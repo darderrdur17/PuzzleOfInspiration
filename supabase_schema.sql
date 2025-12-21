@@ -16,6 +16,7 @@ create table if not exists public.sessions (
   active_hint jsonb,
   board_layout text,
   jigsaw_mode text not null default 'classic',
+  quote_pack_ids text[] not null default '{}'::text[],
   updated_at timestamptz not null default now()
 );
 

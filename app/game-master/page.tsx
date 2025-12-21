@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { BOARD_LAYOUTS, type BoardLayoutType } from "@/types/boardLayout";
 import { RealtimeStore } from "@/lib/realtimeStore";
 import { THEME_CONFIG, getThemeConfig } from "@/lib/themeConfig";
+import { quotePackages, quotePackagesById, getDefaultQuotePackIds, type QuotePackId } from "@/data/quotePackages";
 
 interface ActivePlayer {
   name: string;
@@ -70,6 +71,8 @@ export default function GameMasterPage() {
     text: "",
     author: "",
   });
+  const [selectedQuotePacks, setSelectedQuotePacks] = useState<QuotePackId[]>(getDefaultQuotePackIds(selectedTheme));
+  const [userManuallySelectedPacks, setUserManuallySelectedPacks] = useState(false);
 
   useEffect(() => {
     const stopActive = RealtimeStore.subscribeActivePlayers(setActivePlayers);
@@ -90,6 +93,15 @@ export default function GameMasterPage() {
       (player) => player.startTime >= configSnapshot.gameStartTime! && player.lastUpdate >= cutoff
     );
   }, [activePlayers, configSnapshot?.gameStartTime]);
+
+  const selectedQuotePackDetails = useMemo(
+    () => selectedQuotePacks.map((id) => quotePackagesById[id]).filter(Boolean),
+    [selectedQuotePacks]
+  );
+  const selectedQuotePackCount = selectedQuotePackDetails.reduce(
+    (total, pack) => total + (pack?.quotes.length ?? 0),
+    0
+  );
 
   useEffect(() => {
     // Subscribe to game config changes
@@ -155,6 +167,30 @@ export default function GameMasterPage() {
 
     return unsubscribe;
   }, [userManuallySelectedLayout]);
+
+  useEffect(() => {
+    if (!configSnapshot) return;
+    if (configSnapshot.isGameActive && configSnapshot.quotePackIds) {
+      setSelectedQuotePacks(configSnapshot.quotePackIds as QuotePackId[]);
+      setUserManuallySelectedPacks(true);
+      return;
+    }
+
+    if (!configSnapshot.isGameActive) {
+      const packs = (configSnapshot.quotePackIds?.length
+        ? (configSnapshot.quotePackIds as QuotePackId[])
+        : getDefaultQuotePackIds(configSnapshot.themeId ?? selectedTheme));
+      if (!userManuallySelectedPacks) {
+        setSelectedQuotePacks(packs);
+      }
+    }
+  }, [configSnapshot, selectedTheme, userManuallySelectedPacks]);
+
+  useEffect(() => {
+    if (!configSnapshot?.isGameActive && !userManuallySelectedPacks) {
+      setSelectedQuotePacks(getDefaultQuotePackIds(selectedTheme));
+    }
+  }, [selectedTheme, configSnapshot, userManuallySelectedPacks]);
 
   useEffect(() => {
     const unsubscribe = CustomQuotes.subscribe(setCustomQuotes);
@@ -225,10 +261,24 @@ export default function GameMasterPage() {
     }
   };
 
+  const toggleQuotePack = (packId: QuotePackId) => {
+    if (isGameActive) return;
+    setUserManuallySelectedPacks(true);
+    setSelectedQuotePacks((prev) =>
+      prev.includes(packId) ? prev.filter((id) => id !== packId) : [...prev, packId]
+    );
+  };
+
   const handleStartGame = async () => {
     const themeDefaultLayout = themeList.find((theme) => theme.id === selectedTheme)?.boardLayout;
     const layoutToUse = userManuallySelectedLayout ? selectedBoardLayout : themeDefaultLayout || selectedBoardLayout;
     const friendlyName = sessionName.trim() || "Current Session";
+    const packsToUse = (selectedQuotePacks.length
+      ? selectedQuotePacks
+      : getDefaultQuotePackIds(selectedTheme)) as QuotePackId[];
+    if (!selectedQuotePacks.length) {
+      setSelectedQuotePacks(packsToUse);
+    }
 
     // Optimistically update UI first for immediate feedback
     setIsGameActive(true);
@@ -237,7 +287,15 @@ export default function GameMasterPage() {
       // Clear out any stale players from a previous round
       await RealtimeStore.clearActivePlayers();
       setActivePlayers([]);
-      GameSync.startGame(timeLimit * 60, maxQuotes, friendlyName, selectedTheme, layoutToUse, gameMode);
+      GameSync.startGame(
+        timeLimit * 60,
+        maxQuotes,
+        friendlyName,
+        selectedTheme,
+        layoutToUse,
+        gameMode,
+        packsToUse
+      );
       toast.success(`Game session "${friendlyName}" started!`, {
         description: `Theme: ${getThemeConfig(selectedTheme).gameMasterName} • Mode: ${gameMode === 'jigsaw' ? 'Jigsaw' : 'Classic'}`,
       });
@@ -256,6 +314,7 @@ export default function GameMasterPage() {
       setIsGameActive(false);
       // Reset manual selection flag when game ends so theme defaults apply next time
       setUserManuallySelectedLayout(false);
+      setUserManuallySelectedPacks(false);
       hydratedFromConfigRef.current = false;
       toast.success("Game session ended.");
     }
@@ -560,6 +619,54 @@ export default function GameMasterPage() {
                   : "Players drag rectangular cards to phase drop zones"}
               </p>
             </div>
+            {/* Quote Pack Selection */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
+                <Sparkles className="w-3 h-3 text-puzzle-purple" />
+                Quote Packs
+              </label>
+              <p className="text-xs text-gray-500">
+                Choose the collections of quotes that will appear this round. Recommended packs for the selected theme are highlighted.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {quotePackages.map((pack) => {
+                  const isSelected = selectedQuotePacks.includes(pack.id as QuotePackId);
+                  const isRecommended = pack.recommendedThemes.includes(selectedTheme);
+                  return (
+                    <button
+                      key={pack.id}
+                      type="button"
+                      onClick={() => toggleQuotePack(pack.id as QuotePackId)}
+                      disabled={isGameActive}
+                      className={`text-left border-2 rounded-lg p-3 transition-all ${
+                        isSelected
+                          ? "border-puzzle-purple bg-puzzle-purple/10 shadow-lg ring-1 ring-puzzle-purple/20"
+                          : "border-gray-200 hover:border-gray-400"
+                      } ${isGameActive ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      <div className="flex items-center justify-between text-sm font-semibold text-gray-800">
+                        <span>{pack.badge ?? "🧩"} {pack.name}</span>
+                        {isRecommended && (
+                          <span className="text-[10px] uppercase text-sky-600 font-bold">Recommended</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">{pack.description}</p>
+                      <div className="text-[10px] text-gray-500 mt-2">
+                        {pack.quotes.length} quotes
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="text-xs text-gray-500">
+                Selected:{" "}
+                {selectedQuotePackDetails.length
+                  ? selectedQuotePackDetails.map((pack) => pack?.name ?? "Unknown").join(", ")
+                  : "No packs selected"}
+                {" • "}
+                {selectedQuotePackCount} quotes in rotation
+              </div>
+            </div>
           </div>
           </div>
 
@@ -606,6 +713,16 @@ export default function GameMasterPage() {
                     {configSnapshot?.boardLayout && (
                       <span>
                         Layout: <span className="font-semibold">{BOARD_LAYOUTS[configSnapshot.boardLayout].name}</span>
+                      </span>
+                    )}
+                    {configSnapshot?.quotePackIds && configSnapshot.quotePackIds.length > 0 && (
+                      <span>
+                        Quote Packs:{" "}
+                        <strong>
+                          {configSnapshot.quotePackIds
+                            .map((packId) => quotePackagesById[packId as QuotePackId]?.name ?? packId)
+                            .join(", ")}
+                        </strong>
                       </span>
                     )}
                     {challengeMode !== "normal" && (
