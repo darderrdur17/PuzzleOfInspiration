@@ -112,7 +112,7 @@ export default function GameMasterPage() {
   );
   const activeJigsawLayoutName = useMemo(() => {
     const layoutId = configSnapshot?.jigsawLayout ?? selectedJigsawLayout;
-    return jigsawLayoutOptions.find((layout) => layout.id === layoutId)?.name ?? "Observatory Orbit";
+    return jigsawLayoutOptions.find((layout) => layout.id === layoutId)?.name ?? "Aurora Grove";
   }, [configSnapshot?.jigsawLayout, selectedJigsawLayout]);
   const selectedQuotePackCount = selectedQuotePackDetails.reduce(
     (total, pack) => total + (pack?.quotes.length ?? 0),
@@ -679,7 +679,7 @@ export default function GameMasterPage() {
                     })}
                   </div>
                   <p className="text-xs text-gray-500">
-                    Selected: <span className="font-semibold">{selectedJigsawLayoutMeta?.name ?? "Observatory Orbit"}</span>
+                    Selected: <span className="font-semibold">{selectedJigsawLayoutMeta?.name ?? "Aurora Grove"}</span>
                     {!userManuallySelectedJigsaw && (
                       <span className="text-gray-400"> (Theme default)</span>
                     )}

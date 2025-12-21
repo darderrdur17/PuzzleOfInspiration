@@ -15,7 +15,7 @@ An educational web-based jigsaw puzzle game that teaches the four phases of crea
 - **Leaderboard**: Session-based leaderboard to track top scores
 - **Timer**: Track your completion time
 - **Beautiful UI**: Modern, clean interface with smooth animations
-- **5 Jigsaw Layout Templates**: Observatory Orbit, Crystal Lab, Garden Spiral, Atlas Expedition, and Synthwave Grid are all selectable live from the Game Master console
+- **5 Jigsaw Layout Templates**: Aurora Grove, Chrono Forge, Tidal Circuit, Lumen Bazaar, and Mythic Atrium are all selectable live from the Game Master console
 
 ## 🚀 Getting Started
 
