@@ -170,6 +170,7 @@ export function JigsawBoard({ quotes, themeId = 'classic', onGameComplete, place
               y={zone.y}
               width={zone.width}
               height={zone.height}
+              isHinted={hintPhase === phaseId}
             />
           );
         })}
