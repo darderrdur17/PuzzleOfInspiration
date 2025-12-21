@@ -9,6 +9,7 @@ import type {
 import type { BoardLayoutType } from "@/types/boardLayout";
 import { getSupabaseClient, isSupabaseConfigured } from "./supabaseClient";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { DEFAULT_JIGSAW_LAYOUT, type JigsawLayoutId } from "./jigsawThemes";
 
 export interface GameConfig {
   timeLimit: number; // in seconds
@@ -25,6 +26,7 @@ export interface GameConfig {
   boardLayout?: BoardLayoutType; // Board layout type
   jigsawMode?: 'classic' | 'jigsaw'; // Game mode selection
   quotePackIds?: string[];
+  jigsawLayout?: JigsawLayoutId;
 }
 
 const GAME_CONFIG_KEY = "puzzle-game-config";
@@ -54,6 +56,7 @@ const toGameConfig = (row: any): GameConfig => {
     boardLayout: row.board_layout,
     jigsawMode: row.jigsaw_mode || 'classic',
     quotePackIds: row.quote_pack_ids ?? row.quote_packages ?? DEFAULT_QUOTE_PACKS,
+    jigsawLayout: (row.jigsaw_layout as JigsawLayoutId) ?? DEFAULT_JIGSAW_LAYOUT,
   };
 };
 
@@ -71,6 +74,7 @@ const toDbRow = (config: GameConfig) => ({
   active_hint: config.activeHint,
   board_layout: config.boardLayout ?? null,
   jigsaw_mode: config.jigsawMode ?? 'classic',
+  jigsaw_layout: config.jigsawLayout ?? DEFAULT_JIGSAW_LAYOUT,
   quote_pack_ids: (config.quotePackIds && config.quotePackIds.length > 0
     ? config.quotePackIds
     : DEFAULT_QUOTE_PACKS),
@@ -132,6 +136,11 @@ const upsertConfigToSupabase = async (config: GameConfig) => {
       console.warn("Supabase column jigsaw_mode missing. Run migrate_add_jigsaw_mode.sql.");
       const { jigsaw_mode: _mode, ...rest } = payload;
       return attempt(rest, [...suppressedErrors, "jigsaw_mode"]);
+    }
+    if (/jigsaw_layout/i.test(message) && !suppressedErrors.includes("jigsaw_layout")) {
+      console.warn("Supabase column jigsaw_layout missing. Consider adding it for layout sync.");
+      const { jigsaw_layout: _layout, ...rest } = payload;
+      return attempt(rest, [...suppressedErrors, "jigsaw_layout"]);
     }
     console.error("Supabase upsert config failed", error);
   }
@@ -224,6 +233,7 @@ const maybeSeedDefaultSession = async () => {
       activeHint: null,
       boardLayout: "elephant",
       jigsawMode: "classic",
+      jigsawLayout: DEFAULT_JIGSAW_LAYOUT,
       quotePackIds: DEFAULT_QUOTE_PACKS,
     };
     cachedConfig = seed;
@@ -264,7 +274,8 @@ export const GameSync = {
     themeId: ThemeId = "classic",
     boardLayout: BoardLayoutType = "elephant",
     jigsawMode: 'classic' | 'jigsaw' = 'classic',
-    quotePackIds: string[] = DEFAULT_QUOTE_PACKS
+    quotePackIds: string[] = DEFAULT_QUOTE_PACKS,
+    jigsawLayout: JigsawLayoutId = DEFAULT_JIGSAW_LAYOUT
   ): void {
     const config: GameConfig = {
       timeLimit,
@@ -280,6 +291,7 @@ export const GameSync = {
       activeHint: null,
       boardLayout,
       jigsawMode,
+      jigsawLayout,
       quotePackIds: quotePackIds.length ? quotePackIds : DEFAULT_QUOTE_PACKS,
     };
     this.setConfig(config);

@@ -32,6 +32,11 @@ import { BOARD_LAYOUTS, type BoardLayoutType } from "@/types/boardLayout";
 import { RealtimeStore } from "@/lib/realtimeStore";
 import { DragStartEvent, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
 import { quotePackagesById, getDefaultQuotePackIds, type QuotePackId } from "@/data/quotePackages";
+import {
+  DEFAULT_JIGSAW_LAYOUT,
+  defaultJigsawLayoutByTheme,
+  type JigsawLayoutId,
+} from "@/lib/jigsawThemes";
 
 const phaseTitles: PhaseTitle[] = [
   { id: "title-preparation", title: "Preparation", phase: "preparation" },
@@ -966,6 +971,10 @@ export default function PlayPage() {
     isRapidFireActive && rapidFireQuestion ? answeredQuizzes.includes(rapidFireQuestion.id) : false;
   const activeHint = gameConfig?.activeHint ?? null;
   const isJigsawMode = gameConfig?.jigsawMode === 'jigsaw';
+  const resolvedJigsawLayout: JigsawLayoutId =
+    (gameConfig?.jigsawLayout as JigsawLayoutId) ??
+    defaultJigsawLayoutByTheme[(gameConfig?.themeId ?? themeId) as ThemeId] ??
+    DEFAULT_JIGSAW_LAYOUT;
 
   return (
     <DragDropProvider
@@ -1284,7 +1293,8 @@ export default function PlayPage() {
             {isJigsawMode ? (
               <JigsawBoard
                 quotes={puzzleQuotes}
-                themeId={themeId}
+                themeId={gameConfig?.themeId ?? themeId}
+                layoutId={resolvedJigsawLayout}
                 placedQuotes={placedQuotes}
                 onGameComplete={handleGameEnd}
                 hintPhase={activeHint?.phase ?? null}

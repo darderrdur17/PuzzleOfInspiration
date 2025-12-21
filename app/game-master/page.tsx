@@ -5,7 +5,7 @@ import { GameSync, type GameConfig } from "@/lib/gameSync";
 import { PlayerScore, type ThemeId, type Phase } from "@/types/game";
 import { Button } from "@/components/ui/button";
 import { Clock, Users, Settings, Trophy, Play, Square, Zap, Sparkles, Lightbulb, Layout, AlertCircle, Puzzle } from "lucide-react";
-import { formatTime } from "@/lib/utils";
+import { cn, formatTime } from "@/lib/utils";
 import { themeList, getRandomRapidFireQuestion } from "@/data/themes";
 import { CustomQuotes, type CustomQuote } from "@/lib/customQuotes";
 import { toast } from "sonner";
@@ -13,6 +13,12 @@ import { BOARD_LAYOUTS, type BoardLayoutType } from "@/types/boardLayout";
 import { RealtimeStore } from "@/lib/realtimeStore";
 import { THEME_CONFIG, getThemeConfig } from "@/lib/themeConfig";
 import { quotePackages, quotePackagesById, getDefaultQuotePackIds, type QuotePackId } from "@/data/quotePackages";
+import {
+  DEFAULT_JIGSAW_LAYOUT,
+  defaultJigsawLayoutByTheme,
+  jigsawLayoutOptions,
+  type JigsawLayoutId,
+} from "@/lib/jigsawThemes";
 
 interface ActivePlayer {
   name: string;
@@ -47,7 +53,9 @@ export default function GameMasterPage() {
   const [activePlayers, setActivePlayers] = useState<ActivePlayer[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>("classic");
   const [selectedBoardLayout, setSelectedBoardLayout] = useState<BoardLayoutType>("elephant");
+  const [selectedJigsawLayout, setSelectedJigsawLayout] = useState<JigsawLayoutId>(DEFAULT_JIGSAW_LAYOUT);
   const [userManuallySelectedLayout, setUserManuallySelectedLayout] = useState(false);
+  const [userManuallySelectedJigsaw, setUserManuallySelectedJigsaw] = useState(false);
   const [gameMode, setGameMode] = useState<'classic' | 'jigsaw'>('classic');
   const [configSnapshot, setConfigSnapshot] = useState<GameConfig | null>(null);
   const hydratedFromConfigRef = useRef(false);
@@ -98,6 +106,14 @@ export default function GameMasterPage() {
     () => selectedQuotePacks.map((id) => quotePackagesById[id]).filter(Boolean),
     [selectedQuotePacks]
   );
+  const selectedJigsawLayoutMeta = useMemo(
+    () => jigsawLayoutOptions.find((layout) => layout.id === selectedJigsawLayout),
+    [selectedJigsawLayout]
+  );
+  const activeJigsawLayoutName = useMemo(() => {
+    const layoutId = configSnapshot?.jigsawLayout ?? selectedJigsawLayout;
+    return jigsawLayoutOptions.find((layout) => layout.id === layoutId)?.name ?? "Observatory Orbit";
+  }, [configSnapshot?.jigsawLayout, selectedJigsawLayout]);
   const selectedQuotePackCount = selectedQuotePackDetails.reduce(
     (total, pack) => total + (pack?.quotes.length ?? 0),
     0
@@ -128,6 +144,11 @@ export default function GameMasterPage() {
               ? 'elephant'
               : config.boardLayout;
             setSelectedBoardLayout(migratedLayout as BoardLayoutType);
+          }
+          if (config.jigsawLayout) {
+            setSelectedJigsawLayout(config.jigsawLayout);
+          } else {
+            setSelectedJigsawLayout(defaultJigsawLayoutByTheme[(config.themeId ?? "classic") as ThemeId] ?? DEFAULT_JIGSAW_LAYOUT);
           }
           if (config.jigsawMode === "jigsaw" || config.jigsawMode === "classic") {
             setGameMode(config.jigsawMode);
@@ -163,6 +184,10 @@ export default function GameMasterPage() {
         setSelectedBoardLayout(migratedLayout);
         setUserManuallySelectedLayout(true);
       }
+      if (config?.jigsawLayout) {
+        setSelectedJigsawLayout(config.jigsawLayout);
+        setUserManuallySelectedJigsaw(true);
+      }
     });
 
     return unsubscribe;
@@ -191,6 +216,13 @@ export default function GameMasterPage() {
       setSelectedQuotePacks(getDefaultQuotePackIds(selectedTheme));
     }
   }, [selectedTheme, configSnapshot, userManuallySelectedPacks]);
+
+  useEffect(() => {
+    if (configSnapshot?.isGameActive) return;
+    if (userManuallySelectedJigsaw) return;
+    const fallback = defaultJigsawLayoutByTheme[selectedTheme] ?? DEFAULT_JIGSAW_LAYOUT;
+    setSelectedJigsawLayout(fallback);
+  }, [configSnapshot?.isGameActive, selectedTheme, userManuallySelectedJigsaw]);
 
   useEffect(() => {
     const unsubscribe = CustomQuotes.subscribe(setCustomQuotes);
@@ -261,6 +293,14 @@ export default function GameMasterPage() {
     }
   };
 
+  const handleJigsawLayoutChange = (newLayout: JigsawLayoutId) => {
+    setSelectedJigsawLayout(newLayout);
+    setUserManuallySelectedJigsaw(true);
+    if (configSnapshot?.isGameActive) {
+      GameSync.updateConfig({ jigsawLayout: newLayout, jigsawMode: 'jigsaw' });
+    }
+  };
+
   const toggleQuotePack = (packId: QuotePackId) => {
     if (isGameActive) return;
     setUserManuallySelectedPacks(true);
@@ -276,6 +316,8 @@ export default function GameMasterPage() {
     const packsToUse = (selectedQuotePacks.length
       ? selectedQuotePacks
       : getDefaultQuotePackIds(selectedTheme)) as QuotePackId[];
+    const fallbackJigsawLayout = defaultJigsawLayoutByTheme[selectedTheme] ?? DEFAULT_JIGSAW_LAYOUT;
+    const jigsawLayoutToUse = userManuallySelectedJigsaw ? selectedJigsawLayout : fallbackJigsawLayout;
     if (!selectedQuotePacks.length) {
       setSelectedQuotePacks(packsToUse);
     }
@@ -294,7 +336,8 @@ export default function GameMasterPage() {
         selectedTheme,
         layoutToUse,
         gameMode,
-        packsToUse
+        packsToUse,
+        jigsawLayoutToUse
       );
       toast.success(`Game session "${friendlyName}" started!`, {
         description: `Theme: ${getThemeConfig(selectedTheme).gameMasterName} • Mode: ${gameMode === 'jigsaw' ? 'Jigsaw' : 'Classic'}`,
@@ -314,6 +357,7 @@ export default function GameMasterPage() {
       setIsGameActive(false);
       // Reset manual selection flag when game ends so theme defaults apply next time
       setUserManuallySelectedLayout(false);
+      setUserManuallySelectedJigsaw(false);
       setUserManuallySelectedPacks(false);
       hydratedFromConfigRef.current = false;
       toast.success("Game session ended.");
@@ -581,6 +625,70 @@ export default function GameMasterPage() {
                   )}
                 </p>
               </div>
+
+              {gameMode === 'jigsaw' && (
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
+                    <Puzzle className="w-3 h-3 text-purple-500" />
+                    Jigsaw Layout Templates
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {jigsawLayoutOptions.map((layout) => {
+                      const isActive = selectedJigsawLayout === layout.id;
+                      return (
+                        <button
+                          key={layout.id}
+                          type="button"
+                          onClick={() => handleJigsawLayoutChange(layout.id)}
+                          className={cn(
+                            "rounded-2xl border-2 p-3 text-left transition-all group focus-visible:ring-2 focus-visible:ring-purple-400",
+                            isActive
+                              ? "border-puzzle-purple bg-puzzle-purple/10 shadow-lg ring-2 ring-puzzle-purple/20"
+                              : "border-gray-200 hover:border-puzzle-purple/40"
+                          )}
+                          aria-pressed={isActive}
+                        >
+                          <div
+                            className="h-24 rounded-xl mb-3 bg-cover bg-center relative overflow-hidden"
+                            style={{ backgroundImage: `url(${layout.preview})` }}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-tr from-black/60 to-transparent" />
+                            <span className="absolute bottom-2 left-3 text-white text-xs font-semibold flex items-center gap-1">
+                              {layout.badgeIcon} {layout.name}
+                            </span>
+                          </div>
+                          <p className="text-sm font-semibold text-gray-800">{layout.name}</p>
+                          <p className="text-xs text-gray-600 mt-1">{layout.description}</p>
+                          <div className="flex items-center gap-1 mt-2">
+                            {layout.palette.map((color) => (
+                              <span
+                                key={`${layout.id}-${color}`}
+                                className="h-3 w-3 rounded-full border border-white/40"
+                                style={{ backgroundColor: color }}
+                              />
+                            ))}
+                          </div>
+                          {isActive && (
+                            <div className="text-[10px] uppercase text-puzzle-purple font-bold mt-2 flex items-center gap-1">
+                              <span className="inline-flex h-2 w-2 rounded-full bg-puzzle-purple animate-pulse" />
+                              Active Template
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Selected: <span className="font-semibold">{selectedJigsawLayoutMeta?.name ?? "Observatory Orbit"}</span>
+                    {!userManuallySelectedJigsaw && (
+                      <span className="text-gray-400"> (Theme default)</span>
+                    )}
+                  </p>
+                  <p className="text-[11px] text-gray-500">
+                    You can swap jigsaw layouts mid-game and every player board updates instantly.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Jigsaw Puzzle Mode */}
@@ -731,6 +839,12 @@ export default function GameMasterPage() {
                         <strong>
                           {challengeMode === "double-points" ? "Double Points" : "Rapid Fire Quiz"}
                         </strong>
+                      </span>
+                    )}
+                    {configSnapshot?.jigsawMode === "jigsaw" && (
+                      <span>
+                        Jigsaw Layout:{" "}
+                        <span className="font-semibold">{activeJigsawLayoutName}</span>
                       </span>
                     )}
                   </div>
