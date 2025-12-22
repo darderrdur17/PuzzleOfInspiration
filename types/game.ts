@@ -1,3 +1,5 @@
+import type { BoardLayoutType } from "./boardLayout";
+
 export type Phase = "preparation" | "incubation" | "illumination" | "verification";
 export type ThemeId = "classic" | "science" | "art" | "entrepreneurship";
 export type ChallengeMode = "normal" | "double-points" | "rapid-fire";
@@ -70,7 +72,7 @@ export interface ThemeDefinition {
   phaseHints: Record<Phase, string>;
   quotes: readonly Quote[];
   rapidFireQuestions: RapidFireQuestion[];
-  boardLayout?: "classic" | "alchemist" | "gardener" | "cyberpunk" | "enchantedForest" | "steampunk" | "elephant"; // Default board layout for this theme
-  availableLayouts?: ("classic" | "alchemist" | "gardener" | "cyberpunk" | "enchantedForest" | "steampunk" | "elephant")[]; // Available layouts for this theme
+  boardLayout?: BoardLayoutType; // Default board layout for this theme
+  availableLayouts?: BoardLayoutType[]; // Available layouts for this theme
 }
 

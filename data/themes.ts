@@ -370,7 +370,7 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     quotes: classicQuotes,
     rapidFireQuestions: [...defaultRapidFire],
     boardLayout: "auroraGrove",
-    availableLayouts: ["elephant", "cyberpunk", "enchantedForest", "steampunk"],
+    availableLayouts: ["auroraGrove", "chronoForge", "tidalCircuit", "lumenBazaar", "mythicAtrium"],
   },
   science: {
     id: "science",
@@ -387,7 +387,7 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     quotes: scienceQuotes as ThemeDefinition["quotes"],
     rapidFireQuestions: [...scienceRapidFire],
     boardLayout: "chronoForge",
-    availableLayouts: ["cyberpunk", "enchantedForest", "steampunk"],
+    availableLayouts: ["chronoForge", "tidalCircuit", "lumenBazaar", "mythicAtrium"],
   },
   art: {
     id: "art",
@@ -403,7 +403,7 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     quotes: artQuotes as ThemeDefinition["quotes"],
     rapidFireQuestions: [...artRapidFire],
     boardLayout: "lumenBazaar",
-    availableLayouts: ["cyberpunk", "enchantedForest", "steampunk"],
+    availableLayouts: ["chronoForge", "tidalCircuit", "lumenBazaar", "mythicAtrium"],
   },
   entrepreneurship: {
     id: "entrepreneurship",
@@ -419,7 +419,7 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     quotes: entrepreneurshipQuotes as ThemeDefinition["quotes"],
     rapidFireQuestions: [...bizRapidFire],
     boardLayout: "tidalCircuit",
-    availableLayouts: ["cyberpunk", "enchantedForest", "steampunk"],
+    availableLayouts: ["chronoForge", "tidalCircuit", "lumenBazaar", "mythicAtrium"],
   },
 };
 
