@@ -139,20 +139,20 @@ export function StartScreen({ onStart }: StartScreenProps) {
 
       {/* Form */}
       <div className="max-w-md w-full space-y-4 sm:space-y-8 animate-slide-in relative z-10 mt-16 sm:mt-32 px-2">
-        <div className="quest-surface border border-white/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 text-gray-900">
+        <div className="quest-surface border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-2xl">
           {/* Game Status Banner */}
-          <div 
-            className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg border flex items-center gap-3 transition-all ${
-              isGameActive 
-                ? "bg-white/70 border-purple-200 text-purple-800 shadow-lg"
-                : "bg-white/60 border-amber-200 text-amber-800 shadow-lg"
+          <div
+            className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg border-2 flex items-center gap-3 transition-all shadow-xl ${
+              isGameActive
+                ? "bg-purple-500/20 border-purple-400/50 text-purple-200"
+                : "bg-orange-500/20 border-orange-400/50 text-orange-200"
             }`}
             role="status"
             aria-live="polite"
           >
             {isGameActive ? (
               <>
-                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 text-purple-600" aria-hidden="true" />
+                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 text-purple-300" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm sm:text-base">Game is Active!</p>
                   <p className="text-xs sm:text-sm opacity-80">

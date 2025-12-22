@@ -11,23 +11,23 @@ export function QuoteCard({ quote, isDragging = false, isPlaced = false }: Quote
   return (
     <div
       className={cn(
-        "bg-card border-2 rounded-lg p-2 sm:p-3 md:p-4 transition-all touch-manipulation",
+        "quest-surface rounded-xl p-3 sm:p-4 md:p-5 transition-all duration-200 touch-manipulation shadow-lg hover:shadow-xl",
         {
-          "border-primary shadow-lg": quote.id === "user-answer",
-          "border-border hover:border-accent": quote.id !== "user-answer" && !isPlaced,
-          "opacity-50 scale-95": isDragging,
-          "border-green-500 bg-green-50 dark:bg-green-950": isPlaced,
+          "border-purple-400/50 shadow-purple-400/20 ring-2 ring-purple-400/30": quote.id === "user-answer",
+          "border-white/20 hover:border-purple-400/40 hover:shadow-purple-400/10": quote.id !== "user-answer" && !isPlaced,
+          "opacity-60 scale-95 shadow-inner": isDragging,
+          "border-green-400/50 bg-green-500/10 shadow-green-400/20": isPlaced,
         }
       )}
     >
-      <p className="text-xs sm:text-sm text-foreground mb-1 sm:mb-2 leading-relaxed line-clamp-2 sm:line-clamp-none">
-        &quot;{quote.text}&quot;
+      <p className="text-sm sm:text-base text-white mb-2 sm:mb-3 leading-relaxed line-clamp-2 sm:line-clamp-none font-medium">
+        &ldquo;{quote.text}&rdquo;
       </p>
-      <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">
+      <p className="text-xs sm:text-sm text-gray-300 font-medium">
         — {quote.author}
       </p>
       {quote.id === "user-answer" && (
-        <div className="mt-1 sm:mt-2 text-[10px] sm:text-xs text-primary font-semibold">
+        <div className="mt-2 sm:mt-3 text-xs sm:text-sm text-purple-300 font-bold">
           Your Answer
         </div>
       )}

@@ -51,47 +51,47 @@ export function EndScreen({
       <div className="quest-orb animate-pulse" style={{ bottom: "10%", right: "8%" }} />
       <div className="max-w-3xl w-full space-y-8 animate-slide-in relative z-10">
         <div className="text-center space-y-4">
-          <Trophy className="w-20 h-20 text-primary mx-auto mb-4" />
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground">
+          <Trophy className="w-20 h-20 text-yellow-400 mx-auto mb-4 drop-shadow-lg" />
+          <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
             Puzzle Complete!
           </h1>
-          <p className="text-xl text-muted-foreground">
+          <p className="text-xl text-gray-300">
             {getPerformanceMessage()}
           </p>
         </div>
 
-        <div className="quest-surface border border-white/25 rounded-2xl p-8 shadow-2xl space-y-6 text-gray-900">
+        <div className="quest-surface border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="quest-surface border border-white/25 rounded-lg p-6 text-center">
-              <Target className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-              <div className="text-3xl font-bold text-purple-700 mb-1">
+            <div className="bg-purple-500/10 border border-purple-400/30 rounded-xl p-4 sm:p-6 text-center hover:bg-purple-500/15 transition-all">
+              <Target className="w-8 h-8 text-purple-300 mx-auto mb-3" />
+              <div className="text-2xl sm:text-3xl font-bold text-purple-200 mb-2">
                 {score}/{totalQuotes}
               </div>
-              <div className="text-sm text-muted-foreground">Correct</div>
-              <div className="text-lg font-semibold text-purple-700 mt-2">
+              <div className="text-sm text-purple-300/70 mb-2">Correct</div>
+              <div className="text-lg font-semibold text-purple-200">
                 {percentage}%
               </div>
             </div>
 
-            <div className="quest-surface border border-white/25 rounded-lg p-6 text-center">
-              <Trophy className="w-8 h-8 text-amber-600 mx-auto mb-2" />
-              <div className="text-3xl font-bold text-amber-600 mb-1">
+            <div className="bg-yellow-500/10 border border-yellow-400/30 rounded-xl p-4 sm:p-6 text-center hover:bg-yellow-500/15 transition-all">
+              <Trophy className="w-8 h-8 text-yellow-300 mx-auto mb-3" />
+              <div className="text-2xl sm:text-3xl font-bold text-yellow-200 mb-2">
                 {points}
               </div>
-              <div className="text-sm text-muted-foreground">Points</div>
+              <div className="text-sm text-yellow-300/70">Points</div>
             </div>
 
-            <div className="quest-surface border border-white/25 rounded-lg p-6 text-center">
-              <Clock className="w-8 h-8 text-sky-600 mx-auto mb-2" />
-              <div className="text-3xl font-bold text-sky-700 mb-1">
+            <div className="bg-blue-500/10 border border-blue-400/30 rounded-xl p-4 sm:p-6 text-center hover:bg-blue-500/15 transition-all">
+              <Clock className="w-8 h-8 text-blue-300 mx-auto mb-3" />
+              <div className="text-2xl sm:text-3xl font-bold text-blue-200 mb-2">
                 {formatTime(time)}
               </div>
-              <div className="text-sm text-muted-foreground">Time</div>
+              <div className="text-sm text-blue-300/70">Time</div>
             </div>
 
-            <div className="quest-surface border border-white/25 rounded-lg p-6 text-center">
-              <Trophy className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-              <div className="text-3xl font-bold text-purple-600 mb-1">
+            <div className="bg-green-500/10 border border-green-400/30 rounded-xl p-4 sm:p-6 text-center hover:bg-green-500/15 transition-all">
+              <Trophy className="w-8 h-8 text-green-300 mx-auto mb-3" />
+              <div className="text-2xl sm:text-3xl font-bold text-green-200 mb-2">
                 #{leaderboard.length > 0 ? leaderboard.findIndex(s => s.points === points && s.time === time) + 1 : "—"}
               </div>
               <div className="text-sm text-muted-foreground">Rank</div>
@@ -197,7 +197,7 @@ export function EndScreen({
           <Button
             onClick={onRestart}
             size="lg"
-          className="w-full text-lg py-6 glass-button"
+            className="w-full text-lg py-6 quest-glass-button bg-purple-500/20 hover:bg-purple-500/30 border-purple-400/50 text-purple-200 hover:text-purple-100 transition-all duration-200"
           >
             <RotateCcw className="w-5 h-5 mr-2" />
             Play Again

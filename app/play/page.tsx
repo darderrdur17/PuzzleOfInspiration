@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { themeLibrary } from "@/data/themes";
+import { themeList, themeLibrary } from "@/data/themes";
 import {
   Quote,
   PhaseTitle,
@@ -29,7 +29,7 @@ import { playSuccessTone, playErrorTone, playAlertTone } from "@/lib/soundboard"
 import { toast } from "sonner";
 import { Sparkles, Zap, Palette } from "lucide-react";
 import { RealtimeStore } from "@/lib/realtimeStore";
-import { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
+import { DragStartEvent, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
 import { quotePackagesById, getDefaultQuotePackIds, type QuotePackId } from "@/data/quotePackages";
 import {
   DEFAULT_JIGSAW_LAYOUT,
@@ -623,6 +623,19 @@ export default function PlayPage() {
     }
   }, [gameState.points, gameState.placements, gameState.titlePlacements, gameState.isStarted, gameState.isCompleted, playerName, gameState.startTime, calculateCorrectCount]);
 
+  const handleDragOver = (event: DragOverEvent) => {
+    // Handle drag over if needed
+  };
+
+  const handleTitleSelect = (title: PhaseTitle) => {
+    // Handle title selection
+    console.log('Selected title:', title);
+  };
+
+  // Calculate current phase streak
+  const phaseStreak = Math.max(...Object.values(phaseStreaks));
+
+
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const data = active.data.current;
@@ -1008,42 +1021,244 @@ export default function PlayPage() {
   const hasAnsweredRapidFire =
     isRapidFireActive && rapidFireQuestion ? answeredQuizzes.includes(rapidFireQuestion.id) : false;
 
-  // Placeholder handlers and state for the interface
-  const handleDragStart = (event: any) => {};
-  const handleDragEnd = (event: any) => {};
-  const handleDragOver = (event: any) => {};
-  const handleUnlockHint = () => {};
-  const handleTitleSelect = (title: any) => {};
-  const handleRapidFireAnswer = (index: number) => {};
-
-  // Placeholder state
-  const draggedQuote: Quote | null = null;
-  const draggedTitle: any = null;
-  const showThemeSelector = false;
-  const gameTheme: any = "observatory";
-  const quoteComponent = null;
-  const titleComponent = null;
-  const puzzleQuotes: Quote[] = [];
-  const availableQuotes: Quote[] = [];
-  const availableTitles: any[] = [];
-  const placedQuotes: Record<string, Quote[]> = {};
-  const userPuzzlePiece: Quote | null = null;
-  const activeHint: any = null;
-  const gameState: any = { points: 0 };
-  const HINT_COST = 50;
-  const comboGlow = false;
-  const phaseStreak = 0;
-  const resolvedJigsawLayout: any = "auroraGrove";
-  const themeId = "classic";
 
   return renderWithShell(
-    <div className="min-h-screen p-4 sm:p-6 md:p-8">
-      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Puzzle Quest Player</h1>
-          <p>Player interface - Full jigsaw functionality coming soon!</p>
+    <DragDropProvider
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragOver={handleDragOver}
+      draggedQuote={draggedQuote}
+      draggedTitle={draggedTitle}
+      quoteComponent={quoteComponent}
+      titleComponent={titleComponent}
+    >
+      {/* Jigsaw SVGs */}
+      <svg width="0" height="0" style={{ position: 'absolute' }}>
+        <defs>
+          <path id="jigsaw-piece-1" d="M 0 0 L 100 0 L 100 20 L 90 20 Q 95 10 90 10 Q 95 0 90 0 L 80 0 Q 85 -5 80 -5 Q 85 -15 80 -15 L 70 -15 Q 75 -20 70 -20 Q 65 -15 70 -15 L 60 -15 Q 65 -5 60 -5 Q 55 0 60 0 L 50 0 Q 55 -5 50 -5 Q 45 0 50 0 L 40 0 Q 45 -5 40 -5 Q 35 0 40 0 L 30 0 Q 35 -5 30 -5 Q 25 0 30 0 L 20 0 Q 25 -5 20 -5 Q 15 0 20 0 L 10 0 Q 15 -5 10 -5 Q 5 0 10 0 L 0 0 Z M 0 20 L 0 100 L 20 100 L 20 90 Q 10 95 10 90 Q 0 95 0 90 L 0 80 Q -5 85 -5 80 Q -15 85 -15 80 L -15 70 Q -20 75 -20 70 Q -15 65 -15 70 L -15 60 Q -5 65 -5 60 Q 0 55 0 60 L 0 50 Q -5 55 -5 50 Q 0 45 0 50 L 0 40 Q -5 45 -5 40 Q 0 35 0 40 L 0 30 Q -5 35 -5 30 Q 0 25 0 30 L 0 20 Z" />
+        </defs>
+      </svg>
+
+      <ThemeSelector
+        selectedTheme={gameTheme}
+        onThemeSelect={setGameTheme}
+        isVisible={showThemeSelector}
+        onClose={() => setShowThemeSelector(false)}
+      />
+
+      <div className="quest-body">
+        {/* Game Master Timer Display */}
+        {gameConfig?.isGameActive && remainingTime !== null && (
+          <div className="fixed top-2 sm:top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg shadow-xl border-2 border-red-700 max-w-[90vw]">
+            <div className="text-center">
+              <div className="text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1 text-red-200">Game Master Timer</div>
+              <div className={`text-xl sm:text-2xl md:text-3xl font-bold font-mono text-white ${remainingTime <= 30 ? "animate-pulse" : ""}`}>
+                {Math.floor(remainingTime / 60)}:{(remainingTime % 60).toString().padStart(2, "0")}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Challenge Banners */}
+        {challengeMode === "double-points" && (
+          <div className="bg-yellow-500/90 border-2 border-yellow-600 rounded-xl text-white px-4 py-3 flex items-center gap-3 shadow-lg">
+            <span className="text-2xl">⚡</span>
+            <div>
+              <div className="font-bold">Double Points Mode!</div>
+              <div className="text-sm opacity-90">All correct placements worth 2x points</div>
+            </div>
+          </div>
+        )}
+
+        {isRapidFireActive && rapidFireQuestion && !hasAnsweredRapidFire && (
+          <div className="bg-purple-500/90 border-2 border-purple-600 rounded-xl text-white p-4 space-y-3 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🎯</span>
+              <div>
+                <div className="font-bold">Rapid Fire Question!</div>
+                <div className="text-sm opacity-90">Answer quickly for bonus points</div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="font-medium">{rapidFireQuestion.question}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {rapidFireQuestion.options.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleRapidFireAnswer(index)}
+                    className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg text-sm transition-colors"
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Main content */}
+        <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+                Puzzle Quest
+              </h1>
+              {gameConfig?.themeId && (
+                <Badge variant="secondary" className="text-xs">
+                  {themeList.find(t => t.id === gameConfig.themeId)?.name || gameConfig.themeId}
+                </Badge>
+              )}
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowThemeSelector(true)}
+              disabled={!!gameConfig?.jigsawLayout}
+              className="text-xs px-2 py-1 h-auto quest-glass-button"
+            >
+              <Palette className="w-3 h-3 mr-1" />
+              {gameConfig?.jigsawLayout ? "Layout Locked" : "Change Theme"}
+            </Button>
+          </div>
+
+          {/* Sidebar and Jigsaw Board */}
+          <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 md:gap-6 items-start">
+            <div className="w-full lg:w-80 flex-shrink-0 space-y-3 sm:space-y-4">
+              {/* Game Guide */}
+              <GameGuide />
+
+              {/* Phase Streaks */}
+              <div className={`quest-surface rounded-lg p-3 sm:p-4 transition-all ${comboGlow ? "border-yellow-400 shadow-lg shadow-yellow-400/20" : "border-white/10"}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">🔥</span>
+                  <h3 className="font-semibold text-white">Phase Streak</h3>
+                </div>
+                <div className="text-2xl font-bold text-yellow-400">{phaseStreak}</div>
+                <div className="text-sm text-gray-300">Perfect phases in a row</div>
+              </div>
+
+              {/* Collaborative Hint */}
+              <div className="quest-surface rounded-lg p-3 sm:p-4 space-y-3 border-orange-500/20">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">💡</span>
+                  <h3 className="font-semibold text-white">Collaborative Hint</h3>
+                </div>
+                {activeHint ? (
+                  <div className="space-y-2">
+                    <div className="text-sm text-orange-300 font-medium">
+                      Hint for {activeHint.phase} phase:
+                    </div>
+                    <div className="text-sm text-white bg-orange-500/20 p-2 rounded">
+                      {activeHint.message}
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={handleUnlockHint}
+                    disabled={!!activeHint || gameState.points < HINT_COST}
+                    className="w-full quest-glass-button"
+                  >
+                    {activeHint ? "Hint Active" : "Unlock Hint"}
+                    <span className="ml-2 text-xs">({HINT_COST} pts)</span>
+                  </Button>
+                )}
+              </div>
+
+              {/* Available Titles */}
+              {availableTitles.length > 0 && (
+                <div className="quest-surface rounded-lg sm:rounded-xl p-3 sm:p-4 border-purple-500/20">
+                  <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                    <span className="text-lg">🏆</span>
+                    Available Titles
+                  </h3>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {availableTitles.map((title) => (
+                      <div
+                        key={title.id}
+                        className="flex items-center justify-between p-2 bg-purple-500/10 rounded border border-purple-500/20"
+                      >
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-purple-300">{title.title}</div>
+                          <div className="text-xs text-gray-400">{title.phase} phase title</div>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleTitleSelect(title)}
+                          className="ml-2 quest-glass-button text-xs"
+                        >
+                          Select
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* User Puzzle Piece */}
+              {userPuzzlePiece && (
+                <div className="quest-surface rounded-lg sm:rounded-xl p-3 sm:p-4 border-purple-500/20">
+                  <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                    <span className="text-lg">🧩</span>
+                    Your Special Piece
+                  </h3>
+                  <div className="text-sm text-purple-300 mb-2">
+                    Drag this piece to complete the puzzle:
+                  </div>
+                  <div className="bg-purple-500/10 p-2 rounded border border-purple-500/20">
+                    <QuoteCard
+                      quote={userPuzzlePiece}
+                      isDragging={false}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Available Quotes */}
+              {availableQuotes.length > 0 && (
+                <div className="quest-surface rounded-lg sm:rounded-xl p-3 sm:p-4 border-white/10 max-h-[300px] sm:max-h-[400px] md:max-h-[500px] overflow-y-auto">
+                  <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                    <span className="text-lg">📚</span>
+                    Available Quotes ({availableQuotes.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {availableQuotes.map((quote) => (
+                      <QuoteCard
+                        key={quote.id}
+                        quote={quote}
+                        isDragging={draggedQuote?.id === quote.id}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 w-full">
+              {activeHint && (
+                <div className="bg-yellow-500/20 border-2 border-yellow-400 rounded-lg p-3 sm:p-4 mb-3 text-white">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">💡</span>
+                    <span className="font-semibold">Active Hint</span>
+                  </div>
+                  <div className="text-sm">
+                    <strong>{activeHint.phase} Phase:</strong> {activeHint.message}
+                  </div>
+                </div>
+              )}
+
+              <JigsawBoard
+                quotes={puzzleQuotes}
+                themeId={gameConfig?.themeId ?? themeId}
+                layoutId={resolvedJigsawLayout}
+                placedQuotes={placedQuotes}
+                onGameComplete={handleGameEnd}
+                hintPhase={activeHint?.phase ?? null}
+              />
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </DragDropProvider>
   );
 }
