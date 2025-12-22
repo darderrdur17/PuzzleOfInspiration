@@ -236,7 +236,7 @@ const maybeSeedDefaultSession = async () => {
       challengeMode: "normal",
       rapidFireQuestion: null,
       activeHint: null,
-      boardLayout: "elephant",
+      boardLayout: DEFAULT_JIGSAW_LAYOUT,
       jigsawMode: "classic",
       jigsawLayout: DEFAULT_JIGSAW_LAYOUT,
       quotePackIds: DEFAULT_QUOTE_PACKS,
@@ -277,7 +277,7 @@ export const GameSync = {
     maxQuotes: number,
     sessionName: string = "Default Session",
     themeId: ThemeId = "classic",
-    boardLayout: BoardLayoutType = "elephant",
+    boardLayout: BoardLayoutType = DEFAULT_JIGSAW_LAYOUT,
     jigsawMode: 'classic' | 'jigsaw' = 'classic',
     quotePackIds: string[] = DEFAULT_QUOTE_PACKS,
     jigsawLayout: JigsawLayoutId = DEFAULT_JIGSAW_LAYOUT

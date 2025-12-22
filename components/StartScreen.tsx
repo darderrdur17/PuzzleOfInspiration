@@ -3,10 +3,8 @@ import { Button } from "@/components/ui/button";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { GameTheme, getRandomTheme } from "@/lib/gameThemes";
 import { getThemeConfig } from "@/lib/themeConfig";
-import { Palette, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Palette, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { GameSync } from "@/lib/gameSync";
-
-import { THEME_CONFIG, getThemeConfig as getThemeNameConfig } from "@/lib/themeConfig";
 
 interface StartScreenProps {
   onStart: (name: string, answer: string, theme: GameTheme) => void;
@@ -134,31 +132,27 @@ export function StartScreen({ onStart }: StartScreenProps) {
         isVisible={showThemeSelector}
         onClose={() => setShowThemeSelector(false)}
       />
-      <div
-        className="min-h-screen flex items-center justify-center p-2 sm:p-4 relative overflow-hidden"
-        style={{
-          background: "radial-gradient(circle at 20% 20%, #fef3c7 0%, #bfdbfe 45%, #ecfccb 85%)",
-        }}
-      >
-      {/* Overlay for better text readability */}
-      <div className="absolute inset-0 bg-white/30 backdrop-blur-sm"></div>
+      <div className="min-h-screen flex items-center justify-center p-2 sm:p-4 relative overflow-hidden quest-body">
+      <div className="quest-ambient" />
+      <div className="quest-orb animate-pulse" style={{ top: "12%", left: "8%" }} />
+      <div className="quest-orb animate-pulse" style={{ bottom: "8%", right: "10%" }} />
 
       {/* Form */}
       <div className="max-w-md w-full space-y-4 sm:space-y-8 animate-slide-in relative z-10 mt-16 sm:mt-32 px-2">
-        <div className="bg-white/95 backdrop-blur-sm border-2 border-gray-300 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-2xl">
+        <div className="quest-surface border border-white/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 text-gray-900">
           {/* Game Status Banner */}
           <div 
-            className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg border-2 flex items-center gap-3 transition-all ${
+            className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg border flex items-center gap-3 transition-all ${
               isGameActive 
-                ? "bg-green-50 border-green-400 text-green-800" 
-                : "bg-amber-50 border-amber-400 text-amber-800"
+                ? "bg-white/70 border-purple-200 text-purple-800 shadow-lg"
+                : "bg-white/60 border-amber-200 text-amber-800 shadow-lg"
             }`}
             role="status"
             aria-live="polite"
           >
             {isGameActive ? (
               <>
-                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" aria-hidden="true" />
+                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 text-purple-600" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm sm:text-base">Game is Active!</p>
                   <p className="text-xs sm:text-sm opacity-80">
@@ -203,10 +197,10 @@ export function StartScreen({ onStart }: StartScreenProps) {
                 aria-required="true"
                 aria-invalid={nameError ? "true" : "false"}
                 aria-describedby={nameError ? "name-error" : undefined}
-                className={`w-full px-4 py-3 rounded-lg border-2 bg-blue-50 text-gray-800 focus:outline-none focus:ring-2 transition-all ${
+                className={`w-full px-4 py-3 rounded-lg border bg-white/70 text-gray-900 focus:outline-none focus:ring-2 transition-all ${
                   nameError 
-                    ? "border-red-400 focus:ring-red-400 focus:border-red-400" 
-                    : "border-blue-200 focus:ring-blue-400 focus:border-blue-400"
+                    ? "border-red-400 focus:ring-red-300 focus:border-red-400" 
+                    : "border-purple-200 focus:ring-purple-400 focus:border-purple-300"
                 }`}
                 autoFocus
               />
@@ -234,7 +228,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
                 }}
                 placeholder="E.g., I came up with a new way to organize my study notes..."
                 rows={3}
-                className="w-full px-4 py-3 rounded-lg border-2 border-blue-200 bg-blue-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all resize-none"
+                className="w-full px-4 py-3 rounded-lg border border-white/40 bg-white/70 text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-200 transition-all resize-none"
               />
             </div>
 
@@ -243,7 +237,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
                 Choose Your Creative World
               </label>
               <div className="flex items-center gap-3">
-                <div className="flex-1 p-3 bg-blue-50 border-2 border-blue-200 rounded-lg text-sm">
+                <div className="flex-1 p-3 quest-surface border border-white/25 rounded-lg text-sm">
                   <div className="font-medium text-gray-800">
                     {gameConfigThemeId ? getThemeConfig(gameConfigThemeId).gameMasterName : (selectedTheme.charAt(0).toUpperCase() + selectedTheme.slice(1))} Theme
                   </div>
@@ -263,7 +257,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
                   type="button"
                   onClick={() => setShowThemeSelector(true)}
                   variant="outline"
-                  className="px-4 py-3 border-2 border-blue-300 hover:bg-blue-50"
+                  className="px-4 py-3 border border-white/40 bg-white/40 hover:bg-white/70"
                   disabled={!!gameConfigThemeId}
                 >
                   <Palette className="w-4 h-4 mr-2" />
@@ -273,7 +267,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
 
               {/* Theme Override Notification */}
               {gameConfigThemeId && (
-                <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-3 text-sm">
+                <div className="quest-surface border border-amber-200 rounded-lg p-3 text-sm">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
                     <div>
@@ -290,7 +284,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
 
             {error && (
               <div 
-                className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2"
+                className="text-sm text-red-700 quest-surface border border-red-200 rounded-lg p-3 flex items-center gap-2"
                 role="alert"
               >
                 <AlertCircle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />

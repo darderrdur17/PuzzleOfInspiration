@@ -4,12 +4,11 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { GameSync, type GameConfig } from "@/lib/gameSync";
 import { PlayerScore, type ThemeId, type Phase } from "@/types/game";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, Settings, Trophy, Play, Square, Zap, Sparkles, Lightbulb, Layout, AlertCircle, Puzzle } from "lucide-react";
+import { Clock, Users, Settings, Trophy, Play, Square, Zap, Sparkles, Lightbulb, AlertCircle, Puzzle } from "lucide-react";
 import { cn, formatTime } from "@/lib/utils";
 import { themeList, getRandomRapidFireQuestion } from "@/data/themes";
 import { CustomQuotes, type CustomQuote } from "@/lib/customQuotes";
 import { toast } from "sonner";
-import { BOARD_LAYOUTS, type BoardLayoutType } from "@/types/boardLayout";
 import { RealtimeStore } from "@/lib/realtimeStore";
 import { THEME_CONFIG, getThemeConfig } from "@/lib/themeConfig";
 import { quotePackages, quotePackagesById, getDefaultQuotePackIds, type QuotePackId } from "@/data/quotePackages";
@@ -36,14 +35,6 @@ const phaseLabels: Record<Phase, string> = {
   verification: "Verification",
 };
 
-// Enhanced theme-layout mapping for better synchronization
-const themeLayoutMapping: Record<string, BoardLayoutType[]> = {
-  classic: ['elephant'],
-  science: ['cyberpunk', 'elephant'],
-  art: ['enchantedForest', 'elephant'],
-  entrepreneurship: ['cyberpunk', 'steampunk', 'elephant']
-};
-
 export default function GameMasterPage() {
   const [timeLimit, setTimeLimit] = useState(5); // minutes
   const [maxQuotes, setMaxQuotes] = useState(20);
@@ -52,11 +43,9 @@ export default function GameMasterPage() {
   const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
   const [activePlayers, setActivePlayers] = useState<ActivePlayer[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>("classic");
-  const [selectedBoardLayout, setSelectedBoardLayout] = useState<BoardLayoutType>("elephant");
   const [selectedJigsawLayout, setSelectedJigsawLayout] = useState<JigsawLayoutId>(DEFAULT_JIGSAW_LAYOUT);
-  const [userManuallySelectedLayout, setUserManuallySelectedLayout] = useState(false);
   const [userManuallySelectedJigsaw, setUserManuallySelectedJigsaw] = useState(false);
-  const [gameMode, setGameMode] = useState<'classic' | 'jigsaw'>('classic');
+  const [gameMode, setGameMode] = useState<'classic' | 'jigsaw'>('jigsaw');
   const [configSnapshot, setConfigSnapshot] = useState<GameConfig | null>(null);
   const hydratedFromConfigRef = useRef(false);
   const [customQuotes, setCustomQuotes] = useState<CustomQuote[]>([]);
@@ -139,20 +128,15 @@ export default function GameMasterPage() {
           setTimeLimit(Math.max(1, Math.min(60, Math.round((config.timeLimit ?? 300) / 60))));
           setMaxQuotes(Math.max(4, Math.min(48, config.maxQuotes ?? 20)));
           setSelectedTheme((config.themeId ?? "classic") as ThemeId);
-          if (config.boardLayout) {
-            const migratedLayout = ['classic', 'alchemist', 'gardener'].includes(config.boardLayout)
-              ? 'elephant'
-              : config.boardLayout;
-            setSelectedBoardLayout(migratedLayout as BoardLayoutType);
+          const layoutToUse =
+            (config.jigsawLayout as JigsawLayoutId) ||
+            defaultJigsawLayoutByTheme[(config.themeId ?? "classic") as ThemeId] ||
+            DEFAULT_JIGSAW_LAYOUT;
+          setSelectedJigsawLayout(layoutToUse);
+          if (config.jigsawMode !== "jigsaw") {
+            GameSync.updateConfig({ jigsawMode: "jigsaw" });
           }
-          if (config.jigsawLayout) {
-            setSelectedJigsawLayout(config.jigsawLayout);
-          } else {
-            setSelectedJigsawLayout(defaultJigsawLayoutByTheme[(config.themeId ?? "classic") as ThemeId] ?? DEFAULT_JIGSAW_LAYOUT);
-          }
-          if (config.jigsawMode === "jigsaw" || config.jigsawMode === "classic") {
-            setGameMode(config.jigsawMode);
-          }
+          setGameMode("jigsaw");
           if (config.sessionName) {
             setSessionName(config.sessionName);
           }
@@ -163,35 +147,23 @@ export default function GameMasterPage() {
       // Game is active: enforce synced theme/layout
       setIsGameActive(true);
       setSelectedTheme(config.themeId);
-
-      // Ensure boardLayout is always set for active games (backfill older configs)
-      if (!config.boardLayout) {
-        const fallbackTheme = themeList.find((t) => t.id === config.themeId);
-        const fallbackLayout = fallbackTheme?.boardLayout ?? "elephant";
-        GameSync.updateConfig({ boardLayout: fallbackLayout });
-        setSelectedBoardLayout(fallbackLayout);
-        setUserManuallySelectedLayout(true);
-      } else {
-        // Migrate old layouts to new ones
-        const migratedLayout = ['classic', 'alchemist', 'gardener'].includes(config.boardLayout)
-          ? 'elephant'
-          : config.boardLayout;
-        
-        if (migratedLayout !== config.boardLayout) {
-          GameSync.updateConfig({ boardLayout: migratedLayout });
-        }
-        
-        setSelectedBoardLayout(migratedLayout);
-        setUserManuallySelectedLayout(true);
+      if (config.jigsawMode !== "jigsaw") {
+        GameSync.updateConfig({ jigsawMode: "jigsaw" });
       }
+      setGameMode("jigsaw");
       if (config?.jigsawLayout) {
         setSelectedJigsawLayout(config.jigsawLayout);
         setUserManuallySelectedJigsaw(true);
+      } else {
+        const fallback =
+          defaultJigsawLayoutByTheme[(config.themeId ?? "classic") as ThemeId] || DEFAULT_JIGSAW_LAYOUT;
+        GameSync.updateConfig({ jigsawLayout: fallback, boardLayout: fallback });
+        setSelectedJigsawLayout(fallback);
       }
     });
 
     return unsubscribe;
-  }, [userManuallySelectedLayout]);
+  }, []);
 
   useEffect(() => {
     if (!configSnapshot) return;
@@ -270,34 +242,11 @@ export default function GameMasterPage() {
   const isRapidFireActive = challengeMode === "rapid-fire" && !!activeRapidFire;
   const themeSpecificCustomQuotes = customQuotes.filter((quote) => quote.themeId === selectedTheme);
 
-  const handleLayoutChange = (newLayout: BoardLayoutType) => {
-    setSelectedBoardLayout(newLayout);
-    setUserManuallySelectedLayout(true);
-
-    // Find themes that support this layout
-    const compatibleThemes = Object.entries(themeLayoutMapping)
-      .filter(([_, layouts]) => layouts.includes(newLayout))
-      .map(([themeId, _]) => themeId as ThemeId);
-
-    // If current theme supports this layout, keep it; otherwise switch to first compatible theme
-    if (!compatibleThemes.includes(selectedTheme)) {
-      const newTheme = compatibleThemes[0];
-      if (newTheme) {
-        setSelectedTheme(newTheme);
-      }
-    }
-
-    // Live-sync layout when a game is active so all players switch immediately
-    if (configSnapshot?.isGameActive) {
-      GameSync.updateConfig({ boardLayout: newLayout });
-    }
-  };
-
   const handleJigsawLayoutChange = (newLayout: JigsawLayoutId) => {
     setSelectedJigsawLayout(newLayout);
     setUserManuallySelectedJigsaw(true);
     if (configSnapshot?.isGameActive) {
-      GameSync.updateConfig({ jigsawLayout: newLayout, jigsawMode: 'jigsaw' });
+      GameSync.updateConfig({ jigsawLayout: newLayout, boardLayout: newLayout, jigsawMode: 'jigsaw' });
     }
   };
 
@@ -310,8 +259,7 @@ export default function GameMasterPage() {
   };
 
   const handleStartGame = async () => {
-    const themeDefaultLayout = themeList.find((theme) => theme.id === selectedTheme)?.boardLayout;
-    const layoutToUse = userManuallySelectedLayout ? selectedBoardLayout : themeDefaultLayout || selectedBoardLayout;
+    const layoutToUse = selectedJigsawLayout;
     const friendlyName = sessionName.trim() || "Current Session";
     const packsToUse = (selectedQuotePacks.length
       ? selectedQuotePacks
@@ -335,7 +283,7 @@ export default function GameMasterPage() {
         friendlyName,
         selectedTheme,
         layoutToUse,
-        gameMode,
+        "jigsaw",
         packsToUse,
         jigsawLayoutToUse
       );
@@ -483,8 +431,12 @@ export default function GameMasterPage() {
   };
 
   return (
-    <div className="min-h-screen p-3 sm:p-4 md:p-8 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
-      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
+    <div className="relative min-h-screen quest-body overflow-hidden">
+      <div className="quest-ambient" />
+      <div className="quest-orb animate-pulse" style={{ top: "12%", left: "8%" }} />
+      <div className="quest-orb animate-pulse" style={{ bottom: "10%", right: "6%" }} />
+      <div className="relative min-h-screen p-4 sm:p-6 md:p-8">
+        <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
         <header className="text-center space-y-2">
           <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-gray-800 flex items-center justify-center gap-2 sm:gap-3">
@@ -495,7 +447,7 @@ export default function GameMasterPage() {
         </header>
 
         {/* Game Controls */}
-        <section className="bg-white border-2 border-gray-300 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl" aria-labelledby="game-settings-heading">
+        <section className="quest-surface rounded-2xl p-4 sm:p-6 border border-white/10" aria-labelledby="game-settings-heading">
           <h2 id="game-settings-heading" className="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
             <Settings className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" />
             Game Settings
@@ -544,28 +496,17 @@ export default function GameMasterPage() {
               <p id="max-quotes-hint" className="text-xs text-gray-500">4-48 quotes</p>
             </div>
 
-          {/* Theme Selection with Board Layout */}
+          {/* Theme & Layout Templates */}
           <div className="space-y-2 md:col-span-2">
             <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-purple-500" />
-              Theme & Board Layout
+              Theme & Layout Templates
             </label>
             <div className="flex flex-col gap-3">
-              {/* Theme Selection */}
               <div className="flex flex-col md:flex-row gap-3">
                 <select
                   value={selectedTheme}
-                  onChange={(e) => {
-                    const newTheme = e.target.value as ThemeId;
-                    setSelectedTheme(newTheme);
-                    // Sync to the first available layout for this theme
-                    const availableLayouts = themeLayoutMapping[newTheme];
-                    if (availableLayouts && availableLayouts.length > 0) {
-                      setSelectedBoardLayout(availableLayouts[0]);
-                      // Reset manual selection flag when theme changes
-                      setUserManuallySelectedLayout(false);
-                    }
-                  }}
+                  onChange={(e) => setSelectedTheme(e.target.value as ThemeId)}
                   disabled={isGameActive}
                   className="flex-1 px-4 py-3 rounded-lg border-2 border-gray-300 bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50"
                 >
@@ -581,152 +522,76 @@ export default function GameMasterPage() {
                 >
                   <p className="font-semibold text-gray-800 mb-1">Preview: {previewTheme.gameMasterName}</p>
                   <p>{previewTheme.description}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Theme ID: {previewTheme.id}
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Theme ID: {previewTheme.id}</p>
                 </div>
               </div>
-              
-              {/* Board Layout Selection (as part of theme) - Always show all available layouts */}
+
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
-                  <Layout className="w-3 h-3 text-orange-500" />
-                  Choose Board Layout Style
+                  <Puzzle className="w-3 h-3 text-purple-500" />
+                  Jigsaw Layout Templates
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {Object.values(BOARD_LAYOUTS)
-                    .filter((layout) => themeLayoutMapping[selectedTheme]?.includes(layout.type))
-                    .map((layout) => {
-                    const isSelected = selectedBoardLayout === layout.type;
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {jigsawLayoutOptions.map((layout) => {
+                    const isActive = selectedJigsawLayout === layout.id;
                     return (
                       <button
-                        key={layout.type}
+                        key={layout.id}
                         type="button"
-                        onClick={() => handleLayoutChange(layout.type)}
-                        className={`p-3 rounded-lg border-2 transition-all text-left ${
-                          isSelected
+                        onClick={() => handleJigsawLayoutChange(layout.id)}
+                        className={cn(
+                          "rounded-2xl border-2 p-3 text-left transition-all group focus-visible:ring-2 focus-visible:ring-purple-400",
+                          isActive
                             ? "border-puzzle-purple bg-puzzle-purple/10 shadow-lg ring-2 ring-puzzle-purple/20"
-                            : "border-gray-300 bg-gray-50 hover:border-gray-400"
-                        }`}
+                            : "border-gray-200 hover:border-puzzle-purple/40"
+                        )}
+                        aria-pressed={isActive}
                       >
-                        <div className="font-semibold text-gray-800 text-xs mb-1">
-                          {layout.name}
-                          {isSelected && " ✓"}
+                        <div
+                          className="h-24 rounded-xl mb-3 bg-cover bg-center relative overflow-hidden"
+                          style={{ backgroundImage: `url(${layout.preview})` }}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-tr from-black/60 to-transparent" />
+                          <span className="absolute bottom-2 left-3 text-white text-xs font-semibold flex items-center gap-1">
+                            {layout.badgeIcon} {layout.name}
+                          </span>
                         </div>
-                        <div className="text-[10px] text-gray-600">{layout.description}</div>
+                        <p className="text-sm font-semibold text-gray-800">{layout.name}</p>
+                        <p className="text-xs text-gray-600 mt-1">{layout.description}</p>
+                        <div className="flex items-center gap-1 mt-2">
+                          {layout.palette.map((color) => (
+                            <span
+                              key={`${layout.id}-${color}`}
+                              className="h-3 w-3 rounded-full border border-white/40"
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
+                        </div>
+                        {isActive && (
+                          <div className="text-[10px] uppercase text-puzzle-purple font-bold mt-2 flex items-center gap-1">
+                            <span className="inline-flex h-2 w-2 rounded-full bg-puzzle-purple animate-pulse" />
+                            Active Template
+                          </div>
+                        )}
                       </button>
                     );
                   })}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Selected: <span className="font-semibold">{BOARD_LAYOUTS[selectedBoardLayout].name}</span>
-                  {!userManuallySelectedLayout && currentTheme.boardLayout && (
-                    <span className="text-gray-400"> (Theme default)</span>
-                  )}
+                <p className="text-xs text-gray-500">
+                  Selected: <span className="font-semibold">{selectedJigsawLayoutMeta?.name ?? "Aurora Grove"}</span>
+                  {!userManuallySelectedJigsaw && <span className="text-gray-400"> (Theme default)</span>}
+                </p>
+                <p className="text-[11px] text-gray-500">
+                  Swapping templates updates all players instantly. Pixi jigsaw demo (/pixi-jigsaw) stays in sync.
                 </p>
               </div>
 
-              {gameMode === 'jigsaw' && (
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
-                    <Puzzle className="w-3 h-3 text-purple-500" />
-                    Jigsaw Layout Templates
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {jigsawLayoutOptions.map((layout) => {
-                      const isActive = selectedJigsawLayout === layout.id;
-                      return (
-                        <button
-                          key={layout.id}
-                          type="button"
-                          onClick={() => handleJigsawLayoutChange(layout.id)}
-                          className={cn(
-                            "rounded-2xl border-2 p-3 text-left transition-all group focus-visible:ring-2 focus-visible:ring-purple-400",
-                            isActive
-                              ? "border-puzzle-purple bg-puzzle-purple/10 shadow-lg ring-2 ring-puzzle-purple/20"
-                              : "border-gray-200 hover:border-puzzle-purple/40"
-                          )}
-                          aria-pressed={isActive}
-                        >
-                          <div
-                            className="h-24 rounded-xl mb-3 bg-cover bg-center relative overflow-hidden"
-                            style={{ backgroundImage: `url(${layout.preview})` }}
-                          >
-                            <div className="absolute inset-0 bg-gradient-to-tr from-black/60 to-transparent" />
-                            <span className="absolute bottom-2 left-3 text-white text-xs font-semibold flex items-center gap-1">
-                              {layout.badgeIcon} {layout.name}
-                            </span>
-                          </div>
-                          <p className="text-sm font-semibold text-gray-800">{layout.name}</p>
-                          <p className="text-xs text-gray-600 mt-1">{layout.description}</p>
-                          <div className="flex items-center gap-1 mt-2">
-                            {layout.palette.map((color) => (
-                              <span
-                                key={`${layout.id}-${color}`}
-                                className="h-3 w-3 rounded-full border border-white/40"
-                                style={{ backgroundColor: color }}
-                              />
-                            ))}
-                          </div>
-                          {isActive && (
-                            <div className="text-[10px] uppercase text-puzzle-purple font-bold mt-2 flex items-center gap-1">
-                              <span className="inline-flex h-2 w-2 rounded-full bg-puzzle-purple animate-pulse" />
-                              Active Template
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Selected: <span className="font-semibold">{selectedJigsawLayoutMeta?.name ?? "Aurora Grove"}</span>
-                    {!userManuallySelectedJigsaw && (
-                      <span className="text-gray-400"> (Theme default)</span>
-                    )}
-                  </p>
-                  <p className="text-[11px] text-gray-500">
-                    You can swap jigsaw layouts mid-game and every player board updates instantly. The Pixi jigsaw demo page (/pixi-jigsaw) also syncs with your layout choice.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Jigsaw Puzzle Mode */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <div className="flex items-center gap-3 text-xs text-gray-600 bg-purple-50 border border-purple-200 rounded-lg p-3">
                 <Puzzle className="w-4 h-4 text-purple-500" />
-                Game Mode
-              </label>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="gameMode"
-                    checked={gameMode === 'classic'}
-                    onChange={() => setGameMode('classic')}
-                    disabled={isGameActive}
-                    className="w-4 h-4 text-purple-600 focus:ring-purple-500"
-                  />
-                  <span className="text-sm text-gray-700">Classic Card Sorting</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="gameMode"
-                    checked={gameMode === 'jigsaw'}
-                    onChange={() => setGameMode('jigsaw')}
-                    disabled={isGameActive}
-                    className="w-4 h-4 text-purple-600 focus:ring-purple-500"
-                  />
-                  <span className="text-sm text-gray-700">Jigsaw Puzzle Mode</span>
-                </label>
+                <span>Jigsaw mode is always on. Players see the selected template.</span>
               </div>
-              <p className="text-xs text-gray-500">
-                {gameMode === 'jigsaw'
-                  ? "Players assemble irregular puzzle pieces on a themed background image"
-                  : "Players drag rectangular cards to phase drop zones"}
-              </p>
             </div>
+          </div>
             {/* Quote Pack Selection */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-gray-600 flex items-center gap-2">
@@ -818,11 +683,9 @@ export default function GameMasterPage() {
                     <span>
                       Theme: <span className="font-semibold">{currentTheme.name}</span>
                     </span>
-                    {configSnapshot?.boardLayout && (
-                      <span>
-                        Layout: <span className="font-semibold">{BOARD_LAYOUTS[configSnapshot.boardLayout].name}</span>
-                      </span>
-                    )}
+                    <span>
+                      Layout: <span className="font-semibold">{activeJigsawLayoutName}</span>
+                    </span>
                     {configSnapshot?.quotePackIds && configSnapshot.quotePackIds.length > 0 && (
                       <span>
                         Quote Packs:{" "}
@@ -907,7 +770,7 @@ export default function GameMasterPage() {
         </section>
 
         {/* Challenge Controls */}
-        <div className="bg-white border-2 border-indigo-200 rounded-2xl p-6 shadow-xl space-y-4">
+        <div className="quest-surface rounded-2xl p-6 border border-white/10 space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Zap className="w-5 h-5 text-indigo-500" />
             <h2 className="text-2xl font-bold text-gray-800">Challenge Rounds & Power-Ups</h2>
@@ -982,7 +845,7 @@ export default function GameMasterPage() {
         </div>
 
         {/* Custom Quotes Manager */}
-        <div className="bg-white border-2 border-green-200 rounded-2xl p-6 shadow-xl space-y-4">
+        <div className="quest-surface rounded-2xl p-6 border border-white/10 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -1157,7 +1020,7 @@ export default function GameMasterPage() {
 
         {/* Active Players */}
         {filteredActivePlayers.length > 0 && (
-          <section className="bg-white border-2 border-blue-300 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl" aria-labelledby="active-players-heading">
+          <section className="quest-surface rounded-2xl p-4 sm:p-6 border border-white/10" aria-labelledby="active-players-heading">
             <h2 id="active-players-heading" className="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
               <Users className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" />
               Active Players ({filteredActivePlayers.length})
@@ -1194,7 +1057,7 @@ export default function GameMasterPage() {
         )}
 
         {/* Leaderboard by Session */}
-        <section className="bg-white border-2 border-gray-300 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl" aria-labelledby="leaderboard-heading">
+        <section className="quest-surface rounded-2xl p-4 sm:p-6 border border-white/10" aria-labelledby="leaderboard-heading">
           <h2 id="leaderboard-heading" className="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
             <Trophy className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" />
             Final Leaderboard by Session
@@ -1263,6 +1126,7 @@ export default function GameMasterPage() {
           )}
         </section>
       </div>
+    </div>
     </div>
   );
 }

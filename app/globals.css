@@ -66,6 +66,76 @@
   }
 }
 
+/* Puzzle Quest aesthetic (glass + ambient orbs) */
+:root {
+  --quest-bg: url("/quest/images/app-background.jpg");
+  --quest-glow: 198 90% 65%;
+  --quest-accent: 43 96% 62%;
+  --quest-card: rgba(255, 255, 255, 0.82);
+  --quest-border: rgba(255, 255, 255, 0.32);
+}
+
+.quest-surface {
+  background: var(--quest-card);
+  border: 1px solid var(--quest-border);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.quest-border {
+  border: 1px solid var(--quest-border);
+}
+
+.quest-glow-text {
+  text-shadow: 0 0 12px hsl(var(--quest-glow)), 0 0 24px hsla(var(--quest-glow) / 0.6);
+}
+
+.quest-ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.quest-ambient::before,
+.quest-ambient::after {
+  content: "";
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  filter: blur(140px);
+  opacity: 0.35;
+  border-radius: 9999px;
+}
+
+.quest-ambient::before {
+  top: -18%;
+  left: -12%;
+  background: radial-gradient(circle at center, hsla(var(--quest-glow) / 0.7), transparent 60%);
+}
+
+.quest-ambient::after {
+  bottom: -18%;
+  right: -14%;
+  background: radial-gradient(circle at center, hsla(var(--quest-accent) / 0.7), transparent 60%);
+}
+
+.quest-orb {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 30%, #fff, hsla(var(--quest-glow) / 0.8) 35%, transparent 70%);
+  mix-blend-mode: screen;
+  filter: blur(6px);
+}
+
+.quest-body {
+  background-image: var(--quest-bg);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
 /* Mobile touch improvements */
 @layer utilities {
   .touch-manipulation {

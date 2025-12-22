@@ -369,7 +369,7 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     phaseHints: { ...sharedPhaseHints },
     quotes: classicQuotes,
     rapidFireQuestions: [...defaultRapidFire],
-    boardLayout: "elephant",
+    boardLayout: "auroraGrove",
     availableLayouts: ["elephant", "cyberpunk", "enchantedForest", "steampunk"],
   },
   science: {
@@ -386,7 +386,7 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     },
     quotes: scienceQuotes as ThemeDefinition["quotes"],
     rapidFireQuestions: [...scienceRapidFire],
-    boardLayout: "cyberpunk",
+    boardLayout: "chronoForge",
     availableLayouts: ["cyberpunk", "enchantedForest", "steampunk"],
   },
   art: {
@@ -402,7 +402,7 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     },
     quotes: artQuotes as ThemeDefinition["quotes"],
     rapidFireQuestions: [...artRapidFire],
-    boardLayout: "enchantedForest",
+    boardLayout: "lumenBazaar",
     availableLayouts: ["cyberpunk", "enchantedForest", "steampunk"],
   },
   entrepreneurship: {
@@ -418,7 +418,7 @@ export const themeLibrary: Record<ThemeId, ThemeDefinition> = {
     },
     quotes: entrepreneurshipQuotes as ThemeDefinition["quotes"],
     rapidFireQuestions: [...bizRapidFire],
-    boardLayout: "cyberpunk",
+    boardLayout: "tidalCircuit",
     availableLayouts: ["cyberpunk", "enchantedForest", "steampunk"],
   },
 };

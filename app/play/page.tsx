@@ -17,7 +17,6 @@ import { EndScreen } from "@/components/EndScreen";
 import { QuoteCard } from "@/components/QuoteCard";
 import { PuzzlePiece } from "@/components/PuzzlePiece";
 import { Timer } from "@/components/Timer";
-import { PuzzleBoard } from "@/components/PuzzleBoard";
 import { GameGuide } from "@/components/GameGuide";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { DragDropProvider, DraggableQuote, DraggableTitle } from "@/components/DragDropProvider";
@@ -28,9 +27,8 @@ import { playSuccessTone, playErrorTone, playAlertTone } from "@/lib/soundboard"
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Zap, Palette } from "lucide-react";
-import { BOARD_LAYOUTS, type BoardLayoutType } from "@/types/boardLayout";
 import { RealtimeStore } from "@/lib/realtimeStore";
-import { DragStartEvent, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
+import { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { quotePackagesById, getDefaultQuotePackIds, type QuotePackId } from "@/data/quotePackages";
 import {
   DEFAULT_JIGSAW_LAYOUT,
@@ -53,22 +51,8 @@ const themeToWorld: Record<ThemeId, GameTheme> = {
   entrepreneurship: "explorer",
 };
 
-const layoutThemeOverrides: Partial<Record<BoardLayoutType, GameTheme>> = {
-  classic: "ui",
-  alchemist: "alchemist",
-  gardener: "gardener",
-  cyberpunk: "cyberpunk",
-  enchantedForest: "enchantedForest",
-  steampunk: "steampunk",
-};
-
-const deriveGameTheme = (themeId: ThemeId, boardLayout?: BoardLayoutType): GameTheme => {
-  const themeFromId = themeToWorld[themeId] || "observatory";
-  // Only fall back to layout-specific visuals when the GM selected the default theme.
-  if (themeId === "classic" && boardLayout && layoutThemeOverrides[boardLayout]) {
-    return layoutThemeOverrides[boardLayout]!;
-  }
-  return themeFromId;
+const deriveGameTheme = (themeId: ThemeId): GameTheme => {
+  return themeToWorld[themeId] || "observatory";
 };
 
 const dedupeQuotes = (quotes: Quote[]): Quote[] => {
@@ -161,7 +145,6 @@ export default function PlayPage() {
   });
   const [draggedQuote, setDraggedQuote] = useState<Quote | null>(null);
   const [draggedTitle, setDraggedTitle] = useState<PhaseTitle | null>(null);
-  const [highlightedZone, setHighlightedZone] = useState<Phase | null>(null);
   const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
   const [userPuzzlePiece, setUserPuzzlePiece] = useState<Quote | null>(null);
   const [gameConfig, setGameConfig] = useState<ReturnType<typeof GameSync.getConfig>>(null);
@@ -189,6 +172,7 @@ export default function PlayPage() {
     (gameConfig?.jigsawLayout as JigsawLayoutId) ??
     defaultJigsawLayoutByTheme[(gameConfig?.themeId ?? themeId) as ThemeId] ??
     DEFAULT_JIGSAW_LAYOUT;
+  const activeJigsawName = jigsawThemeConfigs[resolvedJigsawLayout]?.name ?? "Aurora Grove";
 
   // Memoized component callbacks for drag and drop - must be defined before any conditional returns
   const quoteComponent = useCallback(({ quote, isDragging }: { quote: Quote; isDragging?: boolean }) => {
@@ -238,7 +222,7 @@ export default function PlayPage() {
     </div>
   ), []);
 
-  const resolvedGameTheme = deriveGameTheme(gameConfig?.themeId ?? themeId, gameConfig?.boardLayout);
+  const resolvedGameTheme = deriveGameTheme(gameConfig?.themeId ?? themeId);
   const visualTheme = gameConfig ? resolvedGameTheme : gameTheme;
   const themeConfig = getThemeConfig(visualTheme);
   const sessionQuotePackIds = useMemo(() => {
@@ -269,13 +253,20 @@ export default function PlayPage() {
       // Backfill missing board layout so players don't fall back to theme defaults
       if (config && !config.boardLayout) {
         const themeDef = themeLibrary[config.themeId] ?? themeLibrary.classic;
-        const fallbackLayout = themeDef.boardLayout ?? "elephant";
+        const fallbackLayout =
+          defaultJigsawLayoutByTheme[(config.themeId as ThemeId) ?? "classic"] ?? DEFAULT_JIGSAW_LAYOUT;
         GameSync.updateConfig({ boardLayout: fallbackLayout });
       }
-      
-      // Migrate old layouts to new ones
-      if (config && config.boardLayout && ['classic', 'alchemist', 'gardener'].includes(config.boardLayout)) {
-        GameSync.updateConfig({ boardLayout: 'elephant' });
+
+      // Migrate legacy layouts to the default jigsaw template
+      if (
+        config &&
+        config.boardLayout &&
+        ['classic', 'alchemist', 'gardener', 'cyberpunk', 'enchantedForest', 'steampunk', 'elephant'].includes(
+          config.boardLayout as string
+        )
+      ) {
+        GameSync.updateConfig({ boardLayout: DEFAULT_JIGSAW_LAYOUT });
       }
     });
 
@@ -308,7 +299,7 @@ export default function PlayPage() {
 
   useEffect(() => {
     if (!gameConfig) return;
-    const resolved = deriveGameTheme(gameConfig.themeId ?? themeId, gameConfig.boardLayout);
+    const resolved = deriveGameTheme(gameConfig.themeId ?? themeId);
     if (resolved !== gameTheme) {
       setGameTheme(resolved);
     }
@@ -335,11 +326,7 @@ export default function PlayPage() {
     if (gameConfig?.themeId) {
       setThemeId(gameConfig.themeId);
     }
-    // Sync board layout from game config (cross-device sync)
-    if (gameConfig?.boardLayout) {
-      // Board layout is automatically used in PuzzleBoard component
-      // This ensures all players see the same layout
-    }
+    // Sync layout from game config (cross-device sync) via jigsaw layout
   }, [gameConfig?.themeId, gameConfig?.boardLayout]);
 
   useEffect(() => {
@@ -385,7 +372,7 @@ export default function PlayPage() {
 
     const activeThemeId = config.themeId ?? "classic";
     const themeDefinition = themeLibrary[activeThemeId] ?? themeLibrary.classic;
-    const resolvedTheme = deriveGameTheme(activeThemeId, config.boardLayout);
+    const resolvedTheme = deriveGameTheme(activeThemeId);
     const themeConfig = getThemeConfig(resolvedTheme);
     const gameJigsawMode = config.jigsawMode === 'jigsaw';
 
@@ -508,6 +495,15 @@ export default function PlayPage() {
     // No game master time limit - return base points only
     return basePoints;
   }, [calculatePoints]);
+
+  const renderWithShell = (content: JSX.Element) => (
+    <div className="relative min-h-screen quest-body overflow-hidden">
+      <div className="quest-ambient" />
+      <div className="quest-orb animate-pulse" style={{ top: "10%", left: "8%" }} />
+      <div className="quest-orb animate-pulse" style={{ bottom: "12%", right: "6%" }} />
+      <div className="relative">{content}</div>
+    </div>
+  );
 
   const recordCorrectPlacement = useCallback(
     (phase: Phase) => {
@@ -711,18 +707,6 @@ export default function PlayPage() {
     setDraggedQuote(null);
     setDraggedTitle(null);
     setHighlightedZone(null);
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
-    if (over) {
-      const dropZoneData = over.data.current;
-      if (dropZoneData?.type === 'drop-zone') {
-        setHighlightedZone(dropZoneData.phase as Phase);
-      }
-    } else {
-      setHighlightedZone(null);
-    }
   };
 
   const handleDrop = (phase: Phase) => {
@@ -991,13 +975,13 @@ export default function PlayPage() {
   };
 
   if (!gameState.isStarted) {
-    return <StartScreen onStart={handleStart} />;
+    return renderWithShell(<StartScreen onStart={handleStart} />);
   }
 
   if (gameState.isCompleted) {
     let score = calculateCorrectCount();
 
-    return (
+    return renderWithShell(
       <EndScreen
         score={score}
         points={gameState.points}
@@ -1012,12 +996,6 @@ export default function PlayPage() {
   }
 
   const correctPlacements = calculateCorrectCount();
-  // Migrate old layouts to new ones
-  const rawBoardLayout = gameConfig?.boardLayout ?? activeTheme.boardLayout ?? "elephant";
-  const derivedBoardLayout = ['classic', 'alchemist', 'gardener'].includes(rawBoardLayout) 
-    ? 'elephant' 
-    : rawBoardLayout;
-
   // Get remaining time from game config
   const remainingTime = gameConfig?.gameEndTime
     ? Math.max(0, Math.floor((gameConfig.gameEndTime - Date.now()) / 1000))
@@ -1027,11 +1005,10 @@ export default function PlayPage() {
   const isRapidFireActive = challengeMode === "rapid-fire" && !!rapidFireQuestion;
   const hasAnsweredRapidFire =
     isRapidFireActive && rapidFireQuestion ? answeredQuizzes.includes(rapidFireQuestion.id) : false;
-  return (
+  return renderWithShell(
     <DragDropProvider
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      onDragOver={handleDragOver}
       draggedQuote={draggedQuote}
       draggedTitle={draggedTitle}
       quoteComponent={quoteComponent}
@@ -1063,10 +1040,10 @@ export default function PlayPage() {
       >
       {/* Game Master Timer Display */}
       {gameConfig?.isGameActive && remainingTime !== null && (
-        <div className="fixed top-2 sm:top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg shadow-xl border-2 border-red-700 max-w-[90vw]">
+        <div className="fixed top-2 sm:top-4 left-1/2 transform -translate-x-1/2 z-50 quest-surface border border-white/30 text-gray-800 px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-lg shadow-2xl max-w-[90vw]">
           <div className="text-center">
-            <div className="text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1">Game Master Timer</div>
-            <div className={`text-xl sm:text-2xl md:text-3xl font-bold font-mono ${remainingTime <= 30 ? "animate-pulse" : ""}`}>
+            <div className="text-[10px] sm:text-xs font-semibold mb-0.5 sm:mb-1 text-purple-700">Game Master Timer</div>
+            <div className={`text-xl sm:text-2xl md:text-3xl font-bold font-mono text-purple-800 ${remainingTime <= 30 ? "animate-pulse" : ""}`}>
               {Math.floor(remainingTime / 60)}:{(remainingTime % 60).toString().padStart(2, "0")}
             </div>
           </div>
@@ -1075,8 +1052,8 @@ export default function PlayPage() {
 
       <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
         {challengeMode === "double-points" && (
-          <div className="bg-amber-500/90 border-2 border-amber-600 rounded-xl text-white px-4 py-3 flex items-center gap-3 shadow-lg">
-            <Zap className="w-5 h-5" />
+          <div className="quest-surface border border-white/20 rounded-xl text-purple-900 px-4 py-3 flex items-center gap-3 shadow-lg">
+            <Zap className="w-5 h-5 text-purple-600" />
             <div className="text-sm sm:text-base font-semibold">
               Double Points Round Active! Every correct placement counts twice.
             </div>
@@ -1084,31 +1061,31 @@ export default function PlayPage() {
         )}
 
         {isRapidFireActive && rapidFireQuestion && !hasAnsweredRapidFire && (
-          <div className="bg-purple-600/90 border-2 border-purple-700 rounded-xl text-white p-4 space-y-3 shadow-2xl">
+          <div className="quest-surface border border-white/20 rounded-xl text-gray-900 p-4 space-y-3 shadow-2xl">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5" />
-              <h3 className="text-lg font-bold">Rapid Fire Question!</h3>
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              <h3 className="text-lg font-bold text-purple-800">Rapid Fire Question!</h3>
             </div>
-            <p className="text-sm">{rapidFireQuestion.question}</p>
+            <p className="text-sm text-gray-800">{rapidFireQuestion.question}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {rapidFireQuestion.options.map((option, index) => (
                 <button
                   key={option}
                   onClick={() => handleRapidFireAnswer(index)}
-                  className="w-full bg-white/10 hover:bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors"
+                  className="w-full bg-white/60 hover:bg-white border border-white/50 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors text-gray-900"
                 >
                   {option}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-white/80">
+            <p className="text-xs text-gray-700">
               Correct answers earn +{QUIZ_BONUS_POINTS} bonus points for your team.
             </p>
           </div>
         )}
 
         {isRapidFireActive && hasAnsweredRapidFire && (
-          <div className="bg-purple-100 border-2 border-purple-300 rounded-xl p-3 text-sm text-purple-900">
+          <div className="quest-surface border border-white/30 rounded-xl p-3 text-sm text-gray-800">
             Rapid fire answered! Watch for the next Kahoot-style challenge from the game master.
           </div>
         )}
@@ -1126,7 +1103,7 @@ export default function PlayPage() {
                 Theme: {themeConfig.name}
               </span>
               <span className="text-muted-foreground">
-                • Layout: {BOARD_LAYOUTS[derivedBoardLayout].name}
+                • Layout: {activeJigsawName}
               </span>
               <span className="text-muted-foreground">
                 • Quote Packs: {sessionQuotePackNames.join(", ")}
@@ -1135,11 +1112,11 @@ export default function PlayPage() {
                 size="sm"
                 variant="outline"
                 onClick={() => setShowThemeSelector(true)}
-                disabled={!!gameConfig?.boardLayout}
+                disabled={!!gameConfig?.isGameActive}
                 className="text-xs px-2 py-1 h-auto"
               >
                 <Palette className="w-3 h-3 mr-1" />
-                {gameConfig?.boardLayout ? "Theme Locked" : "Change Theme"}
+                {gameConfig?.isGameActive ? "Theme Locked" : "Change Theme"}
               </Button>
             </div>
           </div>
@@ -1172,8 +1149,8 @@ export default function PlayPage() {
             <GameGuide />
 
             <div
-              className={`bg-card border-2 rounded-lg p-3 sm:p-4 transition-all ${
-                comboGlow ? "border-amber-400 shadow-lg shadow-amber-100" : "border-border"
+              className={`quest-surface rounded-xl p-3 sm:p-4 transition-all ${
+                comboGlow ? "shadow-lg shadow-amber-100 border-amber-200/70" : ""
               }`}
             >
               <div className="flex items-center justify-between mb-2">
@@ -1197,7 +1174,7 @@ export default function PlayPage() {
               </div>
             </div>
 
-            <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-3 sm:p-4 space-y-3">
+            <div className="quest-surface rounded-xl p-3 sm:p-4 space-y-3">
               <h3 className="text-xs sm:text-sm font-bold text-orange-700">
                 Collaborative Hint (-{HINT_COST} pts)
               </h3>
@@ -1205,7 +1182,7 @@ export default function PlayPage() {
                 Spend points like a Kahoot power-up to reveal a class-wide hint.
               </p>
               <select
-                className="w-full border-2 border-orange-200 rounded-lg px-2 py-2 text-xs"
+                className="w-full border border-white/40 rounded-lg px-2 py-2 text-xs"
                 value={selectedHintPhase}
                 onChange={(e) => setSelectedHintPhase(e.target.value as Phase)}
                 disabled={!!activeHint}
@@ -1219,7 +1196,7 @@ export default function PlayPage() {
               <Button
                 onClick={handleUnlockHint}
                 disabled={!!activeHint || gameState.points < HINT_COST}
-                className="w-full"
+                className="w-full glass-button"
               >
                 {activeHint ? "Hint Active" : "Unlock Hint"}
               </Button>
@@ -1229,7 +1206,7 @@ export default function PlayPage() {
             </div>
 
             {availableTitles.length > 0 && (
-              <div className="bg-accent/20 border-2 border-accent rounded-lg sm:rounded-xl p-3 sm:p-4">
+              <div className="quest-surface rounded-xl p-3 sm:p-4">
                 <h3 className="text-xs sm:text-sm font-bold text-foreground mb-1 sm:mb-2">
                   Phase Titles ({availableTitles.length})
                 </h3>
@@ -1253,7 +1230,7 @@ export default function PlayPage() {
             )}
 
             {userPuzzlePiece && (
-              <div className="bg-primary/10 border-2 border-primary rounded-lg sm:rounded-xl p-3 sm:p-4">
+              <div className="quest-surface rounded-xl p-3 sm:p-4">
                 <h3 className="text-xs sm:text-sm font-bold text-primary mb-2 sm:mb-3">
                   Your Creative Moment
                 </h3>
@@ -1270,7 +1247,7 @@ export default function PlayPage() {
             )}
 
             {availableQuotes.length > 0 && (
-              <div className="bg-card/50 rounded-lg sm:rounded-xl p-3 sm:p-4 border-2 border-border max-h-[300px] sm:max-h-[400px] md:max-h-[500px] overflow-y-auto">
+              <div className="quest-surface rounded-xl p-3 sm:p-4 max-h-[300px] sm:max-h-[400px] md:max-h-[500px] overflow-y-auto">
                 <h3 className="text-xs sm:text-sm font-bold text-foreground mb-1 sm:mb-2">
                   Puzzle Pieces to Place ({availableQuotes.length})
                 </h3>
@@ -1303,12 +1280,12 @@ export default function PlayPage() {
 
           <div className="flex-1 w-full">
             {activeHint && (
-              <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3 sm:p-4 mb-3">
-                <div className="text-xs sm:text-sm font-semibold text-yellow-800">
+              <div className="quest-surface rounded-xl p-3 sm:p-4 mb-3 border border-amber-200/60">
+                <div className="text-xs sm:text-sm font-semibold text-amber-800">
                   Shared Hint • {PHASE_LABELS[activeHint.phase]}
                 </div>
-                <p className="text-sm text-yellow-900 mt-1">{activeHint.message}</p>
-                <p className="text-[10px] text-yellow-700 mt-1">
+                <p className="text-sm text-amber-900 mt-1">{activeHint.message}</p>
+                <p className="text-[10px] text-amber-700 mt-1">
                   Triggered by {activeHint.activatedBy}
                   <span className="font-semibold ml-1">
                     Drop a piece into the glowing phase to follow this hint.
@@ -1316,39 +1293,17 @@ export default function PlayPage() {
                 </p>
               </div>
             )}
-            {isJigsawMode ? (
-              <JigsawBoard
-                quotes={puzzleQuotes}
-                themeId={gameConfig?.themeId ?? themeId}
-                layoutId={resolvedJigsawLayout}
-                placedQuotes={placedQuotes}
-                onGameComplete={handleGameEnd}
-                hintPhase={activeHint?.phase ?? null}
-              />
-            ) : (
-              <PuzzleBoard
-                correctPlacements={correctPlacements}
-                totalPieces={puzzleQuotes.length + 1 + phaseTitles.length}
-                wrongAttempts={wrongAttempts}
-                boardBackground={themeConfig.boardBackground}
-                placedQuotes={placedQuotes}
-                boardLayout={derivedBoardLayout}
-                placedTitles={placedTitles}
-                onDrop={
-                  userPuzzlePiece && draggedQuote?.id === "user-answer"
-                    ? handleDropUserPiece
-                    : handleDrop
-                }
-                highlightedZone={highlightedZone ?? activeHint?.phase ?? null}
-                draggedQuote={draggedQuote}
-                draggedTitle={draggedTitle}
-                themeConfig={themeConfig}
-              />
-            )}
+            <JigsawBoard
+              quotes={puzzleQuotes}
+              themeId={gameConfig?.themeId ?? themeId}
+              layoutId={resolvedJigsawLayout}
+              placedQuotes={placedQuotes}
+              onGameComplete={handleGameEnd}
+              hintPhase={activeHint?.phase ?? null}
+            />
           </div>
         </div>
       </div>
-    </div>
     </DragDropProvider>
   );
 }
