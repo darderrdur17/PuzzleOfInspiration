@@ -94,7 +94,7 @@ export function GameGuide() {
               </div>
               <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
                 <strong className="text-yellow-300 text-base">💡 Illumination:</strong>
-                <div className="text-gray-400 mt-1">The "aha!" moment of insight</div>
+                <div className="text-gray-400 mt-1">The &ldquo;aha!&rdquo; moment of insight</div>
               </div>
               <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
                 <strong className="text-green-300 text-base">✅ Verification:</strong>
@@ -108,7 +108,7 @@ export function GameGuide() {
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-purple-300 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-purple-200">
-                <strong className="text-purple-100">Pro Tip:</strong> Wrong placements return automatically. Think deeply about each quote's creative meaning for the best results!
+                <strong className="text-purple-100">Pro Tip:</strong> Wrong placements return automatically. Think deeply about each quote&apos;s creative meaning for the best results!
               </div>
             </div>
           </div>
