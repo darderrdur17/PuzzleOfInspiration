@@ -221,6 +221,11 @@ export default function PixiJigsawPage() {
                     glow: layout.accentColors.glow,
                     overlayGradient: layout.overlayGradient,
                   }}
+                  themeConfig={{
+                    floatingOrbs: layout.floatingOrbs,
+                    grid: layout.grid,
+                    accentColors: layout.accentColors,
+                  }}
                   layoutId={layoutId}
                   className="mx-auto"
                   onComplete={() => toast.success("Puzzle complete!")}

@@ -33,6 +33,17 @@ export type PixiJigsawTheme = {
   overlayGradient?: string;
 };
 
+export type PixiJigsawThemeConfig = {
+  floatingOrbs?: Array<{ top: string; left: string; size: number; color: string; blur?: number; opacity?: number }>;
+  grid?: { color: string; size: number; opacity: number; angle?: number; speed?: number };
+  accentColors: {
+    primary: string;
+    secondary: string;
+    glow: string;
+    palette: [string, string, string];
+  };
+};
+
 export type PixiJigsawLevel = {
   id: string;
   title: string;
@@ -156,6 +167,7 @@ export function PixiJigsawPuzzle({
   className,
   onComplete,
   layoutId,
+  themeConfig,
 }: {
   levelId: string;
   rows: number;
@@ -165,6 +177,7 @@ export function PixiJigsawPuzzle({
   className?: string;
   onComplete?: () => void;
   layoutId?: string;
+  themeConfig?: PixiJigsawThemeConfig;
 }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const appRef = useRef<PIXI.Application | null>(null);
@@ -241,26 +254,127 @@ export function PixiJigsawPuzzle({
 
     const baseTexture = PIXI.Texture.from(baseCanvas);
 
-    // 2) Visual board frame + subtle grid.
+    // Background decorations layer (behind everything)
+    const bgDecorationsLayer = new PIXI.Container();
+    app.stage.addChild(bgDecorationsLayer);
+
+    // Add floating orbs if theme config provides them
+    if (themeConfig?.floatingOrbs) {
+      themeConfig.floatingOrbs.forEach((orb, index) => {
+        const orbSprite = new PIXI.Graphics();
+        const orbColor = hexToNumber(orb.color, 0x22d3ee);
+        const orbSize = Math.floor((orb.size / 100) * Math.min(cssWidth, cssHeight));
+        
+        // Create gradient orb
+        orbSprite.beginFill(orbColor, orb.opacity ?? 0.7);
+        orbSprite.drawCircle(0, 0, orbSize);
+        orbSprite.endFill();
+        
+        // Add glow effect
+        const glowSprite = new PIXI.Graphics();
+        glowSprite.beginFill(orbColor, (orb.opacity ?? 0.7) * 0.3);
+        glowSprite.drawCircle(0, 0, orbSize * 1.5);
+        glowSprite.endFill();
+        glowSprite.filters = [new PIXI.BlurFilter(orb.blur ?? 20)];
+        
+        const orbContainer = new PIXI.Container();
+        orbContainer.addChild(glowSprite);
+        orbContainer.addChild(orbSprite);
+        
+        // Position based on percentage
+        const leftPercent = parseFloat(orb.left) / 100;
+        const topPercent = parseFloat(orb.top) / 100;
+        orbContainer.x = cssWidth * leftPercent;
+        orbContainer.y = cssHeight * topPercent;
+        orbContainer.alpha = orb.opacity ?? 0.7;
+        
+        bgDecorationsLayer.addChild(orbContainer);
+        
+        // Animate floating
+        let orbTime = index * 0.8;
+        const orbAnim = () => {
+          orbTime += 0.01;
+          orbContainer.x = cssWidth * leftPercent + Math.sin(orbTime) * 12;
+          orbContainer.y = cssHeight * topPercent + Math.cos(orbTime * 0.7) * 18;
+          orbContainer.scale.set(1 + Math.sin(orbTime * 0.5) * 0.05);
+          orbContainer.alpha = (orb.opacity ?? 0.7) * (0.5 + Math.sin(orbTime * 0.3) * 0.35);
+        };
+        app.ticker.add(orbAnim);
+      });
+    }
+
+    // 2) Visual board frame + enhanced grid.
     const boardFrame = new PIXI.Graphics();
-    boardFrame.lineStyle(3, accentPrimary, 0.7);
-    boardFrame.beginFill(0x0b1220, 0.22);
-    boardFrame.drawRoundedRect(boardX - 10, boardY - 10, boardW + 20, boardH + 20, 18);
+    boardFrame.lineStyle(4, accentPrimary, 0.8);
+    boardFrame.beginFill(0x0b1220, 0.25);
+    boardFrame.drawRoundedRect(boardX - 12, boardY - 12, boardW + 24, boardH + 24, 20);
     boardFrame.endFill();
+    
+    // Add glow effect to frame
+    const frameGlow = new PIXI.Graphics();
+    frameGlow.lineStyle(8, accentPrimary, 0.15);
+    frameGlow.drawRoundedRect(boardX - 12, boardY - 12, boardW + 24, boardH + 24, 20);
+    frameGlow.filters = [new PIXI.BlurFilter(8)];
+    app.stage.addChild(frameGlow);
     app.stage.addChild(boardFrame);
 
+    // Enhanced grid with theme-specific styling
     const grid = new PIXI.Graphics();
-    grid.alpha = 0.18;
-    grid.lineStyle(1, accentSecondary, 0.5);
-    for (let r = 1; r < rows; r++) {
-      grid.moveTo(boardX, boardY + r * pieceH);
-      grid.lineTo(boardX + boardW, boardY + r * pieceH);
+    if (themeConfig?.grid) {
+      // Animated diagonal grid pattern
+      grid.alpha = themeConfig.grid.opacity;
+      const gridColor = hexToNumber(themeConfig.grid.color, accentSecondary);
+      const gridAngle = themeConfig.grid.angle ?? 45;
+      const gridSize = themeConfig.grid.size;
+      
+      let gridOffset = 0;
+      const gridAnim = () => {
+        gridOffset += 0.5;
+        grid.clear();
+        grid.lineStyle(1, gridColor, 0.4);
+        
+        // Draw diagonal grid lines
+        const rad = (gridAngle * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        const spacing = gridSize;
+        
+        for (let i = -cssWidth; i < cssWidth + cssHeight; i += spacing) {
+          const x1 = i;
+          const y1 = 0;
+          const x2 = i + cssHeight * sin;
+          const y2 = cssHeight * cos;
+          grid.moveTo(x1, y1);
+          grid.lineTo(x2, y2);
+        }
+        
+        const perpRad = rad + Math.PI / 2;
+        const perpCos = Math.cos(perpRad);
+        const perpSin = Math.sin(perpRad);
+        for (let i = -cssHeight; i < cssHeight + cssWidth; i += spacing) {
+          const x1 = 0;
+          const y1 = i;
+          const x2 = cssWidth * perpCos;
+          const y2 = i + cssWidth * perpSin;
+          grid.moveTo(x1, y1);
+          grid.lineTo(x2, y2);
+        }
+      };
+      app.ticker.add(gridAnim);
+    } else {
+      // Fallback simple grid
+      grid.alpha = 0.18;
+      grid.lineStyle(1, accentSecondary, 0.5);
+      for (let r = 1; r < rows; r++) {
+        grid.moveTo(boardX, boardY + r * pieceH);
+        grid.lineTo(boardX + boardW, boardY + r * pieceH);
+      }
+      for (let c = 1; c < cols; c++) {
+        grid.moveTo(boardX + c * pieceW, boardY);
+        grid.lineTo(boardX + c * pieceW, boardY + boardH);
+      }
     }
-    for (let c = 1; c < cols; c++) {
-      grid.moveTo(boardX + c * pieceW, boardY);
-      grid.lineTo(boardX + c * pieceW, boardY + boardH);
-    }
-    app.stage.addChild(grid);
+    bgDecorationsLayer.addChild(grid);
 
     // 3) Pieces/clusters layer.
     const clustersLayer = new PIXI.Container();
@@ -293,15 +407,41 @@ export function PixiJigsawPuzzle({
       container.addChild(mask);
       spr.mask = mask;
 
+      // Enhanced outline with theme-specific styling
       const outline = new PIXI.Graphics();
       outline.x = 0;
       outline.y = 0;
       outline.clear();
-      outline.lineStyle(3, 0x0b1220, 0.25);
+      
+      // Shadow layer for depth
+      const shadow = new PIXI.Graphics();
+      shadow.lineStyle(4, 0x000000, 0.2);
+      traceJigsawPath(shadow, w + 2, h + 2, tabs, tabSize);
+      shadow.filters = [new PIXI.BlurFilter(3)];
+      container.addChild(shadow);
+      
+      // Main dark outline
+      outline.lineStyle(3, 0x0b1220, 0.35);
       traceJigsawPath(outline, w, h, tabs, tabSize);
-      outline.lineStyle(1.5, 0xffffff, 0.45);
+      
+      // Accent glow outline
+      const glowOutline = new PIXI.Graphics();
+      glowOutline.lineStyle(2, accentPrimary, 0.3);
+      traceJigsawPath(glowOutline, w, h, tabs, tabSize);
+      glowOutline.filters = [new PIXI.BlurFilter(1)];
+      container.addChild(glowOutline);
+      
+      // Bright highlight
+      outline.lineStyle(1.5, 0xffffff, 0.55);
       traceJigsawPath(outline, w, h, tabs, tabSize);
       container.addChild(outline);
+      
+      // Add subtle gradient overlay for theme depth
+      const gradientOverlay = new PIXI.Graphics();
+      gradientOverlay.beginFill(accentPrimary, 0.08);
+      traceJigsawPath(gradientOverlay, w, h, tabs, tabSize);
+      gradientOverlay.endFill();
+      container.addChild(gradientOverlay);
 
       const tex = app.renderer.generateTexture(container, {
         resolution: Math.min(2, resolution),
@@ -343,6 +483,14 @@ export function PixiJigsawPuzzle({
         const srcY = r * pieceH;
         const tex = makePieceTexture(srcX, srcY, tabs);
 
+        // Create shadow sprite for depth effect
+        const shadowSprite = new PIXI.Sprite(tex);
+        shadowSprite.tint = 0x000000;
+        shadowSprite.alpha = 0.25;
+        shadowSprite.x = 4;
+        shadowSprite.y = 4;
+        shadowSprite.filters = [new PIXI.BlurFilter(5)];
+        
         const sprite = new PIXI.Sprite(tex);
         sprite.eventMode = "static";
         sprite.cursor = "grab";
@@ -359,7 +507,13 @@ export function PixiJigsawPuzzle({
 
         sprite.x = correctX;
         sprite.y = correctY;
+        
+        // Position shadow relative to sprite
+        shadowSprite.x = correctX + 4;
+        shadowSprite.y = correctY + 4;
 
+        // Add shadow first (behind), then sprite (on top)
+        cluster.addChild(shadowSprite);
         cluster.addChild(sprite);
         clustersLayer.addChild(cluster);
 
@@ -501,14 +655,27 @@ export function PixiJigsawPuzzle({
       };
       app.ticker.add(pulse);
 
-      // Confetti.
-      const count = 70;
+      // Enhanced confetti with theme colors
+      const count = 80;
+      const palette = themeConfig?.accentColors?.palette 
+        ? themeConfig.accentColors.palette.map(c => hexToNumber(c, 0xfacc15))
+        : [accentPrimary, accentSecondary, 0xfacc15];
+      
       for (let i = 0; i < count; i++) {
         const rect = new PIXI.Graphics();
-        const color = i % 3 === 0 ? accentPrimary : i % 3 === 1 ? accentSecondary : 0xfacc15;
+        const color = palette[i % palette.length];
         rect.beginFill(color, 0.95);
-        rect.drawRect(0, 0, 6, 10);
+        
+        // Mix shapes: rectangles, circles, stars
+        if (i % 4 === 0) {
+          rect.drawCircle(0, 0, 4);
+        } else if (i % 4 === 1) {
+          rect.drawRect(-3, -5, 6, 10);
+        } else {
+          rect.drawRect(-4, -4, 8, 8);
+        }
         rect.endFill();
+        
         const tex = app.renderer.generateTexture(rect);
         rect.destroy();
 
@@ -516,23 +683,54 @@ export function PixiJigsawPuzzle({
         spr.anchor.set(0.5);
         spr.x = boardX + rng() * boardW;
         spr.y = boardY - 30 - rng() * 50;
-        const vx = (rng() - 0.5) * 6;
-        let vy = 1 + rng() * 3.5;
-        let rot = (rng() - 0.5) * 0.2;
+        const vx = (rng() - 0.5) * 7;
+        let vy = 1.5 + rng() * 4;
+        let rot = (rng() - 0.5) * 0.25;
+        spr.scale.set(0.8 + rng() * 0.4);
         burst.addChild(spr);
 
         const fall = () => {
           spr.x += vx;
           spr.y += vy;
-          vy += 0.18;
+          vy += 0.2;
           spr.rotation += rot;
-          spr.alpha *= 0.996;
+          spr.alpha *= 0.995;
           if (spr.y > cssHeight + 60 || spr.alpha < 0.05) {
             app.ticker.remove(fall);
             spr.destroy();
           }
         };
         app.ticker.add(fall);
+      }
+      
+      // Add sparkle particles
+      for (let i = 0; i < 30; i++) {
+        const sparkle = new PIXI.Graphics();
+        sparkle.beginFill(0xffffff, 0.9);
+        sparkle.drawCircle(0, 0, 2);
+        sparkle.endFill();
+        const sparkleTex = app.renderer.generateTexture(sparkle);
+        sparkle.destroy();
+        
+        const sparkleSpr = new PIXI.Sprite(sparkleTex);
+        sparkleSpr.anchor.set(0.5);
+        sparkleSpr.x = boardX + rng() * boardW;
+        sparkleSpr.y = boardY + rng() * boardH;
+        sparkleSpr.scale.set(0);
+        burst.addChild(sparkleSpr);
+        
+        let sparkleTime = 0;
+        const sparkleAnim = () => {
+          sparkleTime += 0.15;
+          sparkleSpr.scale.set(Math.sin(sparkleTime) * 1.5);
+          sparkleSpr.alpha = Math.sin(sparkleTime);
+          sparkleSpr.rotation += 0.1;
+          if (sparkleTime > Math.PI * 3) {
+            app.ticker.remove(sparkleAnim);
+            sparkleSpr.destroy();
+          }
+        };
+        app.ticker.add(sparkleAnim);
       }
     };
 
@@ -594,7 +792,7 @@ export function PixiJigsawPuzzle({
       if (host.firstChild) host.removeChild(host.firstChild);
       appRef.current = null;
     };
-  }, [cols, levelId, onComplete, rows, seed, text, theme.accentPrimary, theme.accentSecondary]);
+  }, [cols, levelId, onComplete, rows, seed, text, theme.accentPrimary, theme.accentSecondary, themeConfig]);
 
   return (
     <div
