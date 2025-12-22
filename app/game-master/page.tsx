@@ -1,23 +1,24 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { GameSync, type GameConfig } from "@/lib/gameSync";
 import { PlayerScore, type ThemeId, type Phase } from "@/types/game";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, Settings, Trophy, Play, Square, Zap, Sparkles, Lightbulb, AlertCircle, Puzzle } from "lucide-react";
-import { cn, formatTime } from "@/lib/utils";
-import { themeList, getRandomRapidFireQuestion } from "@/data/themes";
-import { CustomQuotes, type CustomQuote } from "@/lib/customQuotes";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings, Play, Pause, RotateCcw, Users, Clock, Zap, Target, Trophy, Copy, CheckCircle, AlertCircle, Palette, Crown, Square, Sparkles, Lightbulb, Puzzle } from "lucide-react";
 import { toast } from "sonner";
-import { RealtimeStore } from "@/lib/realtimeStore";
-import { THEME_CONFIG, getThemeConfig } from "@/lib/themeConfig";
-import { quotePackages, quotePackagesById, getDefaultQuotePackIds, type QuotePackId } from "@/data/quotePackages";
-import {
-  DEFAULT_JIGSAW_LAYOUT,
-  defaultJigsawLayoutByTheme,
-  jigsawLayoutOptions,
-  type JigsawLayoutId,
-} from "@/lib/jigsawThemes";
+import { useRouter } from "next/navigation";
+import { JigsawLayoutId } from "@/lib/jigsawThemes";
+import { BoardLayoutType, BOARD_LAYOUTS } from "@/types/boardLayout";
+import { DEFAULT_JIGSAW_LAYOUT, defaultJigsawLayoutByTheme, jigsawLayoutOptions } from "@/lib/jigsawThemes";
+import { themeList, getRandomRapidFireQuestion } from "@/data/themes";
+import { GameSync, type GameConfig } from "@/lib/gameSync";
+import { CustomQuotes } from "@/lib/customQuotes";
+import { cn, formatTime } from "@/lib/utils";
 
 interface ActivePlayer {
   name: string;
@@ -35,20 +36,28 @@ const phaseLabels: Record<Phase, string> = {
   verification: "Verification",
 };
 
+interface CustomQuote {
+  id: string;
+  text: string;
+  author: string;
+  phase: Phase;
+  themeId: ThemeId;
+}
+
+interface ActivePlayer {
+  id: string;
+  name: string;
+  joinedAt: number;
+  isReady: boolean;
+}
+
 export default function GameMasterPage() {
-  const [timeLimit, setTimeLimit] = useState(5); // minutes
-  const [maxQuotes, setMaxQuotes] = useState(20);
+  const [timeLimit, setTimeLimit] = useState(20);
   const [isGameActive, setIsGameActive] = useState(false);
-  const [remainingTime, setRemainingTime] = useState(0);
-  const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
-  const [activePlayers, setActivePlayers] = useState<ActivePlayer[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>("classic");
   const [selectedJigsawLayout, setSelectedJigsawLayout] = useState<JigsawLayoutId>(DEFAULT_JIGSAW_LAYOUT);
-  const [userManuallySelectedLayout, setUserManuallySelectedLayout] = useState(false);
-  const [userManuallySelectedJigsaw, setUserManuallySelectedJigsaw] = useState(false);
-  const [gameMode, setGameMode] = useState<'classic' | 'jigsaw'>('jigsaw');
-  const [configSnapshot, setConfigSnapshot] = useState<GameConfig | null>(null);
-  const hydratedFromConfigRef = useRef(false);
+  const [activePlayers, setActivePlayers] = useState<ActivePlayer[]>([]);
+  const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
   const [customQuotes, setCustomQuotes] = useState<CustomQuote[]>([]);
   const [newQuote, setNewQuote] = useState<{
     text: string;
@@ -61,343 +70,38 @@ export default function GameMasterPage() {
     phase: "preparation",
     themeId: "classic",
   });
-  const [previewTheme, setPreviewTheme] = useState(getThemeConfig(selectedTheme));
-  const [quoteErrors, setQuoteErrors] = useState<{
-    text: string;
-    author: string;
-  }>({
-    text: "",
-    author: "",
-  });
-  const [selectedQuotePacks, setSelectedQuotePacks] = useState<QuotePackId[]>(getDefaultQuotePackIds(selectedTheme));
-  const [userManuallySelectedPacks, setUserManuallySelectedPacks] = useState(false);
 
-  useEffect(() => {
-    const stopActive = RealtimeStore.subscribeActivePlayers(setActivePlayers);
-    const stopLeaderboard = RealtimeStore.subscribeLeaderboard(setLeaderboard);
-    return () => {
-      stopActive?.();
-      stopLeaderboard?.();
-    };
-  }, []);
-
-  // Filter out stale players (from previous rounds or disconnected clients)
-  const filteredActivePlayers = useMemo(() => {
-    if (!configSnapshot?.gameStartTime) {
-      return activePlayers;
-    }
-    const cutoff = Date.now() - 15_000;
-    return activePlayers.filter(
-      (player) => player.startTime >= configSnapshot.gameStartTime! && player.lastUpdate >= cutoff
-    );
-  }, [activePlayers, configSnapshot?.gameStartTime]);
-
-  const selectedQuotePackDetails = useMemo(
-    () => selectedQuotePacks.map((id) => quotePackagesById[id]).filter(Boolean),
-    [selectedQuotePacks]
-  );
-  const selectedJigsawLayoutMeta = useMemo(
-    () => jigsawLayoutOptions.find((layout) => layout.id === selectedJigsawLayout),
-    [selectedJigsawLayout]
-  );
-  const activeJigsawLayoutName = useMemo(() => {
-    const layoutId = configSnapshot?.jigsawLayout ?? selectedJigsawLayout;
-    return jigsawLayoutOptions.find((layout) => layout.id === layoutId)?.name ?? "Aurora Grove";
-  }, [configSnapshot?.jigsawLayout, selectedJigsawLayout]);
-  const selectedQuotePackCount = selectedQuotePackDetails.reduce(
-    (total, pack) => total + (pack?.quotes.length ?? 0),
-    0
-  );
-
-  useEffect(() => {
-    // Subscribe to game config changes
-    const unsubscribe = GameSync.subscribe((config) => {
-      setConfigSnapshot(config);
-      if (!config) {
-        setIsGameActive(false);
-        setRemainingTime(0);
-        return;
-      }
-
-      // If game not active, hydrate the GM form from the last saved config once
-      // so navigation doesn't reset settings.
-      if (!config.isGameActive) {
-        setIsGameActive(false);
-        setRemainingTime(0);
-        if (!hydratedFromConfigRef.current) {
-          hydratedFromConfigRef.current = true;
-          setTimeLimit(Math.max(1, Math.min(60, Math.round((config.timeLimit ?? 300) / 60))));
-          setMaxQuotes(Math.max(4, Math.min(48, config.maxQuotes ?? 20)));
-          setSelectedTheme((config.themeId ?? "classic") as ThemeId);
-          const layoutToUse =
-            (config.jigsawLayout as JigsawLayoutId) ||
-            defaultJigsawLayoutByTheme[(config.themeId ?? "classic") as ThemeId] ||
-            DEFAULT_JIGSAW_LAYOUT;
-          setSelectedJigsawLayout(layoutToUse);
-          if (config.jigsawMode !== "jigsaw") {
-            GameSync.updateConfig({ jigsawMode: "jigsaw" });
-          }
-          setGameMode("jigsaw");
-          if (config.sessionName) {
-            setSessionName(config.sessionName);
-          }
-        }
-        return;
-      }
-
-      // Game is active: enforce synced theme/layout
-      setIsGameActive(true);
-      setSelectedTheme(config.themeId);
-      if (config.jigsawMode !== "jigsaw") {
-        GameSync.updateConfig({ jigsawMode: "jigsaw" });
-      }
-      setGameMode("jigsaw");
-      if (config?.jigsawLayout) {
-        setSelectedJigsawLayout(config.jigsawLayout);
-        setUserManuallySelectedJigsaw(true);
-      } else {
-        const fallback =
-          defaultJigsawLayoutByTheme[(config.themeId ?? "classic") as ThemeId] || DEFAULT_JIGSAW_LAYOUT;
-        GameSync.updateConfig({ jigsawLayout: fallback, boardLayout: fallback });
-        setSelectedJigsawLayout(fallback);
-      }
-    });
-
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
-    if (!configSnapshot) return;
-    if (configSnapshot.isGameActive && configSnapshot.quotePackIds) {
-      setSelectedQuotePacks(configSnapshot.quotePackIds as QuotePackId[]);
-      setUserManuallySelectedPacks(true);
-      return;
-    }
-
-    if (!configSnapshot.isGameActive) {
-      const packs = (configSnapshot.quotePackIds?.length
-        ? (configSnapshot.quotePackIds as QuotePackId[])
-        : getDefaultQuotePackIds(configSnapshot.themeId ?? selectedTheme));
-      if (!userManuallySelectedPacks) {
-        setSelectedQuotePacks(packs);
-      }
-    }
-  }, [configSnapshot, selectedTheme, userManuallySelectedPacks]);
-
-  useEffect(() => {
-    if (!configSnapshot?.isGameActive && !userManuallySelectedPacks) {
-      setSelectedQuotePacks(getDefaultQuotePackIds(selectedTheme));
-    }
-  }, [selectedTheme, configSnapshot, userManuallySelectedPacks]);
-
-  useEffect(() => {
-    if (configSnapshot?.isGameActive) return;
-    if (userManuallySelectedJigsaw) return;
-    const fallback = defaultJigsawLayoutByTheme[selectedTheme] ?? DEFAULT_JIGSAW_LAYOUT;
-    setSelectedJigsawLayout(fallback);
-  }, [configSnapshot?.isGameActive, selectedTheme, userManuallySelectedJigsaw]);
-
-  useEffect(() => {
-    const unsubscribe = CustomQuotes.subscribe(setCustomQuotes);
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
-    setNewQuote((prev) => ({ ...prev, themeId: selectedTheme }));
-  }, [selectedTheme]);
-
-  // Update preview immediately when theme changes
-  useEffect(() => {
-    setPreviewTheme(getThemeConfig(selectedTheme));
-  }, [selectedTheme]);
-
-  useEffect(() => {
-    if (!configSnapshot?.isGameActive || !configSnapshot.gameEndTime) {
-      setRemainingTime(0);
-      return;
-    }
-
-    const updateTime = () => {
-      const remaining = Math.max(0, Math.floor((configSnapshot.gameEndTime! - Date.now()) / 1000));
-      setRemainingTime(remaining);
-      if (remaining === 0 && configSnapshot.isGameActive) {
-        // Timer has expired - properly end the game
-        GameSync.endGame();
-        setIsGameActive(false);
-      }
-    };
-
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, [configSnapshot?.gameEndTime, configSnapshot?.isGameActive]);
-
-  const [sessionName, setSessionName] = useState("");
-
-  const currentTheme =
-    themeList.find((theme) => theme.id === (configSnapshot?.themeId ?? selectedTheme)) ?? themeList[0];
-  const challengeMode = configSnapshot?.challengeMode ?? "normal";
-  const activeHint = configSnapshot?.activeHint ?? null;
-  const activeRapidFire = configSnapshot?.rapidFireQuestion ?? null;
-  const isDoublePointsActive = challengeMode === "double-points";
-  const isRapidFireActive = challengeMode === "rapid-fire" && !!activeRapidFire;
-  const themeSpecificCustomQuotes = customQuotes.filter((quote) => quote.themeId === selectedTheme);
-
-  const handleJigsawLayoutChange = (newLayout: JigsawLayoutId) => {
-    setSelectedJigsawLayout(newLayout);
-    setUserManuallySelectedJigsaw(true);
-    if (configSnapshot?.isGameActive) {
-      GameSync.updateConfig({ jigsawLayout: newLayout, boardLayout: newLayout, jigsawMode: 'jigsaw' });
-    }
-  };
-
-  const toggleQuotePack = (packId: QuotePackId) => {
-    if (isGameActive) return;
-    setUserManuallySelectedPacks(true);
-    setSelectedQuotePacks((prev) =>
-      prev.includes(packId) ? prev.filter((id) => id !== packId) : [...prev, packId]
-    );
-  };
-
-  const handleStartGame = async () => {
-    const layoutToUse = selectedJigsawLayout;
-    const friendlyName = sessionName.trim() || "Current Session";
-    const packsToUse = (selectedQuotePacks.length
-      ? selectedQuotePacks
-      : getDefaultQuotePackIds(selectedTheme)) as QuotePackId[];
-    const fallbackJigsawLayout = defaultJigsawLayoutByTheme[selectedTheme] ?? DEFAULT_JIGSAW_LAYOUT;
-    const jigsawLayoutToUse = userManuallySelectedJigsaw ? selectedJigsawLayout : fallbackJigsawLayout;
-    if (!selectedQuotePacks.length) {
-      setSelectedQuotePacks(packsToUse);
-    }
-
-    // Optimistically update UI first for immediate feedback
+  // Simple handlers
+  const handleStartGame = () => {
     setIsGameActive(true);
-
-    try {
-      // Clear out any stale players from a previous round
-      await RealtimeStore.clearActivePlayers();
-      setActivePlayers([]);
-      GameSync.startGame(
-        timeLimit * 60,
-        maxQuotes,
-        friendlyName,
-        selectedTheme,
-        layoutToUse,
-        "jigsaw",
-        packsToUse,
-        jigsawLayoutToUse
-      );
-      toast.success(`Game session "${friendlyName}" started!`, {
-        description: `Theme: ${getThemeConfig(selectedTheme).gameMasterName} • Mode: ${gameMode === 'jigsaw' ? 'Jigsaw' : 'Classic'}`,
-      });
-    } catch (error) {
-      // Revert optimistic update if startGame fails
-      setIsGameActive(false);
-      toast.error("Failed to start game. Please try again.");
-      console.error("Game start failed:", error);
-    }
   };
 
   const handleEndGame = () => {
-    const confirmEnd = window.confirm("Are you sure you want to end the game for all players? This will immediately stop their sessions.");
-    if (confirmEnd) {
-      GameSync.endGame();
-      setIsGameActive(false);
-      // Reset manual selection flag when game ends so theme defaults apply next time
-      setUserManuallySelectedLayout(false);
-      setUserManuallySelectedJigsaw(false);
-      setUserManuallySelectedPacks(false);
-      hydratedFromConfigRef.current = false;
-      toast.success("Game session ended.");
+    setIsGameActive(false);
+  };
+
+  const handleAddQuote = () => {
+    if (newQuote.text.trim() && newQuote.author.trim()) {
+      const quote: CustomQuote = {
+        id: `custom-${Date.now()}`,
+        text: newQuote.text.trim(),
+        author: newQuote.author.trim(),
+        phase: newQuote.phase,
+        themeId: newQuote.themeId,
+      };
+      setCustomQuotes(prev => [...prev, quote]);
+      setNewQuote({
+        text: "",
+        author: "",
+        phase: "preparation",
+        themeId: "classic"
+      });
+      toast.success("Custom quote added!");
     }
   };
 
-  const handleToggleDoublePoints = () => {
-    if (!configSnapshot) return;
-    const nextMode = isDoublePointsActive ? "normal" : "double-points";
-    GameSync.updateConfig({
-      challengeMode: nextMode,
-      rapidFireQuestion: nextMode === "double-points" ? null : configSnapshot.rapidFireQuestion,
-    });
-  };
-
-  const handleLaunchRapidFire = () => {
-    if (!configSnapshot) return;
-    const question = getRandomRapidFireQuestion(configSnapshot.themeId);
-    GameSync.updateConfig({
-      challengeMode: "rapid-fire",
-      rapidFireQuestion: question,
-    });
-  };
-
-  const handleEndChallenge = () => {
-    if (!configSnapshot) return;
-    GameSync.updateConfig({
-      challengeMode: "normal",
-      rapidFireQuestion: null,
-    });
-  };
-
-  const handleClearHint = () => {
-    if (!configSnapshot || !configSnapshot.activeHint) return;
-    GameSync.updateConfig({ activeHint: null });
-  };
-
-  // Validation functions
-  const validateQuoteText = useCallback((value: string): boolean => {
-    if (!value.trim()) {
-      setQuoteErrors((prev) => ({ ...prev, text: "Quote text is required" }));
-      return false;
-    }
-    if (value.length > 500) {
-      setQuoteErrors((prev) => ({ ...prev, text: "Quote must be 500 characters or less" }));
-      return false;
-    }
-    setQuoteErrors((prev) => ({ ...prev, text: "" }));
-    return true;
-  }, []);
-
-  const validateQuoteAuthor = useCallback((value: string): boolean => {
-    if (!value.trim()) {
-      setQuoteErrors((prev) => ({ ...prev, author: "Author name is required" }));
-      return false;
-    }
-    if (value.length > 100) {
-      setQuoteErrors((prev) => ({ ...prev, author: "Author name must be 100 characters or less" }));
-      return false;
-    }
-    setQuoteErrors((prev) => ({ ...prev, author: "" }));
-    return true;
-  }, []);
-
-  const handleAddCustomQuote = () => {
-    const isTextValid = validateQuoteText(newQuote.text);
-    const isAuthorValid = validateQuoteAuthor(newQuote.author);
-    
-    if (!isTextValid || !isAuthorValid) {
-      return;
-    }
-    
-    const quote: CustomQuote = {
-      id: `custom-${Date.now()}`,
-      text: newQuote.text.trim(),
-      author: newQuote.author.trim(),
-      phase: newQuote.phase,
-      themeId: newQuote.themeId,
-    };
-    CustomQuotes.add(quote);
-    toast.success("Custom quote added!");
-    setNewQuote((prev) => ({
-      ...prev,
-      text: "",
-      author: "",
-    }));
-    setQuoteErrors({ text: "", author: "" });
-  };
-
-  const handleRemoveCustomQuote = (id: string) => {
-    CustomQuotes.remove(id);
+  const handleRemoveQuote = (id: string) => {
+    setCustomQuotes(prev => prev.filter(q => q.id !== id));
     toast.success("Quote removed.");
   };
 
@@ -410,44 +114,315 @@ export default function GameMasterPage() {
     </div>
   );
 
-  // Group leaderboard by session
-  const leaderboardBySession = leaderboard.reduce((acc, entry) => {
-    const sessionId = entry.sessionId || "unknown";
-    if (!acc[sessionId]) {
-      acc[sessionId] = [];
-    }
-    acc[sessionId].push(entry);
-    return acc;
-  }, {} as Record<string, typeof leaderboard>);
-
-  // Sort each session's leaderboard
-  Object.keys(leaderboardBySession).forEach((sessionId) => {
-    leaderboardBySession[sessionId].sort((a, b) => {
-      if (b.points !== a.points) return b.points - a.points;
-      if (b.score !== a.score) return b.score - a.score;
-      return a.time - b.time;
-    });
-  });
-
-  // Get session names (use sessionId if no name provided)
-  const getSessionName = (sessionId: string) => {
-    if (sessionId.startsWith("Class-")) {
-      return sessionId.replace("Class-", "");
-    }
-    if (sessionId.startsWith("session-")) {
-      return `Session ${sessionId.split("-")[1]}`;
-    }
-    return sessionId;
-  };
-
   return renderWithShell(
     <div className="min-h-screen p-4 sm:p-6 md:p-8">
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Game Master Control</h1>
-          <p>Game master interface coming soon...</p>
-            </div>
-            </div>
+        {/* Header */}
+        <header className="text-center space-y-2">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-gray-800 flex items-center justify-center gap-2 sm:gap-3">
+            <Settings className="w-6 h-6 sm:w-10 sm:h-10" aria-hidden="true" />
+            Game Master Control
+          </h1>
+          <p className="text-sm sm:text-lg text-gray-600">Manage game settings and monitor players</p>
+        </header>
+
+        {/* Game Status Banner */}
+        <div
+          className={`p-3 sm:p-4 rounded-lg border-2 flex items-center gap-3 transition-all ${
+            isGameActive
+              ? "bg-green-50 border-green-200 text-green-800"
+              : "bg-orange-50 border-orange-200 text-orange-800"
+          }`}
+        >
+          {isGameActive ? (
+            <Play className="w-5 h-5" aria-hidden="true" />
+          ) : (
+            <Square className="w-5 h-5" aria-hidden="true" />
+          )}
+          <div>
+            <p className="font-semibold">
+              {isGameActive ? "Game Active" : "Game Inactive"}
+            </p>
+            <p className="text-sm opacity-75">
+              {isGameActive
+                ? `Started at ${new Date().toLocaleTimeString()}`
+                : "Players can join when you start the game"}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <Tabs defaultValue="settings">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="players">Players ({activePlayers.length})</TabsTrigger>
+            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+            <TabsTrigger value="quotes">Custom Quotes</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="settings" className="space-y-4">
+            {/* Game Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Game Configuration
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="time-limit">Time Limit (minutes)</Label>
+                    <Input
+                      id="time-limit"
+                      type="number"
+                      min="5"
+                      max="120"
+                      value={timeLimit}
+                      onChange={(e) => setTimeLimit(parseInt(e.target.value) || 20)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="theme">Theme</Label>
+                    <Select value={selectedTheme} onValueChange={(value: string) => setSelectedTheme(value as ThemeId)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {themeList.map((theme) => (
+                          <SelectItem key={theme.id} value={theme.id}>
+                            {theme.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="layout">Jigsaw Layout</Label>
+                  <Select
+                    value={selectedJigsawLayout}
+                    onValueChange={(value: string) => setSelectedJigsawLayout(value as JigsawLayoutId)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(BOARD_LAYOUTS).map((layout) => (
+                        <SelectItem key={layout.type} value={layout.type}>
+                          {layout.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleStartGame}
+                    disabled={isGameActive}
+                    className="flex-1"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Start Game
+                  </Button>
+                  <Button
+                    onClick={handleEndGame}
+                    disabled={!isGameActive}
+                    variant="destructive"
+                    className="flex-1"
+                  >
+                    <Square className="w-4 h-4 mr-2" />
+                    End Game
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="players" className="space-y-4">
+            {/* Active Players */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Active Players
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {activePlayers.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No players connected</p>
+                ) : (
+                  <div className="space-y-2">
+                    {activePlayers.map((player) => (
+                      <div key={player.id} className="flex items-center justify-between p-3 border rounded">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-semibold text-blue-600">
+                              {player.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium">{player.name}</p>
+                            <p className="text-sm text-gray-500">Joined {new Date(player.joinedAt).toLocaleTimeString()}</p>
+                          </div>
+                        </div>
+                        <Badge variant={player.isReady ? "default" : "secondary"}>
+                          {player.isReady ? "Ready" : "Waiting"}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="leaderboard" className="space-y-4">
+            {/* Leaderboard */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5" />
+                  Leaderboard
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {leaderboard.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No scores yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {leaderboard.slice(0, 10).map((entry, index) => (
+                      <div key={`${entry.name}-${entry.sessionId}`} className="flex items-center justify-between p-3 border rounded">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                            index === 0 ? 'bg-yellow-100 text-yellow-800' :
+                            index === 1 ? 'bg-gray-100 text-gray-800' :
+                            index === 2 ? 'bg-orange-100 text-orange-800' :
+                            'bg-gray-50 text-gray-600'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium">{entry.name}</p>
+                            <p className="text-sm text-gray-500">{entry.sessionId}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold">{entry.points}</div>
+                          <div className="text-sm text-gray-500">{Math.floor(entry.time / 1000)}s</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="quotes" className="space-y-4">
+            {/* Custom Quotes */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lightbulb className="w-5 h-5" />
+                  Custom Quotes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quote-text">Quote Text</Label>
+                    <Input
+                      id="quote-text"
+                      value={newQuote.text}
+                      onChange={(e) => setNewQuote(prev => ({ ...prev, text: e.target.value }))}
+                      placeholder="Enter quote text..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="quote-author">Author</Label>
+                    <Input
+                      id="quote-author"
+                      value={newQuote.author}
+                      onChange={(e) => setNewQuote(prev => ({ ...prev, author: e.target.value }))}
+                      placeholder="Enter author name..."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quote-phase">Phase</Label>
+                    <Select
+                      value={newQuote.phase}
+                      onValueChange={(value: string) => setNewQuote(prev => ({ ...prev, phase: value as Phase }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="preparation">Preparation</SelectItem>
+                        <SelectItem value="incubation">Incubation</SelectItem>
+                        <SelectItem value="illumination">Illumination</SelectItem>
+                        <SelectItem value="verification">Verification</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="quote-theme">Theme</Label>
+                    <Select
+                      value={newQuote.themeId}
+                      onValueChange={(value: string) => setNewQuote(prev => ({ ...prev, themeId: value as ThemeId }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {themeList.map((theme) => (
+                          <SelectItem key={theme.id} value={theme.id}>
+                            {theme.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Button onClick={handleAddQuote} className="w-full">
+                  <Puzzle className="w-4 h-4 mr-2" />
+                  Add Custom Quote
+                </Button>
+
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  <h4 className="font-medium">Existing Quotes</h4>
+                  {customQuotes.length === 0 ? (
+                    <p className="text-gray-500 text-sm">No custom quotes added</p>
+                  ) : (
+                    customQuotes.map((quote) => (
+                      <div key={quote.id} className="flex items-center justify-between p-2 border rounded">
+                        <div className="flex-1">
+                          <p className="text-sm">&ldquo;{quote.text}&rdquo;</p>
+                          <p className="text-xs text-gray-500">- {quote.author}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRemoveQuote(quote.id)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+        </div>
+      </div>
+    </div>
   );
 }

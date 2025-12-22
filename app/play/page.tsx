@@ -18,14 +18,15 @@ import { QuoteCard } from "@/components/QuoteCard";
 import { PuzzlePiece } from "@/components/PuzzlePiece";
 import { Timer } from "@/components/Timer";
 import { GameGuide } from "@/components/GameGuide";
-import { ThemeSelector } from "@/components/ThemeSelector";
 import { DragDropProvider, DraggableQuote, DraggableTitle } from "@/components/DragDropProvider";
 import { JigsawBoard } from "@/components/JigsawBoard";
+import { ThemeSelector } from "@/components/ThemeSelector";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { GameSync } from "@/lib/gameSync";
 import { CustomQuotes } from "@/lib/customQuotes";
 import { playSuccessTone, playErrorTone, playAlertTone } from "@/lib/soundboard";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Sparkles, Zap, Palette } from "lucide-react";
 import { RealtimeStore } from "@/lib/realtimeStore";
 import { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
@@ -1006,14 +1007,43 @@ export default function PlayPage() {
   const isRapidFireActive = challengeMode === "rapid-fire" && !!rapidFireQuestion;
   const hasAnsweredRapidFire =
     isRapidFireActive && rapidFireQuestion ? answeredQuizzes.includes(rapidFireQuestion.id) : false;
+
+  // Placeholder handlers and state for the interface
+  const handleDragStart = (event: any) => {};
+  const handleDragEnd = (event: any) => {};
+  const handleDragOver = (event: any) => {};
+  const handleUnlockHint = () => {};
+  const handleTitleSelect = (title: any) => {};
+  const handleRapidFireAnswer = (index: number) => {};
+
+  // Placeholder state
+  const draggedQuote: Quote | null = null;
+  const draggedTitle: any = null;
+  const showThemeSelector = false;
+  const gameTheme: any = "observatory";
+  const quoteComponent = null;
+  const titleComponent = null;
+  const puzzleQuotes: Quote[] = [];
+  const availableQuotes: Quote[] = [];
+  const availableTitles: any[] = [];
+  const placedQuotes: Record<string, Quote[]> = {};
+  const userPuzzlePiece: Quote | null = null;
+  const activeHint: any = null;
+  const gameState: any = { points: 0 };
+  const HINT_COST = 50;
+  const comboGlow = false;
+  const phaseStreak = 0;
+  const resolvedJigsawLayout: any = "auroraGrove";
+  const themeId = "classic";
+
   return renderWithShell(
     <div className="min-h-screen p-4 sm:p-6 md:p-8">
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
-          <div className="text-center">
+        <div className="text-center">
           <h1 className="text-2xl font-bold">Puzzle Quest Player</h1>
-          <p>Player interface coming soon...</p>
-            </div>
-          </div>
+          <p>Player interface - Full jigsaw functionality coming soon!</p>
         </div>
+      </div>
+    </div>
   );
 }

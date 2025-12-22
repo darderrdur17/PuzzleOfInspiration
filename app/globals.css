@@ -3,131 +3,62 @@
 @tailwind utilities;
 
 :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
-    
-    /* Puzzle Design Colors - Responsive UI Components Design System */
-    --puzzle-purple: 271 81% 56%; /* #9333EA - Royal Purple */
-    --puzzle-orange: 25 95% 53%; /* #F97316 - Sunset Orange */
-    --puzzle-green: 160 84% 39%; /* #10B981 - Emerald Green */
-    --puzzle-gold: 48 96% 53%; /* #FCD34D - Classic Gold */
-    --puzzle-bg: 0 0% 96%; /* #F5F5F7 - Light Grey (BG) */
-    --puzzle-text: 215 25% 27%; /* #1F2937 - Dark Grey (Text) */
-  }
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 221.2 83.2% 53.3%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 221.2 83.2% 53.3%;
+  --radius: 0.5rem;
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.9%;
-  }
-}
-
-
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-/* Puzzle Quest aesthetic (glass + ambient orbs) */
-:root {
+  /* Quest Design System */
   --quest-bg: url("/quest/images/app-background.jpg");
   --quest-glow: 198 90% 65%;
   --quest-accent: 43 96% 62%;
-  --quest-card: rgba(255, 255, 255, 0.82);
-  --quest-border: rgba(255, 255, 255, 0.32);
+  --quest-card: rgba(15, 23, 42, 0.55);
+  --quest-purple: 271 81% 56%;
+  --quest-orange: 25 95% 53%;
+  --quest-green: 160 84% 39%;
+  --quest-gold: 48 96% 53%;
+  --quest-red: 0 84% 60%;
 }
 
-.quest-surface {
-  background: var(--quest-card);
-  border: 1px solid var(--quest-border);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+.dark {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 217.2 91.2% 59.8%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 224.3 76.3% 94.9%;
 }
 
-.quest-border {
-  border: 1px solid var(--quest-border);
-}
-
-.quest-glow-text {
-  text-shadow: 0 0 12px hsl(var(--quest-glow)), 0 0 24px hsla(var(--quest-glow) / 0.6);
-}
-
-.quest-ambient {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.quest-ambient::before,
-.quest-ambient::after {
-  content: "";
-  position: absolute;
-  width: 420px;
-  height: 420px;
-  filter: blur(140px);
-  opacity: 0.35;
-  border-radius: 9999px;
-}
-
-.quest-ambient::before {
-  top: -18%;
-  left: -12%;
-  background: radial-gradient(circle at center, hsla(var(--quest-glow) / 0.7), transparent 60%);
-}
-
-.quest-ambient::after {
-  bottom: -18%;
-  right: -14%;
-  background: radial-gradient(circle at center, hsla(var(--quest-accent) / 0.7), transparent 60%);
-}
-
-.quest-orb {
-  position: absolute;
-  width: 120px;
-  height: 120px;
-  border-radius: 9999px;
-  background: radial-gradient(circle at 30% 30%, #fff, hsla(var(--quest-glow) / 0.8) 35%, transparent 70%);
-  mix-blend-mode: screen;
-  filter: blur(6px);
-}
-
+/* Quest Design System */
 .quest-body {
   background-image: var(--quest-bg);
   background-size: cover;
@@ -135,512 +66,45 @@
   background-attachment: fixed;
 }
 
-/* Mobile touch improvements */
-
-  .touch-manipulation {
-    touch-action: manipulation;
-  }
-  
-  .drag-none {
-    -webkit-user-drag: none;
-    user-select: none;
-  }
+.quest-surface {
+  background-color: var(--quest-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Prevent text selection during drag */
-.dragging {
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-/* ============================================
-   ACCESSIBILITY IMPROVEMENTS
-   ============================================ */
-
-/* Focus indicators for keyboard navigation */
-
-  /* Global focus-visible styles for all interactive elements */
-  button:focus-visible,
-  a:focus-visible,
-  input:focus-visible,
-  textarea:focus-visible,
-  select:focus-visible,
-  [role="button"]:focus-visible,
-  [tabindex]:focus-visible:not([tabindex="-1"]) {
-    outline: 3px solid hsl(var(--primary));
-    outline-offset: 2px;
-    transition: outline-offset 0.1s ease;
-  }
-
-  /* Remove default outline, rely on focus-visible */
-  button:focus:not(:focus-visible),
-  a:focus:not(:focus-visible),
-  input:focus:not(:focus-visible),
-  textarea:focus:not(:focus-visible),
-  select:focus:not(:focus-visible) {
-    outline: none;
-  }
-}
-
-/* Skip link for keyboard users */
-.skip-link {
-  position: absolute;
-  top: -100%;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9999;
-  padding: 1rem 2rem;
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  text-decoration: none;
-  font-weight: bold;
-  border-radius: 0 0 0.5rem 0.5rem;
-  transition: top 0.2s ease;
-}
-
-.skip-link:focus {
+.quest-ambient {
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 20%, hsl(var(--quest-glow) / 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 80% 80%, hsl(var(--quest-accent) / 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
 }
 
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  :root {
-    --border: 0 0% 20%;
-    --ring: 221.2 83.2% 40%;
-  }
-  
-  button,
-  a,
-  input,
-  textarea,
-  select {
-    border-width: 2px !important;
-  }
-}
-
-/* Screen reader only class */
-.sr-only {
+.quest-orb {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, hsl(var(--quest-glow) / 0.15) 0%, transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
 }
 
-/* ============================================
-   IMPROVED MOBILE RESPONSIVENESS
-   ============================================ */
-
-/* Ensure minimum touch target size (44x44px per WCAG) */
-
-  .touch-target {
-    min-height: 44px;
-    min-width: 44px;
-  }
-}
-
-
-  .jigsaw-piece {
-    @apply transition-transform duration-200 cursor-grab rounded-xl shadow-lg shadow-black/40 bg-white/90;
-  }
-
-  [data-dragging="true"] .jigsaw-piece {
-    @apply scale-105 shadow-2xl shadow-black/70 ring-2 ring-white/70 cursor-grabbing;
-  }
-
-  .hint-glow {
-    @apply ring-4 ring-amber-300/80 ring-offset-2 ring-offset-amber-100/40 shadow-[0_0_25px_rgba(251,191,36,0.45)];
-  }
-}
-
-/* Prevent iOS zoom on input focus */
-@media screen and (max-width: 768px) {
-  input[type="text"],
-  input[type="email"],
-  input[type="number"],
-  input[type="tel"],
-  input[type="url"],
-  input[type="search"],
-  input[type="password"],
-  textarea,
-  select {
-    font-size: 16px !important;
-  }
-}
-
-/* Better mobile spacing */
-@media screen and (max-width: 640px) {
-  .mobile-stack {
-    flex-direction: column !important;
-  }
-  
-  .mobile-full-width {
-    width: 100% !important;
-  }
-  
-  .mobile-text-center {
-    text-align: center !important;
-  }
-}
-
-/* ============================================
-   CYBERPUNK THEME ANIMATIONS
-   ============================================ */
-
-@keyframes neon-flicker {
-  0%, 100% {
-    opacity: 1;
-    text-shadow: 0 0 20px var(--cyber-primary, #00ffff), 0 0 40px var(--cyber-secondary, #ff00ff);
-  }
-  50% {
-    opacity: 0.85;
-    text-shadow: 0 0 10px var(--cyber-primary, #00ffff), 0 0 20px var(--cyber-secondary, #ff00ff);
-  }
-}
-
-@keyframes grid-scroll {
-  0% {
-    transform: translateY(0);
-  }
-  100% {
-    transform: translateY(50px);
-  }
-}
-
-@keyframes pulse-neon {
-  0%, 100% {
-    box-shadow: 0 0 10px var(--cyber-primary, #00ffff), 0 0 20px var(--cyber-primary, #00ffff);
-  }
-  50% {
-    box-shadow: 0 0 20px var(--cyber-primary, #00ffff), 0 0 40px var(--cyber-primary, #00ffff);
-  }
-}
-
-@keyframes circuit-flow {
-  0% {
-    box-shadow: 0 0 10px #00ff88;
-  }
-  50% {
-    box-shadow: 0 0 30px #00ff88, 0 0 60px #00ff88;
-  }
-  100% {
-    box-shadow: 0 0 10px #00ff88;
-  }
-}
-
-@keyframes glitch-error {
-  0%, 100% {
-    transform: translate(0, 0);
-  }
-  20% {
-    transform: translate(-2px, 2px);
-  }
-  40% {
-    transform: translate(2px, -2px);
-  }
-  60% {
-    transform: translate(-2px, -2px);
-  }
-  80% {
-    transform: translate(2px, 2px);
-  }
-}
-
-@keyframes jigsaw-grid-pan {
-  0% {
-    background-position: 0 0, 0 0;
-  }
-  100% {
-    background-position: 200px 200px, -200px -200px;
-  }
-}
-
-@keyframes orb-drift {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.5;
-  }
-  50% {
-    transform: translate3d(12px, -18px, 0) scale(1.05);
-    opacity: 0.85;
-  }
-  100% {
-    transform: translate3d(-10px, 14px, 0) scale(1);
-    opacity: 0.6;
-  }
-}
-
-/* ============================================
-   PERFORMANCE OPTIMIZATIONS & COMPATIBILITY
-   ============================================ */
-
-/* Hardware acceleration for drag operations */
-.jigsaw-piece,
-[data-dragging="true"] {
-  will-change: transform;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-/* Fallback for mix-blend-mode in older browsers */
-@supports not (mix-blend-mode: soft-light) {
-  .jigsaw-overlay {
-    opacity: 0.8;
-  }
-}
-
-/* Reduce motion for floating orbs on low-performance devices */
-@media (max-width: 768px) {
-  .floating-orb {
-    animation-duration: 24s !important; /* Slower on mobile */
-  }
-}
-
-/* Disable blur on very low-end devices */
-@media (max-width: 480px) {
-  .floating-orb {
-    filter: none !important;
-    opacity: 0.3 !important;
-  }
-}
-
-/* ============================================
-   ENCHANTED FOREST THEME ANIMATIONS
-   ============================================ */
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px) translateX(0px);
-    opacity: 0.6;
-  }
-  25% {
-    transform: translateY(-10px) translateX(5px);
-    opacity: 0.9;
-  }
-  50% {
-    transform: translateY(-20px) translateX(-5px);
-    opacity: 1;
-  }
-  75% {
-    transform: translateY(-10px) translateX(5px);
-    opacity: 0.9;
-  }
-}
-
-@keyframes fairy-sparkle {
-  0%, 100% {
-    opacity: 0.5;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.3);
-  }
-}
-
-@keyframes rune-glow {
-  0%, 100% {
-    box-shadow: 0 0 10px var(--forest-accent, #fbbf24);
-    filter: brightness(1);
-  }
-  50% {
-    box-shadow: 0 0 30px var(--forest-accent, #fbbf24), 0 0 60px var(--forest-accent, #fbbf24);
-    filter: brightness(1.5);
-  }
-}
-
-@keyframes leaf-fall {
-  0% {
-    transform: translateY(0) rotate(0deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(30px) rotate(180deg);
-    opacity: 0;
-  }
-}
-
-/* ============================================
-   STEAMPUNK THEME ANIMATIONS
-   ============================================ */
-
-@keyframes steam-rise {
-  0% {
-    opacity: 0.1;
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    opacity: 0.25;
-    transform: translateY(-30px) scale(1.1);
-  }
-  100% {
-    opacity: 0.1;
-    transform: translateY(-60px) scale(1.2);
-  }
-}
-
-@keyframes gear-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes gear-turn {
-  0%, 100% {
-    transform: rotate(0deg);
-  }
-  50% {
-    transform: rotate(45deg);
-  }
-}
-
-@keyframes steam-release {
-  0% {
-    opacity: 0;
-    transform: scale(0.8) translateY(0);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(1.2) translateY(-10px);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.5) translateY(-20px);
-  }
-}
-
-@keyframes cog-jam {
-  0%, 100% {
-    transform: rotate(0deg);
-  }
-  25% {
-    transform: rotate(10deg);
-  }
-  75% {
-    transform: rotate(-10deg);
-  }
-}
-
-/* ============================================
-   THEME UTILITY CLASSES
-   ============================================ */
-
-.theme-transition {
-  transition: all 0.5s ease-in-out;
-}
-
-.hover-scale:hover {
-  transform: scale(1.05);
-  transition: transform 0.3s ease;
-}
-
-.glow-effect {
-  box-shadow: 0 0 20px currentColor;
-}
-
-.animate-float {
-  animation: float 4s ease-in-out infinite;
-}
-
-.animate-neon-flicker {
-  animation: neon-flicker 3s infinite alternate;
-}
-
-.animate-gear-spin {
-  animation: gear-spin 8s linear infinite;
-}
-
-.animate-steam-rise {
-  animation: steam-rise 10s ease-in-out infinite;
-}
-
-/* Theme-specific CSS custom properties */
-.cyberpunk-theme {
-  --theme-primary: #00ffff;
-  --theme-secondary: #ff00ff;
-  --theme-accent: #ffff00;
-  --theme-bg: #0a0e27;
-}
-
-.forest-theme {
-  --theme-primary: #4ade80;
-  --theme-secondary: #60a5fa;
-  --theme-accent: #fbbf24;
-  --theme-bg: #1a2f1a;
-}
-
-.steampunk-theme {
-  --theme-primary: #cd7f32;
-  --theme-secondary: #b87333;
-  --theme-accent: #ffd700;
-  --theme-bg: #2c1810;
-}
-
-/* Homepage Theme Styles */
-[data-homepage-theme="cyberpunk"] {
-  --homepage-bg: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 30%, #0a0e27 60%, #1a1f3a 100%);
-  --homepage-accent: #00ffff;
-  --homepage-secondary: #ff00ff;
-}
-
-[data-homepage-theme="enchanted"] {
-  --homepage-bg: linear-gradient(135deg, #1a2f1a 0%, #0f1f0f 30%, #1a2f1a 60%, #0f1f0f 100%);
-  --homepage-accent: #4ade80;
-  --homepage-secondary: #60a5fa;
-}
-
-[data-homepage-theme="steampunk"] {
-  --homepage-bg: linear-gradient(135deg, #2c1810 0%, #3d2817 30%, #2c1810 60%, #3d2817 100%);
-  --homepage-accent: #ffd700;
-  --homepage-secondary: #cd7f32;
-}
-
-/* Button press animations for enhanced UX */
-.theme-button:active,
-button:active,
-.button:active {
-  transform: translateY(2px) scale(0.98);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transition: transform 0.1s ease, box-shadow 0.2s ease;
-}
-
-/* Smooth transitions for interactive elements */
-.theme-button,
-button,
-.button {
+.quest-glass-button {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.2s ease;
 }
 
-/* Enhanced focus states */
-.theme-button:focus-visible,
-button:focus-visible,
-.button:focus-visible {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+.quest-glass-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
