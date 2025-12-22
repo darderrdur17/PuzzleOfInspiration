@@ -400,6 +400,15 @@ export default function GameMasterPage() {
     toast.success("Quote removed.");
   };
 
+  const renderWithShell = (content: JSX.Element) => (
+    <div className="relative min-h-screen quest-body overflow-hidden">
+      <div className="quest-ambient" />
+      <div className="quest-orb animate-pulse" style={{ top: "12%", left: "8%" }} />
+      <div className="quest-orb animate-pulse" style={{ bottom: "10%", right: "6%" }} />
+      <div className="relative">{content}</div>
+    </div>
+  );
+
   // Group leaderboard by session
   const leaderboardBySession = leaderboard.reduce((acc, entry) => {
     const sessionId = entry.sessionId || "unknown";
@@ -430,12 +439,8 @@ export default function GameMasterPage() {
     return sessionId;
   };
 
-  return (
-    <div className="relative min-h-screen quest-body overflow-hidden">
-      <div className="quest-ambient" />
-      <div className="quest-orb animate-pulse" style={{ top: "12%", left: "8%" }} />
-      <div className="quest-orb animate-pulse" style={{ bottom: "10%", right: "6%" }} />
-      <div className="relative min-h-screen p-4 sm:p-6 md:p-8">
+  return renderWithShell(
+    <div className="min-h-screen p-4 sm:p-6 md:p-8">
         <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
         <header className="text-center space-y-2">
@@ -1126,7 +1131,6 @@ export default function GameMasterPage() {
           )}
         </section>
       </div>
-    </div>
     </div>
   );
 }
