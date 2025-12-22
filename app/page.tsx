@@ -311,6 +311,43 @@ export default function Home() {
           </a>
         </nav>
 
+        {/* PixiJS Jigsaw shortcut */}
+        <div className="flex justify-center">
+          <a
+            href="/pixi-jigsaw"
+            className="inline-flex focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-400 rounded-xl"
+            aria-label="Open PixiJS Jigsaw demo"
+          >
+            <div
+              className="px-6 py-3 rounded-xl border-2 transition-all duration-300 hover:scale-[1.03]"
+              style={{
+                background: "linear-gradient(135deg, rgba(14,165,233,0.35), rgba(236,72,153,0.25))",
+                borderColor: "rgba(0,255,255,0.5)",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg"
+                  style={{
+                    background: "rgba(0,255,255,0.12)",
+                    border: "1px solid rgba(0,255,255,0.35)",
+                  }}
+                  aria-hidden="true"
+                >
+                  <Sparkles className="w-4 h-4 text-cyan-200" />
+                </span>
+                <div className="text-left">
+                  <div className="font-bold text-white" style={{ textShadow: "0 0 10px rgba(0,255,255,0.35)" }}>
+                    Try PixiJS Jigsaw
+                  </div>
+                  <div className="text-xs text-cyan-100/80">Interlocking pieces • Snapping • Confetti</div>
+                </div>
+              </div>
+            </div>
+          </a>
+        </div>
+
         <footer className="text-base text-indigo-300/70">
           <p className="flex items-center justify-center gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse" />

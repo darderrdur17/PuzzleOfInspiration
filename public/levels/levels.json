@@ -1,0 +1,43 @@
+[
+  {
+    "id": "auroraGrove",
+    "title": "Aurora Grove",
+    "layoutId": "auroraGrove",
+    "rows": 3,
+    "cols": 4,
+    "text": "Aurora Grove is a realm where time slows, light bends, and ancient trees whisper forgotten stories to those patient enough to listen."
+  },
+  {
+    "id": "chronoForge",
+    "title": "Chrono Forge",
+    "layoutId": "chronoForge",
+    "rows": 3,
+    "cols": 4,
+    "text": "Chrono Forge melds brass and steam with temporal gears; machines remember futures and craftsmen shape the flow of minutes."
+  },
+  {
+    "id": "tidalCircuit",
+    "title": "Tidal Circuit",
+    "layoutId": "tidalCircuit",
+    "rows": 3,
+    "cols": 4,
+    "text": "Tidal Circuit is a coastal arena where waves power luminous machines and sailors race between glowing buoys."
+  },
+  {
+    "id": "lumenBazaar",
+    "title": "Lumen Bazaar",
+    "layoutId": "lumenBazaar",
+    "rows": 4,
+    "cols": 5,
+    "text": "Lumen Bazaar glows with lantern strings and story-stalls; every idea is a trade between wonder and craft."
+  },
+  {
+    "id": "mythicAtrium",
+    "title": "Mythic Atrium",
+    "layoutId": "mythicAtrium",
+    "rows": 4,
+    "cols": 5,
+    "text": "Mythic Atrium is an archive of prophecy: marble hush, star maps, and experiments refined until they feel inevitable."
+  }
+]
+

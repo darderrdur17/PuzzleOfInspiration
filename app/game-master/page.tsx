@@ -685,7 +685,7 @@ export default function GameMasterPage() {
                     )}
                   </p>
                   <p className="text-[11px] text-gray-500">
-                    You can swap jigsaw layouts mid-game and every player board updates instantly.
+                    You can swap jigsaw layouts mid-game and every player board updates instantly. The Pixi jigsaw demo page (/pixi-jigsaw) also syncs with your layout choice.
                   </p>
                 </div>
               )}
