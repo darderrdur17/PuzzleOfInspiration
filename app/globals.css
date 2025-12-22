@@ -323,6 +323,40 @@ html {
 }
 
 /* ============================================
+   PERFORMANCE OPTIMIZATIONS & COMPATIBILITY
+   ============================================ */
+
+/* Hardware acceleration for drag operations */
+.jigsaw-piece,
+[data-dragging="true"] {
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Fallback for mix-blend-mode in older browsers */
+@supports not (mix-blend-mode: soft-light) {
+  .jigsaw-overlay {
+    opacity: 0.8;
+  }
+}
+
+/* Reduce motion for floating orbs on low-performance devices */
+@media (max-width: 768px) {
+  .floating-orb {
+    animation-duration: 24s !important; /* Slower on mobile */
+  }
+}
+
+/* Disable blur on very low-end devices */
+@media (max-width: 480px) {
+  .floating-orb {
+    filter: none !important;
+    opacity: 0.3 !important;
+  }
+}
+
+/* ============================================
    ENCHANTED FOREST THEME ANIMATIONS
    ============================================ */
 

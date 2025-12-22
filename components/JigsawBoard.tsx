@@ -120,13 +120,21 @@ export function JigsawBoard({
   const resolvedTheme = (themeId ?? "classic") as ThemeId;
   const derivedLayoutId: JigsawLayoutId =
     layoutId ?? defaultJigsawLayoutByTheme[resolvedTheme] ?? DEFAULT_JIGSAW_LAYOUT;
-  const jigsawConfig = jigsawThemeConfigs[derivedLayoutId] ?? jigsawThemeConfigs[DEFAULT_JIGSAW_LAYOUT];
+
   const themeConfig = getThemeConfig(resolvedTheme);
 
   // Generate jigsaw pieces from quotes
   const jigsawPieces = useMemo(() => {
     const pieces: JigsawPieceData[] = [];
+    if (!quotes || quotes.length === 0) return pieces;
+
     quotes.forEach((quote, index) => {
+      // Defensive check for quote validity
+      if (!quote || !quote.id || !quote.phase) {
+        console.warn('Invalid quote detected:', quote);
+        return;
+      }
+
       pieces.push({
         id: quote.id,
         quote,
@@ -142,23 +150,25 @@ export function JigsawBoard({
     return pieces;
   }, [quotes]);
 
+  // Defensive programming: ensure config exists
+  const jigsawConfig = jigsawThemeConfigs[derivedLayoutId] ?? jigsawThemeConfigs[DEFAULT_JIGSAW_LAYOUT];
+  if (!jigsawConfig) {
+    console.error(`Jigsaw layout config not found for: ${derivedLayoutId}`);
+    return (
+      <div className="text-center p-8 text-red-500">
+        Error: Jigsaw layout configuration not found. Please refresh the page.
+      </div>
+    );
+  }
+
   // Identify which pieces are already placed based on parent state
   const unplacedPieces = jigsawPieces.filter(piece => {
     const phaseQuotes = placedQuotes[piece.phase] || [];
     return !phaseQuotes.some(q => q.id === piece.id);
   });
 
-  const placedCount = useMemo(
-    () => Object.values(placedQuotes).reduce((total, zone) => total + zone.length, 0),
-    [placedQuotes]
-  );
-
-  useEffect(() => {
-    if (!onGameComplete) return;
-    if (placedCount >= quotes.length) {
-      onGameComplete();
-    }
-  }, [onGameComplete, placedCount, quotes.length]);
+  // Note: Completion logic is handled by the parent play page component
+  // to ensure all pieces (quotes, titles, user piece) are accounted for
 
   return (
     <div className="space-y-6">
@@ -238,7 +248,7 @@ export function JigsawBoard({
         {jigsawConfig.floatingOrbs?.map((orb, index) => (
           <div
             key={`${orb.top}-${orb.left}-${index}`}
-            className="absolute rounded-full pointer-events-none blur-3xl"
+            className="absolute rounded-full pointer-events-none floating-orb"
             style={{
               top: orb.top,
               left: orb.left,
@@ -249,7 +259,9 @@ export function JigsawBoard({
               filter: orb.blur ? `blur(${orb.blur}px)` : undefined,
               animation: "orb-drift 18s ease-in-out infinite",
               animationDelay: `${index * 0.8}s`,
+              willChange: 'transform, opacity',
             }}
+            aria-hidden="true"
           />
         ))}
 

@@ -35,6 +35,7 @@ import { quotePackagesById, getDefaultQuotePackIds, type QuotePackId } from "@/d
 import {
   DEFAULT_JIGSAW_LAYOUT,
   defaultJigsawLayoutByTheme,
+  jigsawThemeConfigs,
   type JigsawLayoutId,
 } from "@/lib/jigsawThemes";
 
@@ -182,6 +183,61 @@ export default function PlayPage() {
   });
 
   const activeTheme = themeLibrary[themeId] ?? themeLibrary.classic;
+  const activeHint = gameConfig?.activeHint ?? null;
+  const isJigsawMode = gameConfig?.jigsawMode === 'jigsaw';
+  const resolvedJigsawLayout: JigsawLayoutId =
+    (gameConfig?.jigsawLayout as JigsawLayoutId) ??
+    defaultJigsawLayoutByTheme[(gameConfig?.themeId ?? themeId) as ThemeId] ??
+    DEFAULT_JIGSAW_LAYOUT;
+
+  // Memoized component callbacks for drag and drop - must be defined before any conditional returns
+  const quoteComponent = useCallback(({ quote, isDragging }: { quote: Quote; isDragging?: boolean }) => {
+    // If it's a jigsaw piece, we want to render it with a clip-path if we're in jigsaw mode
+    const isJigsawPiece = gameConfig?.jigsawMode === 'jigsaw';
+    if (isJigsawPiece) {
+      // Get the jigsaw layout config to determine piece variant and shape
+      const layoutConfig = jigsawThemeConfigs[resolvedJigsawLayout];
+
+      // Find the shape for this quote (use all available quotes for consistent indexing)
+      const allQuotes = [...puzzleQuotes, ...(userPuzzlePiece ? [userPuzzlePiece] : [])];
+      const index = allQuotes.findIndex(q => q.id === quote.id);
+      const shapeId = `jigsaw-${((index % 3) + 1)}`;
+
+      return (
+        <div
+          style={{
+            width: '180px',
+            height: '120px',
+            clipPath: `url(#${shapeId})`,
+          }}
+          className="shadow-2xl"
+          role="button"
+          aria-label={`Drag ${quote.text.substring(0, 20)}... to a phase zone`}
+          tabIndex={0}
+        >
+          <PuzzlePiece
+            quote={quote}
+            isDragging={isDragging}
+            size="small"
+            variant={layoutConfig.pieceVariant}
+          />
+        </div>
+      );
+    }
+    return <PuzzlePiece quote={quote} isDragging={isDragging} />;
+  }, [gameConfig?.jigsawMode, resolvedJigsawLayout, puzzleQuotes, userPuzzlePiece]);
+
+  const titleComponent = useCallback(({ title, isDragging }: { title: PhaseTitle; isDragging?: boolean }) => (
+    <div
+      className={`bg-accent/30 border-2 border-accent rounded-lg p-2 sm:p-3 text-center font-bold text-xs sm:text-sm hover:bg-accent/40 transition-colors ${isDragging ? 'opacity-50' : ''}`}
+      role="button"
+      aria-label={`Drag ${title.title} title to a phase zone`}
+      tabIndex={0}
+    >
+      {title.title}
+    </div>
+  ), []);
+
   const resolvedGameTheme = deriveGameTheme(gameConfig?.themeId ?? themeId, gameConfig?.boardLayout);
   const visualTheme = gameConfig ? resolvedGameTheme : gameTheme;
   const themeConfig = getThemeConfig(visualTheme);
@@ -536,16 +592,18 @@ export default function PlayPage() {
   }, [gameState.isCompleted, gameState.startTime, playerName, calculateFinalPoints, calculateCorrectCount, gameConfig?.sessionId]);
 
   // Recalculate points whenever placements change to ensure accuracy
+  // Note: Intentionally omit gameState.points from deps to prevent infinite loops
   useEffect(() => {
     if (!gameState.isStarted) return;
     const recalculatedPoints = calculatePoints();
-    if (Math.abs(recalculatedPoints - gameState.points) > 0.1) {
+    // Use a more precise comparison to avoid floating point issues
+    if (Math.abs(recalculatedPoints - gameState.points) > 0.01) {
       setGameState((prev) => ({
         ...prev,
         points: recalculatedPoints,
       }));
     }
-  }, [gameState.isStarted, calculatePoints, gameState.points]);
+  }, [gameState.isStarted, calculatePoints, gameState.placements, gameState.titlePlacements, wrongAttempts, bonusAdjustments]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update active player status in real-time
   useEffect(() => {
@@ -969,13 +1027,6 @@ export default function PlayPage() {
   const isRapidFireActive = challengeMode === "rapid-fire" && !!rapidFireQuestion;
   const hasAnsweredRapidFire =
     isRapidFireActive && rapidFireQuestion ? answeredQuizzes.includes(rapidFireQuestion.id) : false;
-  const activeHint = gameConfig?.activeHint ?? null;
-  const isJigsawMode = gameConfig?.jigsawMode === 'jigsaw';
-  const resolvedJigsawLayout: JigsawLayoutId =
-    (gameConfig?.jigsawLayout as JigsawLayoutId) ??
-    defaultJigsawLayoutByTheme[(gameConfig?.themeId ?? themeId) as ThemeId] ??
-    DEFAULT_JIGSAW_LAYOUT;
-
   return (
     <DragDropProvider
       onDragStart={handleDragStart}
@@ -983,33 +1034,8 @@ export default function PlayPage() {
       onDragOver={handleDragOver}
       draggedQuote={draggedQuote}
       draggedTitle={draggedTitle}
-      quoteComponent={({ quote, isDragging }) => {
-        // If it's a jigsaw piece, we want to render it with a clip-path if we're in jigsaw mode
-        const isJigsawPiece = isJigsawMode;
-        if (isJigsawPiece) {
-          // Find the shape for this quote
-          const index = puzzleQuotes.findIndex(q => q.id === quote.id);
-          const shapeId = `jigsaw-${((index % 3) + 1)}`;
-          return (
-            <div 
-              style={{ 
-                width: '180px', 
-                height: '120px',
-                clipPath: `url(#${shapeId})`,
-              }}
-              className="shadow-2xl"
-            >
-              <PuzzlePiece quote={quote} isDragging={isDragging} size="small" variant="purple" />
-            </div>
-          );
-        }
-        return <PuzzlePiece quote={quote} isDragging={isDragging} />;
-      }}
-      titleComponent={({ title, isDragging }) => (
-        <div className={`bg-accent/30 border-2 border-accent rounded-lg p-2 sm:p-3 text-center font-bold text-xs sm:text-sm hover:bg-accent/40 transition-colors ${isDragging ? 'opacity-50' : ''}`}>
-          {title.title}
-        </div>
-      )}
+      quoteComponent={quoteComponent}
+      titleComponent={titleComponent}
     >
       {/* Include Jigsaw SVGs for the DragOverlay to work */}
       <svg width="0" height="0" style={{ position: 'absolute' }}>

@@ -120,31 +120,36 @@ const fetchConfigFromSupabase = async (): Promise<GameConfig | null> => {
 };
 
 const upsertConfigToSupabase = async (config: GameConfig) => {
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-  const row = toDbRow(config);
-  const attempt = async (payload: Record<string, any>, suppressedErrors: string[] = []) => {
-    const { error } = await supabase.from("sessions").upsert(payload);
-    if (!error) return;
-    const message = (error as any)?.message ?? String(error);
-    if (/quote_pack_ids/i.test(message) && !suppressedErrors.includes("quote_pack_ids")) {
-      console.warn("Supabase column quote_pack_ids missing. Run migrate_add_quote_pack_ids.sql.");
-      const { quote_pack_ids: _packs, ...rest } = payload;
-      return attempt(rest, [...suppressedErrors, "quote_pack_ids"]);
+  try {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    const row = toDbRow(config);
+    const attempt = async (payload: Record<string, any>, suppressedErrors: string[] = []) => {
+      const { error } = await supabase.from("sessions").upsert(payload);
+      if (!error) return;
+      const message = (error as any)?.message ?? String(error);
+      if (/quote_pack_ids/i.test(message) && !suppressedErrors.includes("quote_pack_ids")) {
+        console.warn("Supabase column quote_pack_ids missing. Run migrate_add_quote_pack_ids.sql.");
+        const { quote_pack_ids: _packs, ...rest } = payload;
+        return attempt(rest, [...suppressedErrors, "quote_pack_ids"]);
+      }
+      if (/jigsaw_mode/i.test(message) && !suppressedErrors.includes("jigsaw_mode")) {
+        console.warn("Supabase column jigsaw_mode missing. Run migrate_add_jigsaw_mode.sql.");
+        const { jigsaw_mode: _mode, ...rest } = payload;
+        return attempt(rest, [...suppressedErrors, "jigsaw_mode"]);
+      }
+      if (/jigsaw_layout/i.test(message) && !suppressedErrors.includes("jigsaw_layout")) {
+        console.warn("Supabase column jigsaw_layout missing. Consider adding it for layout sync.");
+        const { jigsaw_layout: _layout, ...rest } = payload;
+        return attempt(rest, [...suppressedErrors, "jigsaw_layout"]);
+      }
+      console.error("Supabase upsert config failed", error);
     }
-    if (/jigsaw_mode/i.test(message) && !suppressedErrors.includes("jigsaw_mode")) {
-      console.warn("Supabase column jigsaw_mode missing. Run migrate_add_jigsaw_mode.sql.");
-      const { jigsaw_mode: _mode, ...rest } = payload;
-      return attempt(rest, [...suppressedErrors, "jigsaw_mode"]);
-    }
-    if (/jigsaw_layout/i.test(message) && !suppressedErrors.includes("jigsaw_layout")) {
-      console.warn("Supabase column jigsaw_layout missing. Consider adding it for layout sync.");
-      const { jigsaw_layout: _layout, ...rest } = payload;
-      return attempt(rest, [...suppressedErrors, "jigsaw_layout"]);
-    }
-    console.error("Supabase upsert config failed", error);
+    await attempt(row);
+  } catch (error) {
+    console.error("Unexpected error in upsertConfigToSupabase:", error);
+    // Continue with local storage fallback
   }
-  await attempt(row);
 };
 
 const notifyAll = (config: GameConfig | null) => {
