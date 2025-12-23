@@ -23,6 +23,6 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "puzzle_design/code 2"]
+  "exclude": ["node_modules", "puzzle_design/code 2", "puzzle-quest"]
 }
 
