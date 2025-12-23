@@ -33,5 +33,5 @@ yarn-error.log*
 next-env.d.ts
 
 # puzzle-quest separate project
-/puzzle-quest
+# /puzzle-quest
 

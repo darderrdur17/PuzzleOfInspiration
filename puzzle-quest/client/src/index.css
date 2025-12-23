@@ -1,0 +1,194 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-fantasy: "Cinzel Decorative", serif;
+  --font-body: "Lato", sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  --color-magical-glow: var(--magical-glow);
+  --color-magical-accent: var(--magical-accent);
+}
+
+:root {
+  /* Default Dark/Fantasy Theme Base */
+  --background: oklch(0.15 0.05 280); /* Deep midnight blue */
+  --foreground: oklch(0.95 0.02 280); /* Pale blue-white */
+  
+  --card: oklch(0.2 0.05 280);
+  --card-foreground: oklch(0.95 0.02 280);
+  
+  --popover: oklch(0.2 0.05 280);
+  --popover-foreground: oklch(0.95 0.02 280);
+  
+  --primary: oklch(0.6 0.2 280); /* Vibrant purple */
+  --primary-foreground: oklch(0.98 0 0);
+  
+  --secondary: oklch(0.3 0.1 260); /* Deep blue */
+  --secondary-foreground: oklch(0.98 0 0);
+  
+  --muted: oklch(0.25 0.05 280);
+  --muted-foreground: oklch(0.7 0.05 280);
+  
+  --accent: oklch(0.4 0.15 280);
+  --accent-foreground: oklch(0.98 0 0);
+  
+  --destructive: oklch(0.6 0.2 20);
+  --destructive-foreground: oklch(0.98 0 0);
+  
+  --border: oklch(0.3 0.05 280);
+  --input: oklch(0.3 0.05 280);
+  --ring: oklch(0.6 0.2 280);
+  
+  --radius: 0.5rem;
+  
+  /* Custom Fantasy Colors */
+  --magical-glow: oklch(0.8 0.2 200); /* Cyan glow */
+  --magical-accent: oklch(0.8 0.2 60); /* Amber/Gold accent */
+}
+
+/* Theme Specific Overrides - Applied via data-theme attribute on body or container */
+
+/* Aurora Grove */
+[data-theme="aurora-grove"] {
+  --primary: oklch(0.6 0.2 150); /* Green */
+  --magical-glow: oklch(0.8 0.2 140); /* Bright Green */
+  --magical-accent: oklch(0.7 0.2 300); /* Purple */
+  --background: oklch(0.15 0.05 150);
+}
+
+/* Chrono Forge */
+[data-theme="chrono-forge"] {
+  --primary: oklch(0.6 0.15 50); /* Bronze/Orange */
+  --magical-glow: oklch(0.8 0.2 60); /* Gold */
+  --magical-accent: oklch(0.7 0.1 30); /* Copper */
+  --background: oklch(0.15 0.05 40);
+}
+
+/* Tidal Circuit */
+[data-theme="tidal-circuit"] {
+  --primary: oklch(0.6 0.2 240); /* Blue */
+  --magical-glow: oklch(0.8 0.2 200); /* Cyan */
+  --magical-accent: oklch(0.9 0.1 240); /* Light Blue */
+  --background: oklch(0.15 0.05 240);
+}
+
+/* Lumen Bazaar */
+[data-theme="lumen-bazaar"] {
+  --primary: oklch(0.6 0.2 330); /* Pink/Magenta */
+  --magical-glow: oklch(0.8 0.2 40); /* Orange */
+  --magical-accent: oklch(0.7 0.2 300); /* Purple */
+  --background: oklch(0.15 0.05 330);
+}
+
+/* Mythic Atrium */
+[data-theme="mythic-atrium"] {
+  --primary: oklch(0.6 0.1 80); /* Gold/Yellow */
+  --magical-glow: oklch(0.8 0.2 260); /* Blue magic */
+  --magical-accent: oklch(0.7 0.2 40); /* Fire Orange */
+  --background: oklch(0.15 0.02 280);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    background-image: url('/images/app-background.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-fantasy tracking-wide;
+  }
+}
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+      max-width: 1280px;
+    }
+  }
+  
+  /* Glassmorphism Utilities */
+  .glass-panel {
+    @apply bg-black/40 backdrop-blur-md border border-white/10 shadow-xl;
+  }
+  
+  .glass-button {
+    @apply bg-white/10 hover:bg-white/20 active:bg-white/5 backdrop-blur-sm border border-white/20 transition-all duration-300;
+  }
+  
+  /* Magical Glow Effects */
+  .glow-text {
+    text-shadow: 0 0 10px var(--magical-glow);
+  }
+  
+  .glow-box {
+    box-shadow: 0 0 15px var(--magical-glow);
+  }
+
+  .skip-link {
+    position: absolute;
+    left: -999px;
+    top: 0;
+    padding: 0.5rem 1rem;
+    background: #0b1020;
+    color: white;
+    border: 2px solid var(--magical-glow);
+    border-radius: 0.5rem;
+    z-index: 9999;
+    text-decoration: none;
+    box-shadow: 0 0 10px var(--magical-glow);
+  }
+
+  .skip-link:focus {
+    left: 1rem;
+    top: 1rem;
+  }
+}
