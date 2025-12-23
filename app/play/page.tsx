@@ -27,7 +27,7 @@ import { GameSync } from "@/lib/gameSync";
 import { CustomQuotes } from "@/lib/customQuotes";
 import { playSuccessTone, playErrorTone, playAlertTone } from "@/lib/soundboard";
 import { toast } from "sonner";
-import { Sparkles, Zap, Palette } from "lucide-react";
+import { Zap, Palette } from "lucide-react";
 import { RealtimeStore } from "@/lib/realtimeStore";
 import { DragStartEvent, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
 import { quotePackagesById, getDefaultQuotePackIds, type QuotePackId } from "@/data/quotePackages";
@@ -37,6 +37,8 @@ import {
   jigsawThemeConfigs,
   type JigsawLayoutId,
 } from "@/lib/jigsawThemes";
+import { motion, AnimatePresence } from 'framer-motion';
+import { Trophy, Sparkles, Flame, Target, XCircle } from 'lucide-react';
 
 const phaseTitles: PhaseTitle[] = [
   { id: "title-preparation", title: "Preparation", phase: "preparation" },
@@ -94,13 +96,18 @@ const shuffleWithSeed = (items: Quote[], seed: number): Quote[] => {
 };
 
 // Scoring constants
-const POINTS_CORRECT_QUOTE = 10;
-const POINTS_CORRECT_TITLE = 20;
-const POINTS_USER_PIECE = 10;
-const POINTS_PENALTY_WRONG = -5; // Penalty for wrong placement
+const POINTS_CORRECT_QUOTE = 120;
+const POINTS_CORRECT_TITLE = 150;
+const POINTS_USER_PIECE = 140;
+const POINTS_PENALTY_WRONG = -20; // Penalty for wrong placement
+const STREAK_BONUS_STEP = 15;
+const STREAK_MILESTONE = 5;
+const STREAK_MILESTONE_BONUS = 75;
+const COMPLETION_BONUS = 200;
+const STREAK_FINISH_BONUS = 25;
+const ACCURACY_BONUS_PER_PERCENT = 2;
 const SPEED_BONUS_MULTIPLIER = 0.1; // Bonus points per second saved
 const HINT_COST = 15;
-const COMBO_BONUS_POINTS = 5;
 const QUIZ_BONUS_POINTS = 20;
 const PHASE_ORDER: Phase[] = ["preparation", "incubation", "illumination", "verification"];
 const PHASE_LABELS: Record<Phase, string> = {
@@ -157,6 +164,8 @@ export default function PlayPage() {
   const [phaseStreaks, setPhaseStreaks] = useState<Record<Phase, number>>(() => ({ ...EMPTY_STREAKS }));
   const [comboCounter, setComboCounter] = useState(0);
   const [bonusAdjustments, setBonusAdjustments] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
+  const [lastEvent, setLastEvent] = useState<{ type: 'hit' | 'miss' | 'complete'; delta: number; streak?: number } | null>(null);
   const [selectedHintPhase, setSelectedHintPhase] = useState<Phase>("preparation");
   const [answeredQuizzes, setAnsweredQuizzes] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
@@ -325,6 +334,12 @@ export default function PlayPage() {
   }, [comboCounter]);
 
   useEffect(() => {
+    if (!lastEvent) return;
+    const timer = setTimeout(() => setLastEvent(null), 1800);
+    return () => clearTimeout(timer);
+  }, [lastEvent]);
+
+  useEffect(() => {
     if (gameConfig?.themeId) {
       setThemeId(gameConfig.themeId);
     }
@@ -426,6 +441,7 @@ export default function PlayPage() {
     setPhaseStreaks({ ...EMPTY_STREAKS });
     setComboCounter(0);
     setBonusAdjustments(0);
+    setBestStreak(0);
     setAnsweredQuizzes([]);
     setSelectedHintPhase("preparation");
 
@@ -482,6 +498,15 @@ export default function PlayPage() {
 
   const calculateFinalPoints = useCallback((totalTime: number): number => {
     const basePoints = calculatePoints();
+    const correctCount = calculateCorrectCount();
+    const attempts = correctCount + wrongAttempts;
+    const accuracyPct = attempts ? Math.round((correctCount / attempts) * 100) : 100;
+
+    const streakFinishBonus = bestStreak * STREAK_FINISH_BONUS;
+    const accuracyBonus = accuracyPct * ACCURACY_BONUS_PER_PERCENT;
+    const completionBonus = correctCount > 0 ? COMPLETION_BONUS : 0;
+
+    let total = basePoints + accuracyBonus + streakFinishBonus + completionBonus;
 
     // Speed bonus: faster completion = more bonus points
     // Game master controls the official timing through timeLimit
@@ -491,12 +516,12 @@ export default function PlayPage() {
       const maxTime = config.timeLimit * 1000;
       const timeSaved = Math.max(0, maxTime - totalTime);
       const speedBonus = Math.floor(timeSaved * SPEED_BONUS_MULTIPLIER / 1000);
-      return basePoints + speedBonus;
+      total += speedBonus;
     }
 
     // No game master time limit - return base points only
-    return basePoints;
-  }, [calculatePoints]);
+    return Math.max(0, total);
+  }, [calculatePoints, calculateCorrectCount, bestStreak, wrongAttempts]);
 
   const renderWithShell = (content: JSX.Element) => (
     <div className="relative min-h-screen quest-body overflow-hidden">
@@ -510,17 +535,20 @@ export default function PlayPage() {
   const recordCorrectPlacement = useCallback(
     (phase: Phase) => {
       playSuccessTone();
+      const multiplier = gameConfig?.challengeMode === "double-points" ? 2 : 1;
       setPhaseStreaks((prev) => ({
         ...prev,
         [phase]: prev[phase] + 1,
       }));
       setComboCounter((prev) => {
         const next = prev + 1;
-        if (next > 0 && next % 3 === 0) {
-          const reward =
-            COMBO_BONUS_POINTS * (gameConfig?.challengeMode === "double-points" ? 2 : 1);
-          setBonusAdjustments((adj) => adj + reward);
-          toast.success(`Combo streak! +${reward} bonus points`);
+        const streakReward = next * STREAK_BONUS_STEP * multiplier;
+        const milestoneReward = next % STREAK_MILESTONE === 0 ? STREAK_MILESTONE_BONUS * multiplier : 0;
+        setBonusAdjustments((adj) => adj + streakReward + milestoneReward);
+        setBestStreak((best) => Math.max(best, next));
+        if (milestoneReward > 0) {
+          toast.success(`Streak ${next}x! +${streakReward + milestoneReward} bonus`);
+          setLastEvent({ type: 'hit', delta: streakReward + milestoneReward, streak: next });
         }
         return next;
       });
@@ -687,11 +715,19 @@ export default function PlayPage() {
               },
             }));
 
-            toast.success(`Correct! +${POINTS_CORRECT_TITLE} points`);
+            const projectedStreak = comboCounter + 1;
+            const streakBonus = projectedStreak * STREAK_BONUS_STEP * (gameConfig?.challengeMode === "double-points" ? 2 : 1);
+            const milestoneBonus =
+              projectedStreak % STREAK_MILESTONE === 0
+                ? STREAK_MILESTONE_BONUS * (gameConfig?.challengeMode === "double-points" ? 2 : 1)
+                : 0;
+            toast.success(`Correct! +${POINTS_CORRECT_TITLE + streakBonus + milestoneBonus} points`);
+            setLastEvent({ type: 'hit', delta: POINTS_CORRECT_TITLE + streakBonus + milestoneBonus, streak: projectedStreak });
             recordCorrectPlacement(data.title.phase);
           } else {
             // Wrong placement - return to available titles
-            toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points. Try again!`);
+            toast.error(`Wrong placement! -${Math.abs(POINTS_PENALTY_WRONG)} points. Try again!`);
+            setLastEvent({ type: 'miss', delta: -Math.abs(POINTS_PENALTY_WRONG) });
 
             // Remove from any previous placement
             setPlacedTitles((prev) => {
@@ -751,12 +787,19 @@ export default function PlayPage() {
           },
         }));
 
-        toast.success(`Correct! +${POINTS_CORRECT_TITLE} points`);
+        const projectedStreak = comboCounter + 1;
+        const streakBonus = projectedStreak * STREAK_BONUS_STEP * (gameConfig?.challengeMode === "double-points" ? 2 : 1);
+        const milestoneBonus =
+          projectedStreak % STREAK_MILESTONE === 0
+            ? STREAK_MILESTONE_BONUS * (gameConfig?.challengeMode === "double-points" ? 2 : 1)
+            : 0;
+        toast.success(`Correct! +${POINTS_CORRECT_TITLE + streakBonus + milestoneBonus} points`);
         recordCorrectPlacement(draggedTitle.phase);
       } else {
         // Wrong placement - return to available titles
-        toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points. Try again!`);
-        
+        toast.error(`Wrong placement! -${Math.abs(POINTS_PENALTY_WRONG)} points. Try again!`);
+        setLastEvent({ type: 'miss', delta: -Math.abs(POINTS_PENALTY_WRONG) });
+
         // Remove from any previous placement
         setPlacedTitles((prev) => {
           const newPlacements = { ...prev };
@@ -813,12 +856,21 @@ export default function PlayPage() {
         };
       });
 
-      toast.success(`Correct! +${draggedQuote.id === "user-answer" ? POINTS_USER_PIECE : POINTS_CORRECT_QUOTE} points`);
+      const projectedStreak = comboCounter + 1;
+      const streakBonus = projectedStreak * STREAK_BONUS_STEP * (gameConfig?.challengeMode === "double-points" ? 2 : 1);
+      const milestoneBonus =
+        projectedStreak % STREAK_MILESTONE === 0
+          ? STREAK_MILESTONE_BONUS * (gameConfig?.challengeMode === "double-points" ? 2 : 1)
+          : 0;
+      const baseReward = draggedQuote.id === "user-answer" ? POINTS_USER_PIECE : POINTS_CORRECT_QUOTE;
+      toast.success(`Correct! +${baseReward + streakBonus + milestoneBonus} points`);
+      setLastEvent({ type: 'hit', delta: baseReward + streakBonus + milestoneBonus, streak: projectedStreak });
       recordCorrectPlacement(draggedQuote.phase);
     } else {
       // Wrong placement - return to available quotes
-      toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points. Try again!`);
-      
+      toast.error(`Wrong placement! -${Math.abs(POINTS_PENALTY_WRONG)} points. Try again!`);
+      setLastEvent({ type: 'miss', delta: -Math.abs(POINTS_PENALTY_WRONG) });
+
       // Remove from any previous placement
       setPlacedQuotes((prev) => {
         const newPlacements = { ...prev };
@@ -866,11 +918,13 @@ export default function PlayPage() {
 
       setUserPuzzlePiece(null);
       toast.success(`Correct! +${POINTS_USER_PIECE} points`);
+      setLastEvent({ type: 'hit', delta: POINTS_USER_PIECE });
       recordCorrectPlacement("incubation");
     } else {
       // Wrong placement - keep it in the initial box
       registerWrongAttempt(phase);
-      toast.error(`Wrong placement! ${POINTS_PENALTY_WRONG} points. Your creative moment should go in Incubation!`);
+      toast.error(`Wrong placement! -${Math.abs(POINTS_PENALTY_WRONG)} points. Your creative moment should go in Incubation!`);
+      setLastEvent({ type: 'miss', delta: -Math.abs(POINTS_PENALTY_WRONG) });
     }
   };
 
@@ -985,8 +1039,10 @@ export default function PlayPage() {
     setPhaseStreaks({ ...EMPTY_STREAKS });
     setComboCounter(0);
     setBonusAdjustments(0);
+    setBestStreak(0);
     setSelectedHintPhase("preparation");
     setAnsweredQuizzes([]);
+    setLastEvent(null);
   };
 
   if (!gameState.isStarted) {
@@ -1011,6 +1067,9 @@ export default function PlayPage() {
   }
 
   const correctPlacements = calculateCorrectCount();
+  const totalAttempts = correctPlacements + wrongAttempts;
+  const accuracy = totalAttempts ? Math.round((correctPlacements / totalAttempts) * 100) : 100;
+  const currentStreak = comboCounter;
   // Get remaining time from game config
   const remainingTime = gameConfig?.gameEndTime
     ? Math.max(0, Math.floor((gameConfig.gameEndTime - Date.now()) / 1000))
@@ -1095,6 +1154,91 @@ export default function PlayPage() {
             </div>
           </div>
         )}
+
+        {/* Live Stats Panel - Full Ethereal Codex Layout */}
+        <div className="w-full max-w-5xl mb-4">
+          <div className="glass-panel rounded-2xl border-white/10 px-4 py-3 text-white shadow-2xl">
+            <div className="flex flex-wrap items-center gap-4 justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-white/5 border border-white/10">
+                  <Sparkles className="w-5 h-5 text-[var(--magical-glow)]" />
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-white/60">Points</div>
+                  <div className="text-xl font-fantasy">{gameState.points.toLocaleString()}</div>
+                  <div className="text-[11px] text-white/50">Base + streak + speed</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-white/5 border border-white/10">
+                  <Flame className="w-5 h-5 text-amber-300" />
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-white/60">Streak</div>
+                  <div className="text-xl font-fantasy">{currentStreak}x</div>
+                  <div className="text-[11px] text-white/50">Best {bestStreak}x</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-white/5 border border-white/10">
+                  <Target className="w-5 h-5 text-emerald-300" />
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-white/60">Accuracy</div>
+                  <div className="text-xl font-fantasy">{accuracy}%</div>
+                  <div className="text-[11px] text-white/50">{correctPlacements} / {totalAttempts || 0} moves</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-white/5 border border-white/10">
+                  <XCircle className="w-5 h-5 text-red-300" />
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-white/60">Mistakes</div>
+                  <div className="text-xl font-fantasy">{wrongAttempts}</div>
+                  <div className="text-[11px] text-white/50">{Math.abs(POINTS_PENALTY_WRONG)}pts penalty each</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[var(--magical-glow)] via-[var(--primary)] to-[var(--magical-accent)] shadow-[0_0_12px_var(--magical-glow)] transition-all duration-500"
+                  style={{ width: `${Math.min(100, (correctPlacements / Math.max(1, puzzleQuotes.length + phaseTitles.length + 1)) * 100)}%` }}
+                />
+              </div>
+              <div className="mt-1 text-xs text-white/60 flex justify-between">
+                <span>{correctPlacements}/{puzzleQuotes.length + phaseTitles.length + 1} pieces aligned</span>
+                <span>{Math.round((correctPlacements / Math.max(1, puzzleQuotes.length + phaseTitles.length + 1)) * 100)}% complete</span>
+              </div>
+            </div>
+
+            {/* Event Notifications */}
+            <AnimatePresence>
+              {lastEvent && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                  className="mt-3 px-3 py-2 rounded-lg border border-white/15 bg-white/10 flex items-center gap-2 shadow-lg"
+                >
+                  {lastEvent.type === 'hit' && <Sparkles className="w-4 h-4 text-[var(--magical-glow)]" />}
+                  {lastEvent.type === 'miss' && <XCircle className="w-4 h-4 text-red-300" />}
+                  {lastEvent.type === 'complete' && <Trophy className="w-4 h-4 text-yellow-300" />}
+                  <span className="text-sm font-medium">
+                    {lastEvent.type === 'hit' && `+${lastEvent.delta} resonance!${lastEvent.streak ? ` Streak ${lastEvent.streak}x` : ''}`}
+                    {lastEvent.type === 'miss' && `${lastEvent.delta} misplaced. Realign and try again.`}
+                    {lastEvent.type === 'complete' && `+${lastEvent.delta} Realm restored!`}
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
 
         {/* Main content */}
         <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">

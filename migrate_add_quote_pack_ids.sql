@@ -5,3 +5,4 @@ alter table public.sessions
 add column if not exists quote_pack_ids text[] not null default '{}'::text[];
 
 
+

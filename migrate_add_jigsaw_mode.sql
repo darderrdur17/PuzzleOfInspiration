@@ -10,3 +10,4 @@ update public.sessions
 set jigsaw_mode = 'classic'
 where jigsaw_mode is null;
 
+
