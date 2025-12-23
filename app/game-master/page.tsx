@@ -19,6 +19,7 @@ import { themeList, getRandomRapidFireQuestion } from "@/data/themes";
 import { GameSync, type GameConfig } from "@/lib/gameSync";
 import { CustomQuotes } from "@/lib/customQuotes";
 import { cn, formatTime } from "@/lib/utils";
+import { quotePackages, QuotePackId } from "@/data/quotePackages";
 
 interface ActivePlayer {
   name: string;
@@ -59,6 +60,8 @@ export default function GameMasterPage() {
   const [activePlayers, setActivePlayers] = useState<ActivePlayer[]>([]);
   const [leaderboard, setLeaderboard] = useState<PlayerScore[]>([]);
   const [customQuotes, setCustomQuotes] = useState<CustomQuote[]>([]);
+  const [selectedQuotePacks, setSelectedQuotePacks] = useState<QuotePackId[]>(["classic-core"]);
+  const [shareLink, setShareLink] = useState<string>("");
   const [newQuote, setNewQuote] = useState<{
     text: string;
     author: string;
@@ -71,28 +74,66 @@ export default function GameMasterPage() {
     themeId: "classic",
   });
 
-  // Simple handlers
+  // Derived data
+  const availableQuotePackIds = quotePackages.map((p) => p.id);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setShareLink(`${window.location.origin}/play`);
+    }
+    const cfg = GameSync.getConfig();
+    if (cfg) {
+      setSelectedTheme(cfg.themeId);
+      setSelectedJigsawLayout((cfg.jigsawLayout as JigsawLayoutId) ?? DEFAULT_JIGSAW_LAYOUT);
+      setSelectedQuotePacks((cfg.quotePackIds as QuotePackId[]) ?? ["classic-core"]);
+      setIsGameActive(cfg.isGameActive);
+      if (cfg.timeLimit) {
+        setTimeLimit(Math.max(5, Math.round(cfg.timeLimit / 60)));
+      }
+    }
+  }, []);
+
+  const syncConfig = (partial: Partial<GameConfig>) => {
+    GameSync.updateConfig({
+      ...partial,
+      timeLimit: partial.timeLimit ?? timeLimit * 60,
+      quotePackIds: partial.quotePackIds ?? selectedQuotePacks,
+      jigsawLayout: partial.jigsawLayout ?? selectedJigsawLayout,
+      boardLayout: partial.boardLayout ?? selectedJigsawLayout,
+      themeId: partial.themeId ?? selectedTheme,
+    });
+  };
+
   const handleStartGame = () => {
     setIsGameActive(true);
+    syncConfig({
+      isGameActive: true,
+      gameStartTime: Date.now(),
+      gameEndTime: Date.now() + timeLimit * 60 * 1000,
+    });
   };
 
   const handleEndGame = () => {
-    setIsGameActive(false);
+      setIsGameActive(false);
+    syncConfig({
+      isGameActive: false,
+      gameEndTime: Date.now(),
+    });
   };
 
   const handleAddQuote = () => {
     if (newQuote.text.trim() && newQuote.author.trim()) {
-      const quote: CustomQuote = {
-        id: `custom-${Date.now()}`,
-        text: newQuote.text.trim(),
-        author: newQuote.author.trim(),
-        phase: newQuote.phase,
-        themeId: newQuote.themeId,
-      };
+    const quote: CustomQuote = {
+      id: `custom-${Date.now()}`,
+      text: newQuote.text.trim(),
+      author: newQuote.author.trim(),
+      phase: newQuote.phase,
+      themeId: newQuote.themeId,
+    };
       setCustomQuotes(prev => [...prev, quote]);
       setNewQuote({
-        text: "",
-        author: "",
+      text: "",
+      author: "",
         phase: "preparation",
         themeId: "classic"
       });
@@ -113,6 +154,25 @@ export default function GameMasterPage() {
       <div className="relative">{content}</div>
     </div>
   );
+
+  const toggleQuotePack = (id: QuotePackId) => {
+    setSelectedQuotePacks((prev) => {
+      const exists = prev.includes(id);
+      const next = exists ? prev.filter((p) => p !== id) : [...prev, id];
+      syncConfig({ quotePackIds: next });
+      return next;
+    });
+  };
+
+  const copyShareLink = async () => {
+    if (!shareLink) return;
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      toast.success("Share link copied!");
+    } catch {
+      toast.error("Unable to copy link");
+    }
+  };
 
   return renderWithShell(
     <div className="min-h-screen p-4 sm:p-6 md:p-8">
@@ -147,9 +207,9 @@ export default function GameMasterPage() {
               {isGameActive
                 ? `Started at ${new Date().toLocaleTimeString()}`
                 : "Players can join when you start the game"}
-            </p>
-          </div>
-        </div>
+                  </p>
+                </div>
+            </div>
 
         <div className="space-y-4">
           <Tabs defaultValue="settings">
@@ -161,84 +221,168 @@ export default function GameMasterPage() {
           </TabsList>
 
           <TabsContent value="settings" className="space-y-4">
-            {/* Game Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="w-5 h-5" />
-                  Game Configuration
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="time-limit">Time Limit (minutes)</Label>
-                    <Input
-                      id="time-limit"
-                      type="number"
-                      min="5"
-                      max="120"
-                      value={timeLimit}
-                      onChange={(e) => setTimeLimit(parseInt(e.target.value) || 20)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="theme">Theme</Label>
-                    <Select value={selectedTheme} onValueChange={(value: string) => setSelectedTheme(value as ThemeId)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {themeList.map((theme) => (
-                          <SelectItem key={theme.id} value={theme.id}>
-                            {theme.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="layout">Jigsaw Layout</Label>
+          {/* Game Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Game Configuration
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+                  <Label htmlFor="time-limit">Time Limit (minutes)</Label>
+                  <Input
+                id="time-limit"
+                type="number"
+                    min="5"
+                    max="120"
+                value={timeLimit}
+                    onChange={(e) => {
+                      const minutes = parseInt(e.target.value) || 20;
+                      setTimeLimit(minutes);
+                      syncConfig({ timeLimit: minutes * 60 });
+                    }}
+                  />
+            </div>
+            <div className="space-y-2">
+                  <Label htmlFor="theme">Theme</Label>
                   <Select
-                    value={selectedJigsawLayout}
-                    onValueChange={(value: string) => setSelectedJigsawLayout(value as JigsawLayoutId)}
+                  value={selectedTheme}
+                    onValueChange={(value: string) => {
+                      setSelectedTheme(value as ThemeId);
+                      const mapped = defaultJigsawLayoutByTheme[value as ThemeId] ?? DEFAULT_JIGSAW_LAYOUT;
+                      setSelectedJigsawLayout(mapped);
+                      syncConfig({ themeId: value as ThemeId, jigsawLayout: mapped, boardLayout: mapped });
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.values(BOARD_LAYOUTS).map((layout) => (
-                        <SelectItem key={layout.type} value={layout.type}>
-                          {layout.name}
+                      {themeList.map((theme) => (
+                        <SelectItem key={theme.id} value={theme.id}>
+                          {theme.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="layout">Jigsaw Layout</Label>
+                <Select
+                  value={selectedJigsawLayout}
+                  onValueChange={(value: string) => {
+                    setSelectedJigsawLayout(value as JigsawLayoutId);
+                    syncConfig({ jigsawLayout: value as JigsawLayoutId, boardLayout: value as BoardLayoutType });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(BOARD_LAYOUTS).map((layout) => (
+                      <SelectItem key={layout.type} value={layout.type}>
+                          {layout.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleStartGame}
-                    disabled={isGameActive}
-                    className="flex-1"
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleStartGame}
+                  disabled={isGameActive}
+                  className="flex-1"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Start Game
+                </Button>
+                <Button
+                  onClick={handleEndGame}
+                  disabled={!isGameActive}
+                  variant="destructive"
+                  className="flex-1"
+                >
+                  <Square className="w-4 h-4 mr-2" />
+                  End Game
+                </Button>
+                          </div>
+            </CardContent>
+          </Card>
+
+          {/* Invite link */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Share link with players
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-sm text-gray-700">
+                Players join at the link below. Copy and share it in chat or LMS.
+                          </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input readOnly value={shareLink} />
+                <Button onClick={copyShareLink} className="sm:w-32">
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copy
+                </Button>
+                            </div>
+            </CardContent>
+          </Card>
+
+          {/* Quote packages */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lightbulb className="w-5 h-5" />
+                Quote Packages
+              </CardTitle>
+              <p className="text-sm text-gray-600">
+                Choose which quote sets to include for this session. You can mix topic and duration-focused packs.
+              </p>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {quotePackages.map((pack) => {
+                const checked = selectedQuotePacks.includes(pack.id);
+                return (
+                  <label
+                    key={pack.id}
+                    className={cn(
+                      "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition hover:border-purple-300",
+                      checked ? "border-purple-400 bg-purple-50" : "border-gray-200 bg-white"
+                    )}
                   >
-                    <Play className="w-4 h-4 mr-2" />
-                    Start Game
-                  </Button>
-                  <Button
-                    onClick={handleEndGame}
-                    disabled={!isGameActive}
-                    variant="destructive"
-                    className="flex-1"
-                  >
-                    <Square className="w-4 h-4 mr-2" />
-                    End Game
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleQuotePack(pack.id)}
+                      className="mt-1 h-4 w-4"
+                    />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{pack.badge ?? "🧩"}</span>
+                        <span className="font-semibold text-gray-900">{pack.name}</span>
+              </div>
+                      <p className="text-sm text-gray-600">{pack.description}</p>
+              <p className="text-xs text-gray-500">
+                        Themes: {pack.recommendedThemes.join(", ")}
+                      </p>
+              <p className="text-xs text-gray-500">
+                        Quotes: {pack.quotes.length}
+                      </p>
+                      </div>
+                  </label>
+                  );
+                })}
+            </CardContent>
+          </Card>
           </TabsContent>
 
           <TabsContent value="players" className="space-y-4">
@@ -262,19 +406,19 @@ export default function GameMasterPage() {
                             <span className="text-sm font-semibold text-blue-600">
                               {player.name.charAt(0).toUpperCase()}
                             </span>
-                          </div>
-                          <div>
+          </div>
+                <div>
                             <p className="font-medium">{player.name}</p>
                             <p className="text-sm text-gray-500">Joined {new Date(player.joinedAt).toLocaleTimeString()}</p>
-                          </div>
-                        </div>
+                  </div>
+                  </div>
                         <Badge variant={player.isReady ? "default" : "secondary"}>
                           {player.isReady ? "Ready" : "Waiting"}
                         </Badge>
-                      </div>
+                </div>
                     ))}
-                  </div>
-                )}
+            </div>
+          )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -303,19 +447,19 @@ export default function GameMasterPage() {
                             'bg-gray-50 text-gray-600'
                           }`}>
                             {index + 1}
-                          </div>
-                          <div>
+            </div>
+                <div>
                             <p className="font-medium">{entry.name}</p>
                             <p className="text-sm text-gray-500">{entry.sessionId}</p>
-                          </div>
-                        </div>
+                </div>
+              </div>
                         <div className="text-right">
                           <div className="font-bold">{entry.points}</div>
                           <div className="text-sm text-gray-500">{Math.floor(entry.time / 1000)}s</div>
-                        </div>
-                      </div>
+            </div>
+                </div>
                     ))}
-                  </div>
+              </div>
                 )}
               </CardContent>
             </Card>
@@ -332,24 +476,24 @@ export default function GameMasterPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+              <div className="space-y-2">
                     <Label htmlFor="quote-text">Quote Text</Label>
                     <Input
-                      id="quote-text"
-                      value={newQuote.text}
+                  id="quote-text"
+                  value={newQuote.text}
                       onChange={(e) => setNewQuote(prev => ({ ...prev, text: e.target.value }))}
                       placeholder="Enter quote text..."
                     />
-                  </div>
-                  <div className="space-y-2">
+              </div>
+              <div className="space-y-2">
                     <Label htmlFor="quote-author">Author</Label>
                     <Input
-                      id="quote-author"
-                      value={newQuote.author}
+                  id="quote-author"
+                  value={newQuote.author}
                       onChange={(e) => setNewQuote(prev => ({ ...prev, author: e.target.value }))}
                       placeholder="Enter author name..."
                     />
-                  </div>
+              </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -373,27 +517,27 @@ export default function GameMasterPage() {
                   <div className="space-y-2">
                     <Label htmlFor="quote-theme">Theme</Label>
                     <Select
-                      value={newQuote.themeId}
+                    value={newQuote.themeId}
                       onValueChange={(value: string) => setNewQuote(prev => ({ ...prev, themeId: value as ThemeId }))}
-                    >
+                  >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {themeList.map((theme) => (
+                    {themeList.map((theme) => (
                           <SelectItem key={theme.id} value={theme.id}>
-                            {theme.name}
+                        {theme.name}
                           </SelectItem>
-                        ))}
+                    ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                </div>
                 </div>
 
                 <Button onClick={handleAddQuote} className="w-full">
                   <Puzzle className="w-4 h-4 mr-2" />
                   Add Custom Quote
-                </Button>
+              </Button>
 
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   <h4 className="font-medium">Existing Quotes</h4>
@@ -405,23 +549,23 @@ export default function GameMasterPage() {
                         <div className="flex-1">
                           <p className="text-sm">&ldquo;{quote.text}&rdquo;</p>
                           <p className="text-xs text-gray-500">- {quote.author}</p>
-                        </div>
-                        <Button
-                          size="sm"
+                      </div>
+                      <Button
+                        size="sm"
                           variant="outline"
                           onClick={() => handleRemoveQuote(quote.id)}
-                        >
-                          Remove
-                        </Button>
-                      </div>
+                      >
+                        Remove
+                      </Button>
+                    </div>
                     ))
-                  )}
-                </div>
+              )}
+            </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
-        </div>
+          </div>
       </div>
     </div>
   );
